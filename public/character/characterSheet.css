@@ -1,0 +1,668 @@
+/* General Styling */
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: auto; /* Allow vertical scrolling */
+}
+
+body {
+    font-family: 'Roboto', 'Open Sans', 'Helvetica', sans-serif;
+    color: #242527;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    background: #FFF; /* Removed background image */
+    transform: scale(1); /* Initial scale */
+    transform-origin: top left;
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.character-sheet-container {
+    width: 100%; /* Ensure it takes the whole page horizontally */
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding-top: 6rem; /* Adjust for fixed header */
+    flex-grow: 1; /* Allow the container to grow and push the footer down */
+}
+
+.character-sheet {
+    width: 100%; /* Ensure it takes the whole page horizontally */
+    max-width: none; /* Remove the maximum width */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: white;
+    border: 1px solid darkgrey;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+input[type="number"], input[type="text"], select, button {
+    border-radius: 5px;
+    text-align: center;
+    background-color: white;
+    font-size: 1em;
+    border: 1px solid #ddd;
+}
+
+input[type="number"].current-value {
+    width: 2em;
+}
+
+button {
+    cursor: pointer;
+    background-color: white;
+    font-size: 1em;
+    border: 1px solid #ddd;
+}
+
+.bold {
+    font-weight: bold;
+    color: black;
+    font-size: 1em;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .character-sheet {
+        padding: 10px;
+    }
+}
+
+/* Global Elements Outside Character Sheet */
+.mode-switch-container {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    color: white; /* Ensure the text is visible */
+}
+
+.mode-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.mode-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.top-right-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.switch-page-button {
+    background-color: blue;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 1em;
+}
+
+.log-container {
+    position: fixed; /* Ensure it stays in the same position relative to the viewport */
+    bottom: 10px;    /* Fixed distance from the bottom of the viewport */
+    right: 10px;     /* Fixed distance from the right of the viewport */
+    width: 300px;
+    max-height: 200px;
+    overflow-y: auto; /* Scrollable content if the log exceeds max-height */
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: white;
+    z-index: 1000; /* Keeps the log above most elements */
+    resize: vertical; /* Allow the user to resize vertically */
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px;
+    background-color: lightgrey;
+    border-bottom: 1px solid darkgrey;
+    font-size: 1em;
+}
+
+.log-content {
+    padding: 5px;
+    font-size: 1em;
+    overflow-y: auto; /* Ensure it scrolls */
+}
+
+/* Box and Element Styling */
+.header, .abilities-container, .defense-container, .skills-and-extras-container, .total-box {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping */
+    justify-content: center;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.header input, .header button, .ability-box, .defense-box, .stat-box, .skills-container, .extra-box, .feats-box, .total-box {
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 5px;
+    text-align: center;
+    font-size: 1em;
+}
+
+.ability-box, .defense-box, .stat-box, .skills-container, .extra-box, .feats-box, .total-box {
+    flex: 1;
+    min-width: 150px;
+}
+
+.stat-values, .defense-score, .defense-bonus, .movement-speed-value, .total-value {
+    font-weight: bold;
+    color: black;
+    font-size: 1em;
+}
+
+.defense-bonus {
+    display: none; /* Hide the base bonus values */
+}
+
+/* Character Sheet Layout */
+.header {
+    justify-content: space-between;
+}
+
+.header input {
+    flex: 2;
+}
+
+.header button {
+    flex: 1;
+}
+
+.abilities-container, .defense-container {
+    flex-wrap: wrap;
+}
+
+.ability-box, .defense-box, .stat-box {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    margin: 5px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    text-align: center;
+    width: auto;
+    height: auto;
+}
+
+.ability-box label, .defense-box label, .stat-box label {
+    margin-bottom: 5px;
+    font-size: 1em;
+}
+
+.ability-box select, .defense-box select, .stat-box select,
+.ability-box button, .defense-box button, .stat-box button,
+.ability-box input, .defense-box input, .stat-box input {
+    margin-top: 5px;
+    font-size: 1em;
+}
+
+.ability-box button.ability-button {
+    display: none; /* Hide ability buttons in edit mode */
+}
+
+.ability-box button.ability-roll-button {
+    display: none; /* Hide ability roll buttons in edit mode */
+}
+
+body.play-mode .ability-box button.ability-roll-button {
+    display: block; /* Ensure ability roll buttons are visible in play mode */
+}
+
+body.play-mode #addSkillButton,
+body.play-mode #skillDropdown {
+    display: none; /* Hide add skill button and dropdown in play mode */
+}
+
+.skill-points-total {
+    font-size: 0.8em; /* Smaller font size */
+    margin-left: 10px; /* Add some space to the left */
+    display: inline-block; /* Ensure it doesn't displace anything */
+}
+
+.skills-and-extras-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch; /* Ensure all items are top and bottom aligned */
+}
+
+.skills-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0; /* Remove extra margins */
+    padding: 0; /* Remove extra padding */
+}
+
+#skills-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    padding: 5px; /* Reduce padding */
+    margin-top: 5px; /* Reduce margin */
+    font-size: 1em;
+}
+
+.extra-boxes-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Ensure boxes are evenly spaced */
+}
+
+.extra-box {
+    flex: 1;
+    margin: 5px; /* Add some margin between boxes */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.extra-box select {
+    margin-top: 10px;
+    font-size: 1em;
+    padding: 5px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: white;
+}
+
+.feats-box {
+    flex: 2;
+    margin: 5px; /* Add some margin between boxes */
+}
+
+/* Specific Element Styling */
+#hit-points, #energy {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#current-hp, #current-energy {
+    vertical-align: middle;
+}
+
+.stat-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1em;
+}
+
+.stat-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px; /* Add some space above the buttons */
+}
+
+.stat-buttons button {
+    width: 2em; /* Ensure buttons are not too large */
+    height: 2em; /* Ensure buttons are not too large */
+    font-size: 1em; /* Ensure font size is consistent */
+}
+
+.skill-points-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-left: auto;
+    margin-right: 10px;
+    position: relative; /* Ensure it is positioned correctly */
+    z-index: 1; /* Ensure it is above other elements */
+}
+
+body.play-mode .skill-points-container {
+    display: none; /* Hide skill points container in play mode */
+}
+
+.skill-points-title {
+    font-size: 0.8em; /* Smaller font size */
+    margin-bottom: 5px; /* Add some space below the title */
+    color: black; /* Ensure the text is visible */
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+.skill-points-total {
+    font-size: 0.8em; /* Smaller font size */
+    padding: 5px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: #f0f0f0; /* Revert background color to grey */
+    display: inline-block; /* Ensure it doesn't displace anything */
+    color: black; /* Ensure the text is visible */
+}
+
+body.play-mode .skill-points-container {
+    display: none; /* Hide skill points container in play mode */
+}
+
+.total-box {
+    position: absolute;
+    right: 10px;
+    top: 50px;
+    padding: 10px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: white;
+    font-size: 1em;
+    color: black;
+}
+
+body.play-mode .total-box {
+    display: none; /* Hide total box in play mode */
+}
+
+.skill-roll-button.proficient {
+    background-color: lightblue;
+}
+
+.evasion-value {
+    font-weight: bold;
+    color: black;
+    font-size: 1em;
+}
+
+.hidden {
+    display: none;
+}
+
+.skill-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    position: relative;
+    font-size: 1em;
+}
+
+.skill-name {
+    flex: 1;
+    text-align: left;
+}
+
+.skill-abilities {
+    flex: 1;
+    text-align: center;
+}
+
+.skill-roll-button {
+    flex: 1;
+    text-align: center;
+    width: 2em; /* Shrink to fit only 2 digits */
+}
+
+.skill-item::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%; /* Center the grey line */
+    transform: translateX(-50%);
+    width: 66.67%;
+    height: 1px;
+    background-color: grey;
+    opacity: 0.5;
+}
+
+.defense-roll-button {
+    display: block; /* Ensure the roll buttons are always visible */
+    flex: 1;
+    text-align: center;
+    width: 2em; /* Ensure the roll button is present and styled */
+}
+
+footer {
+    width: 100%;
+    background: #333;
+    color: #fff;
+    text-align: center;
+    padding: 1rem 0;
+    position: relative;
+    bottom: 0;
+}
+
+/* ...existing code... */
+
+.skill-points-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-left: auto;
+    margin-right: 10px;
+    position: relative; /* Ensure it is positioned correctly */
+    z-index: 1; /* Ensure it is above other elements */
+}
+
+body.play-mode .skill-points-container {
+    display: none; /* Hide skill points container in play mode */
+}
+
+.skill-points-title {
+    font-size: 0.8em; /* Smaller font size */
+    margin-bottom: 5px; /* Add some space below the title */
+    color: black; /* Ensure the text is visible */
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+.skill-points-total {
+    font-size: 0.8em; /* Smaller font size */
+    padding: 5px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: #f0f0f0; /* Revert background color to grey */
+    display: inline-block; /* Ensure it doesn't displace anything */
+    color: black; /* Ensure the text is visible */
+}
+
+/* ...existing code... */
+
+.increase-points-box {
+    position: absolute;
+    right: 10px;
+    top: 100px;
+    padding: 10px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: white;
+    font-size: 1em;
+    color: black;
+}
+
+body.play-mode .increase-points-box {
+    display: none; /* Hide increase points box in play mode */
+}
+
+/* ...existing code... */
+
+.tabs {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+}
+
+.tab {
+    flex: 1;
+    padding: 10px;
+    cursor: pointer;
+    text-align: center;
+    background-color: lightgrey;
+    border: 1px solid darkgrey;
+    border-radius: 5px 5px 0 0;
+}
+
+.tab.active {
+    background-color: grey;
+    border-bottom: none;
+}
+
+.tab-content {
+    border: 1px solid darkgrey;
+    border-radius: 0 0 5px 5px;
+    padding: 10px;
+    display: none;
+}
+
+.tab-content:not(.hidden) {
+    display: block;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ...existing code... */
+
+.proficiency-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.proficiency-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    margin: 5px;
+}
+
+.proficiency-box label {
+    margin-bottom: 5px;
+    font-size: 1em;
+}
+
+.proficiency-box select {
+    font-size: 1em;
+    padding: 5px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: white;
+}
+
+.proficiency-box span {
+    font-size: 1em;
+    padding: 5px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: white;
+}
+
+/* ...existing code... */
+
+.bonus-attack-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.bonus-attack-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.bonus-attack-roll {
+    font-size: 1em;
+    padding: 5px;
+    border: 1px solid darkgrey;
+    border-radius: 5px;
+    background-color: white;
+    cursor: pointer;
+}
+
+/* ...existing code... */
+
+/* ...existing code... */
+.feat-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 1em;
+}
+
+.feat-name {
+    flex: 1;
+    text-align: left;
+}
+
+.feat-description {
+    flex: 2;
+    text-align: left;
+}
+
+body.edit-mode #addFeatButton,
+body.edit-mode #featsDropdown {
+    display: block; /* Show add feat button and dropdown in edit mode */
+}
+
+body.play-mode #addFeatButton,
+body.play-mode #featsDropdown {
+    display: none; /* Hide add feat button and dropdown in play mode */
+}
+
+/* ...existing code... */

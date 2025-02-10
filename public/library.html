@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/library.css">
+    <script defer src="/__/firebase/11.3.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-functions-compat.js"></script>
+    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+    <script type="module" src="/scripts/library.js"></script>
+    <title>Library</title>
+</head>
+<body>
+    <header id="header"></header>
+    <main>
+        <div class="tabs">
+            <button class="tab-button" onclick="openTab(event, 'powers')">Powers</button>
+            <button class="tab-button" onclick="openTab(event, 'techniques')">Techniques</button>
+            <button class="tab-button" onclick="openTab(event, 'armaments')">Armaments</button>
+            <button class="tab-button" onclick="openTab(event, 'savedFeats')">Saved Feats</button>
+        </div>
+        <div id="powers" class="tab-content">
+            <h3>Powers</h3>
+            <ul id="powersList"></ul>
+        </div>
+        <div id="techniques" class="tab-content">
+            <h3>Techniques</h3>
+            <ul id="techniquesList">
+                <li>Example Technique</li>
+            </ul>
+        </div>
+        <div id="armaments" class="tab-content">
+            <h3>Armaments</h3>
+            <ul id="armamentsList">
+                <li>Example Armament</li>
+            </ul>
+        </div>
+        <div id="savedFeats" class="tab-content">
+            <h3>Saved Feats</h3>
+            <ul id="savedFeatsList">
+                <li>Example Feat</li>
+            </ul>
+        </div>
+    </main>
+    <footer id="footer"></footer>
+    <script type="module">
+      import { initializeFirebase, handleAuthStateChange } from '/scripts/auth.js';
+
+      async function loadHeaderFooter() {
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        if (header) {
+          header.innerHTML = await fetch('/header.html').then(response => response.text());
+        }
+        if (footer) {
+          footer.innerHTML = await fetch('/footer.html').then (response => response.text());
+        }
+      }
+      loadHeaderFooter();
+
+      document.addEventListener('DOMContentLoaded', async function() {
+        const { auth, db } = await initializeFirebase();
+        handleAuthStateChange(auth, db);
+      });
+    </script>
+</body>
+</html>

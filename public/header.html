@@ -1,0 +1,44 @@
+<header>
+  <div class="header-row">
+    <div class="logo">
+      <a href="/index.html"><img src="/images/logo.png" alt="Realms Logo"></a>
+    </div>
+    <div id="loginStatus" class="login-status">
+      <a href="/login.html" class="login-status-text">Login</a>
+    </div>
+  </div>
+  <div class="header-row">
+    <nav>
+      <ul>
+        <li><a href="/characters.html">Characters</a></li>
+        <li><a href="/library.html">Library</a></li>
+        <li><a href="/codex.html">Codex</a></li>
+        <li><a href="/rules.html">Rules</a></li>
+        <li class="dropdown">
+          <a href="/creators.html">Creators</a>
+          <div class="dropdown-content">
+            <a href="/powercreator/powerCreator.html">Powers & Techniques</a>
+            <a href="/itemcreator/itemCreator.html">Armaments</a>
+            <a href="/crafting.html">Crafting</a>
+          </div>
+        </li>
+        <li class="dropdown">
+          <a href="/realm-masters-tools.html">Realm Master’s Tools</a>
+          <div class="dropdown-content">
+            <a href="/initiative-tracker.html">Initiative Tracker</a>
+            <a href="/monster-creator.html">Monster Creator</a>
+          </div>
+        </li>
+        <li><a href="/campaigns.html">Campaigns</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<script type="module">
+  import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
+
+  document.addEventListener('DOMContentLoaded', async function() {
+    const { auth, db } = await initializeFirebase();
+    handleAuthStateChange(auth, db);
+  });
+</script>

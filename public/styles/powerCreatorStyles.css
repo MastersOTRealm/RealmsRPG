@@ -1,0 +1,563 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Merriweather:wght@700&display=swap');
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px; /* Add margin to all sides */
+    padding: 0;
+    font-family: 'Nunito', sans-serif;
+    background-color: #f4f4f4;
+}
+
+.page-title {
+    font-family: 'Merriweather', serif;
+    font-size: 36px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+#addPowerPartButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    align-self: flex-start;
+    margin-left: 10%;
+    margin-top: 20px; /* Add spacing between the button and the general power options */
+}
+
+#addPowerPartButton:hover {
+    background-color: #0056b3;
+}
+
+#powerPartsContainer {
+    margin-top: 20px;
+    width: 100%; /* Widen to fill the page */
+    position: relative;
+}
+
+#generalPowerOptionsContainer {
+    margin-top: 20px;
+    width: 100%; /* Widen to fill the page */
+    padding: 10px; /* Reduce padding to make the boxes smaller */
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.centered-title {
+    text-align: center;
+}
+
+#totalCosts {
+    position: fixed;
+    top: 20px;
+    left: 20px; /* Adjust position to the left */
+    right: 20px; /* Adjust position to the right */
+    width: 130px; /* Adjust width to be slightly smaller */
+    padding: 10px;
+    background-color: #e6f7ff; /* Very light blue */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000; /* Ensure it stays on top */
+    font-size: 14px; /* Smaller font size */
+    transition: transform 0.3s ease; /* Smooth transition for collapsing */
+}
+
+#totalCosts h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+#totalCosts p {
+    margin: 5px 0;
+}
+
+#totalCosts.collapsed {
+    transform: translateX(-90%); /* Collapse to a nub */
+}
+
+#totalCosts .toggle-arrow {
+    position: absolute;
+    top: 50%;
+    right: -20px; /* Position the arrow outside the box */
+    width: 20px;
+    height: 20px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transform: translateY(-50%);
+    z-index: 1001; /* Ensure the arrow stays on top */
+}
+
+.power-part-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.power-part-section h3 {
+    font-family: 'American Typewriter', serif;
+    font-size: 24px;
+    margin: 0;
+}
+
+.power-part-section p {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+.power-part-section h4 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    margin: 10px 0 5px;
+    display: flex; /* Ensure the buttons are on the same line */
+    align-items: center;
+}
+
+button {
+    background-color: #007bff; /* Blue color */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px; /* Increase padding for larger buttons */
+    font-size: 16px; /* Increase font size */
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+.medium-button {
+    padding: 5px 10px; /* Medium size for specific buttons */
+    font-size: 14px;
+}
+
+.power-part-section button {
+    margin: 5px;
+}
+
+.power-part-section .delete-button {
+    background-color: #dc3545;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.power-part-section .delete-button:hover {
+    background-color: #c82333;
+}
+
+.power-part-section select {
+    display: block;
+    margin: 0 auto 10px auto;
+    padding: 5px;
+    font-size: 16px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
+.small-text {
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+
+.option-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.option-box {
+    flex: 1;
+    margin: 0 5px;
+    padding: 5px; /* Reduce padding to make the boxes smaller */
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.range-box, .area-box {
+    width: 30%; /* Make the range and area boxes smaller */
+}
+
+.duration-box {
+    width: 60%; /* Make the duration box larger */
+}
+
+.button-container {
+    display: inline-flex; /* Ensure the buttons are on the same line */
+    margin-left: 10px;
+    gap: 5px; /* Add spacing between the buttons */
+}
+
+.small-button {
+    padding: 2px 5px;
+    font-size: 12px;
+}
+
+.small-button:hover {
+    background-color: #4169e1; /* Darker blue on hover */
+}
+
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap; /* Wrap text for checkboxes */
+    margin-top: 10px;
+}
+
+.checkbox-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.left-column {
+    align-items: flex-start; /* Align left column items to the start */
+}
+
+.right-column {
+    align-items: flex-end; /* Align right column items to the end */
+}
+
+.checkbox-container label {
+    margin-bottom: 5px;
+}
+
+.sustain-container {
+    margin-top: 10px;
+}
+
+.sustain-container label {
+    margin-right: 5px;
+}
+
+.sustain-container select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
+.area-effect-container {
+    margin-top: 10px;
+}
+
+.area-effect-container label {
+    margin-right: 5px;
+}
+
+.area-effect-container select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
+.area-effect-container .button-container {
+    display: inline-flex; /* Ensure the buttons are on the same line */
+    margin-left: 10px;
+    gap: 5px; /* Add spacing between the buttons */
+}
+
+.action-type-box {
+    margin-top: 10px;
+}
+
+.action-type-box h4 {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.action-type-box select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+    margin-right: 10px;
+}
+
+.action-type-box label {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.action-type-box #actionTypeDescription {
+    margin-top: 10px;
+}
+
+.alt-energy-button {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.alt-energy-button.toggled {
+    background-color: #0056b3; /* Darker blue to indicate toggled state */
+}
+
+.damage-box {
+    width: 100%; /* Make the damage box full width */
+    margin-top: 10px;
+}
+
+.damage-box h4 {
+    display: flex; /* Ensure the inputs and dropdowns are on the same line */
+    align-items: center;
+}
+
+.damage-box input,
+.damage-box select {
+    margin-left: 5px;
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
+.blue-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.blue-button:hover {
+    background-color: #0056b3;
+}
+
+.red-button {
+    background-color: #ff0000;
+    color: white;
+}
+
+.red-button:hover {
+    background-color: #cc0000;
+}
+
+#powerSummary {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #e6f7ff; /* Very light blue */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Widen to fill the page */
+    position: relative; /* Add relative positioning */
+}
+
+#powerSummary h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.power-summary-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    position: relative; /* Add relative positioning */
+}
+
+.power-summary-top p {
+    margin: 5px 0;
+    flex: 1 1 30%;
+}
+
+.power-summary-top input {
+    flex: 1 1 100%;
+    padding: 5px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+
+.power-summary-top button {
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.power-summary-top button:hover {
+    background-color: #0056b3;
+}
+
+.power-summary-parts {
+    margin-top: 10px;
+}
+
+.power-summary-parts h4 {
+    margin: 0 0 5px 0;
+}
+
+#summaryParts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#summaryParts div {
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    padding: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    flex: 1 1 30%;
+}
+
+.power-summary-description {
+    margin-top: 10px;
+}
+
+.power-summary-description h4 {
+    margin: 0 0 5px 0;
+}
+
+#powerDescription {
+    width: 100%;
+    height: 100px;
+    padding: 5px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.linger-container {
+    margin-top: 10px;
+}
+
+.linger-container label {
+    margin-right: 5px;
+}
+
+.duration-type-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.duration-type-container select {
+    margin-left: 10px;
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif;
+}
+
+.duration-type-container select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.duration-type-container select,
+.duration-box select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
+.top-right-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.switch-page-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.switch-page-button:hover {
+    background-color: #0056b3;
+}
+
+.add-to-library-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.add-to-library-button:hover {
+    background-color: #0056b3;
+}
+
+.button-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.button-row button {
+    margin: 0 10px;
+    padding: 10px 20px; /* Ensure consistent padding */
+    font-size: 16px; /* Ensure consistent font size */
+    border-radius: 5px; /* Ensure consistent border radius */
+    border: none; /* Ensure consistent border */
+    background-color: #007bff; /* Ensure consistent background color */
+    color: white; /* Ensure consistent text color */
+    cursor: pointer; /* Ensure consistent cursor */
+}
+
+.button-row button:hover {
+    background-color: #0056b3; /* Ensure consistent hover color */
+}
+
+.save-power-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.save-power-button:hover {
+    background-color: #0056b3;
+}

@@ -1,0 +1,442 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+    color: #333;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+
+header, footer {
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+    background-color: #666666; /* Unified background color */
+    color: #fff; /* Unified text color */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0; /* Unified padding */
+}
+
+header {
+    top: 0;
+    height: 50px; /* Increase height as needed */
+}
+
+footer {
+    bottom: 0;
+    height: 70px; /* Adjust height as needed */
+}
+
+main {
+    padding-top: 0px; /* Adjust based on header height */
+    padding-bottom: 90px; /* Adjust based on footer height */
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.logo {
+    margin-right: auto; /* Ensure the logo is on the far left */
+}
+
+nav {
+    width: 100%; /* Ensure nav takes full width */
+    text-align: center; /* Center the text links */
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    display: inline-flex; /* Change to inline-flex to center the links */
+    justify-content: center;
+    margin: 0;
+    align-items: center;
+}
+
+nav ul li {
+    position: relative; /* Add position relative for dropdown */
+    margin: 0 1rem;
+}
+
+nav ul li#loginStatus {
+    margin-left: auto;
+}
+
+nav ul li a, .login-status-text {
+    color: #fff; /* Change text color to white */
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: bold; /* Make the login font bold */
+}
+
+nav ul li .dropdown-content {
+    display: none; /* Hide dropdown content by default */
+    position: absolute;
+    background-color: #8b8b8b; /* Change dropdown background to match header */
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+nav ul li .dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+nav ul li .dropdown-content a:hover {
+    background-color: #ddd;
+}
+
+nav ul li:hover .dropdown-content {
+    display: block; /* Show dropdown content on hover */
+}
+
+.login-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1001; /* Ensure the login status is above other elements */
+    font-family: 'Nunito', sans-serif; /* Use Nunito font family */
+}
+
+.login-button {
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 5px; /* Rounded corners */
+    background-color: #007bff; /* Change button color */
+    text-align: center;
+}
+
+.login-button:hover {
+    background-color: #0056b3; /* Change hover color */
+}
+
+.hero {
+    background: url('/images/hero-bg.jpg') no-repeat center center/cover;
+    color: #fff;
+    text-align: center;
+    padding: 5rem 1rem;
+    background-color: rgba(0, 0, 0, 0.5); /* Add a semi-transparent background */
+    margin-top: 4rem; /* Adjust for fixed header */
+}
+
+.hero h2 {
+    font-size: 3rem;
+    margin: 0;
+}
+
+.hero p {
+    font-size: 1.5rem;
+    margin: 1rem 0;
+}
+
+.hero .btn {
+    background: #007bff; /* Change button color */
+    color: #fff;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    font-size: 1.2rem;
+    border-radius: 5px; /* Rounded corners */
+}
+
+.features {
+    display: flex;
+    justify-content: space-around;
+    padding: 2rem 1rem;
+    background: #fff;
+    margin-top: 2rem; /* Adjust for fixed header */
+}
+
+.feature {
+    text-align: center;
+    max-width: 300px;
+}
+
+.feature h3 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.feature p {
+    font-size: 1.2rem;
+}
+
+main {
+    margin-top: 5rem; /* Adjust for fixed header */
+    margin-bottom: 4rem; /* Adjust for fixed footer */
+}
+
+.login-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 8rem); /* Adjust for fixed header and footer */
+    margin-top: 8rem; /* Adjust for fixed header */
+}
+
+footer {
+    background: #666; /* Change footer background to lighter grey */
+    color: #000; /* Change text color to black */
+    text-align: center;
+    padding: 0.5rem 0; /* Reduce the height of the footer */
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    z-index: 1000;
+}
+
+footer ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+footer ul li {
+    margin: 0.5rem 1rem; /* Add even margin spacing */
+    width: auto; /* Ensure each link takes auto width */
+    text-align: center; /* Center the text */
+}
+
+footer ul li:nth-child(1),
+footer ul li:nth-child(2) {
+    width: auto; /* Place the first two links on the top row */
+}
+
+footer ul li:nth-child(3),
+footer ul li:nth-child(4) {
+    width: auto; /* Place the next two links on the middle row */
+}
+
+footer ul li:nth-child(5) {
+    width: 100%; /* Center the last link in the bottom row */
+    margin-top: 0.5rem; /* Add some spacing above the last link */
+}
+
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+    max-width: 400px; /* Maximum width */
+    border-radius: 10px; /* Rounded corners */
+    text-align: center; /* Centered text */
+}
+
+.modal .modal-content {
+    text-align: center;
+    padding: 1rem;
+}
+
+.modal .modal-content button {
+    margin: 0.5rem;
+}
+
+tab-content {
+    margin-top: 6rem; /* Adjust for fixed header */
+    padding: 1rem;
+}
+
+subheader {
+    margin-top: 6rem; /* Adjust for fixed header */
+    padding: 1rem;
+}
+
+input, select, textarea {
+    border-radius: 5px; /* Rounded corners for input fields */
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+form input {
+    font-size: 1.5rem; /* Increase font size of input boxes */
+    margin: 0.5rem 0;
+}
+
+form button {
+    font-size: 1.5rem; /* Increase font size of buttons */
+    margin: 0.5rem 0;
+}
+
+a {
+    font-size: 0.8rem; /* Decrease font size of links */
+    margin: 0.5rem 0;
+}
+
+button {
+    background-color: #007bff; /* Change button color */
+    border-radius: 5px; /* Rounded corners */
+    color: white;
+    border: 1px solid #007bff;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3; /* Change hover color */
+}
+
+button.white {
+    background-color: white; /* White button with grey border */
+    color: #333;
+    border: 1px solid grey;
+}
+
+button.white:hover {
+    background-color: lightgrey; /* Change hover color for white button */
+}
+
+#account-section {
+  text-align: center;
+  margin-top: 6rem;
+}
+
+#account-section input,
+#account-section button {
+  display: block;
+  margin: 1rem auto;
+  border-radius: 5px;
+}
+
+#delete-account-button {
+  background-color: red;
+  color: white;
+}
+
+.account-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.account-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.account-column label {
+  margin-top: 1rem;
+}
+
+.account-column input,
+.account-column button {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+#logout-button {
+  margin-top: 2rem;
+}
+
+.register-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 8rem); /* Adjust for fixed header and footer */
+  margin-top: 8rem; /* Adjust for fixed header */
+}
+
+.register-page form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.register-page form input {
+  font-size: 1.5rem; /* Increase font size of input boxes */
+  margin: 0.5rem 0;
+}
+
+.register-page form button {
+  font-size: 1.5rem; /* Increase font size of buttons */
+  margin: 0.5rem 0;
+}
+
+.register-page h1,
+.register-page a {
+  text-align: center; /* Center the title and links */
+}
+
+.register-page a {
+  font-size: 0.8rem; /* Decrease font size of links */
+  margin: 0.5rem 0;
+}
+
+.character-slots {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 2rem;
+}
+
+.character-slot {
+  width: 200px;
+  height: 300px;
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.add-character {
+  text-align: center;
+}
+
+.plus-icon {
+  font-size: 3rem;
+  display: block;
+}
+
+.add-text {
+  font-size: 1.2rem;
+}

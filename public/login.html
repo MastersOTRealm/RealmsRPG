@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <script type="module">
+      import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
+      import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+      import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+      document.addEventListener('DOMContentLoaded', async function() {
+        const { auth, db } = await initializeFirebase();
+        handleAuthStateChange(auth, db);
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+          try {
+            await signInWithEmailAndPassword(auth, email, password);
+            alert('User logged in successfully');
+            console.log('Signed in!');
+            window.location.href = '/index.html';
+          } catch (error) {
+            console.error('Error logging in user:', error);
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+              alert('Invalid email or password');
+            } else if (error.code === 'auth/too-many-requests') {
+              alert('Too many failed login attempts. Please try again later.');
+            } else if (error.code === 'auth/network-request-failed') {
+              alert('Network error. Please check your internet connection and try again.');
+            } else {
+              alert('Error logging in user');
+            }
+          }
+        });
+
+        document.querySelector('.white').addEventListener('click', async (e) => {
+          e.preventDefault();
+          const provider = new GoogleAuthProvider();
+          try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            const email = user.email;
+            const username = email.split('@')[0].substring(0, 5);
+            await setDoc(doc(db, 'users', user.uid), { username });
+            alert('User signed in with Google successfully');
+            console.log('Signed in with Google!');
+            window.location.href = '/index.html';
+          } catch (error) {
+            console.error('Error signing in with Google:', error);
+            if (error.code === 'auth/account-exists-with-different-credential') {
+              alert('An account already exists with the same email address but different sign-in credentials. Please use a different sign-in method.');
+            } else if (error.code === 'auth/popup-closed-by-user') {
+              alert('The popup has been closed by the user before finalizing the operation.');
+            } else if (error.code === 'auth/cancelled-popup-request') {
+              alert('The popup request was cancelled. Please try again.');
+            } else {
+              alert('Error signing in with Google');
+            }
+          }
+        });
+      });
+    </script>
+    <style>
+      body, html {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: calc(100vh - 8rem); /* Adjust for fixed header and footer */
+        margin-top: 8rem; /* Adjust for fixed header */
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      form input {
+        font-size: 1.5rem; /* Increase font size of input boxes */
+        margin: 0.5rem 0;
+      }
+      form button {
+        font-size: 1.5rem; /* Increase font size of buttons */
+        margin: 0.5rem 0;
+      }
+      a {
+        font-size: 0.8rem; /* Decrease font size of links */
+        margin: 0.5rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header"></header>
+    <main class="login-page">
+      <h1>Login</h1>
+      <form id="login-form">
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+        <button class="white">Sign in with Google</button>
+      </form>
+      <a href="forgot-password.html">Forgot My Password</a>
+      <a href="forgot-username.html">Forgot My Email/Username</a>
+      <a href="register.html">Register</a>
+    </main>
+    <footer id="footer"></footer>
+    <script>
+      async function loadHeaderFooter() {
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        if (header) {
+          header.innerHTML = await fetch('/header.html').then(response => response.text());
+        }
+        if (footer) {
+          footer.innerHTML = await fetch('/footer.html').then(response => response.text());
+        }
+      }
+      loadHeaderFooter();
+    </script>
+  </body>
+</html>

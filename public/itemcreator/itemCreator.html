@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Creator - Realms: The Freeform Roleplaying Game</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="./styles.css">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+    <script type="module" src="./itemCreator.js" defer></script>
+    <script type="module" src="/scripts/loadHeader.js"></script>
+</head>
+<body>
+    <header>
+        <div id="loginStatus" class="login-status"><a href="/login.html">Login</a></div>
+        <h1>Item Creator</h1>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/character/characterSheet.html">Character Sheet</a></li>
+                <li><a href="/itemcreator/itemCreator.html">Item Creator</a></li>
+                <li><a href="/powercreator/powerCreator.html">Power Creator</a></li>
+                <li><a href="/personalLibrary.html">Personal Library</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h1 class="page-title">Item Builder</h1>
+        <div id="generalItemOptionsContainer">
+            <h3 class="centered-title">General Item Options</h3>
+            <div class="option-container">
+                <div class="option-box range-box">
+                    <h4>Range: <span id="rangeValue">Melee</span>
+                        <div class="button-container">
+                            <button class="small-button blue-button" onclick="changeRange(1)">+</button>
+                            <button class="small-button blue-button" onclick="changeRange(-1)">-</button>
+                        </div>
+                    </h4>
+                </div>
+                <div class="option-box handedness-box">
+                    <h4>Handedness:
+                        <select id="handedness" onchange="changeHandedness(this.value)">
+                            <option value="One-Handed" selected>One-Handed</option>
+                            <option value="Two-Handed">Two-Handed</option>
+                        </select>
+                    </h4>
+                </div>
+                <div class="option-box damage-box">
+                    <h4>Damage: 
+                        <input type="number" id="dieAmount1" min="1" max="99" value="" placeholder="Amount"> d 
+                        <select id="dieSize1">
+                            <option value="" selected disabled>Size</option>
+                            <option value="2">2</option>
+                            <option value="4">4</option>
+                            <option value="6">6</option>
+                            <option value="8">8</option>
+                            <option value="10">10</option>
+                            <option value="12">12</option>
+                        </select>
+                        <select id="damageType1" onchange="updateDamageType()">
+                            <option value="none" selected>No Damage</option>
+                            <option value="blunt">Blunt</option>
+                            <option value="piercing">Piercing</option>
+                            <option value="slashing">Slashing</option>
+                        </select>
+                        <button id="addDamageRowButton" class="medium-button blue-button" onclick="addDamageRow()">+</button>
+                    </h4>
+                    <div id="additionalDamageRow"></div>
+                </div>
+            </div>
+        </div>
+        <div class="button-row">
+            <button id="addShieldPartButton">Add Shield Part</button>
+            <button id="addItemPartButton">Add Weapon Part</button>
+            <button id="addArmorPartButton">Add Armor Part</button>
+        </div>
+        <div id="itemPartsContainer"></div>
+        <div id="itemSummary">
+            <div class="top-right-container">
+                <button id="add-to-library-button" class="add-to-library-button">Sign in to add to library</button>
+            </div>
+            <h3>Item Summary</h3>
+            <div class="item-summary-top">
+                <input type="text" id="itemName" placeholder="Item Name">
+                <p>Total IP: <span id="summaryIP">0</span></p>
+                <p>Building Points: <span id="summaryBP">0</span></p>
+                <p>Gold Points: <span id="summaryGP">0</span></p>
+                <p>Range: <span id="summaryRange">Melee</span></p>
+                <p id="summaryDamage" style="display: none;"></p>
+                <p>Rarity: <span id="summaryRarity">Common</span></p>
+            </div>
+            <div class="item-summary-parts">
+                <h4>Item Parts:</h4>
+                <div id="summaryParts"></div>
+            </div>
+            <div class="item-summary-description">
+                <h4>Description:</h4>
+                <textarea id="itemDescription" placeholder="Item Description"></textarea>
+            </div>
+        </div>
+        <div id="totalCosts">
+            <h3>Total Item Costs</h3>
+            <p>Total IP: <span id="totalIP">0</span></p>
+            <p>Total BP: <span id="totalBP">0</span></p>
+            <p>Total GP: <span id="totalGP">0</span></p>
+            <p>Rarity: <span id="totalRarity">Common</span></p>
+            <div class="toggle-arrow"><</div> <!-- Add toggle arrow -->
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2018 Realms. All rights reserved.</p>
+    </footer>
+</body>
+</html>

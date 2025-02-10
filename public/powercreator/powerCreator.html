@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/powerCreatorStyles.css">
+    <script defer src="/__/firebase/11.3.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-functions-compat.js"></script>
+    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+    <script type="module" src="./powerCreator.js" defer></script>
+</head>
+<body>
+    <header id="header"></header>
+    <main>
+        <div id="generalPowerOptionsContainer">
+            <h3 class="centered-title">General Power Options</h3>
+            <div class="option-container">
+                <div class="option-box range-box">
+                    <h4>Range: <span id="rangeValue">1</span> space
+                        <div class="button-container">
+                            <button class="small-button blue-button" onclick="changeRange(1)">+</button>
+                            <button class="small-button blue-button" onclick="changeRange(-1)">-</button>
+                        </div>
+                    </h4>
+                    <div class="area-effect-container">
+                        <label for="areaEffect">Area of Effect:</label>
+                        <select id="areaEffect" onchange="updateAreaEffect()">
+                            <option value="none">None</option>
+                            <option value="sphere">Sphere</option>
+                            <option value="cylinder">Cylinder</option>
+                            <option value="cone">Cone</option>
+                            <option value="line">Line</option>
+                            <option value="space">Space</option>
+                            <option value="additionalTarget">Additional Target</option>
+                            <option value="expanding">Expanding</option>
+                            <option value="targetOnly">Target Only</option>
+                        </select>
+                        <span id="areaEffectLevelValue">1</span>
+                        <div id="areaEffectDescription"></div>
+                        <div class="button-container">
+                            <button class="small-button blue-button" onclick="changeAreaEffectLevel(1)">+</button>
+                            <button class="small-button blue-button" onclick="changeAreaEffectLevel(-1)">-</button>
+                        </div>
+                        <div class="linger-container">
+                            <label><input type="checkbox" id="areaLingerCheckbox" onclick="updateTotalCosts()"> Does Linger</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="option-box duration-box">
+                    <h4>Duration: 
+                        <select id="durationValue" onchange="updateTotalCosts()">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                        </select>
+                        <select id="durationType" onchange="changeDurationType()">
+                            <option value="rounds">round(s)</option>
+                            <option value="minutes">minute(s)</option>
+                            <option value="hours">hour(s)</option>
+                            <option value="days">day(s)</option>
+                            <option value="permanent">permanent</option>
+                        </select>
+                    </h4>
+                    <div class="checkbox-container">
+                        <div class="checkbox-column left-column">
+                            <label><input type="checkbox" id="focusCheckbox" onclick="updateTotalCosts()"> Focus</label>
+                            <div class="sustain-container">
+                                <label for="sustainValue">Sustain:</label>
+                                <select id="sustainValue" onchange="updateTotalCosts()">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="checkbox-column right-column">
+                            <label><input type="checkbox" id="noHarmCheckbox" onclick="updateTotalCosts()"> No direct harm or adaptation parts</label>
+                            <label><input type="checkbox" id="endsOnceCheckbox" onclick="updateTotalCosts()"> Power ends when used once/activated</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="option-box action-type-box">
+                    <h4>Action Type:</h4>
+                    <select id="actionType" onchange="updateActionType()">
+                        <option value="basic">Basic Action</option>
+                        <option value="free">Free Action</option>
+                        <option value="quick">Quick Action</option>
+                        <option value="long3">Long Action (3 AP)</option>
+                        <option value="long4">Long Action (4 AP)</option>
+                    </select>
+                    <label><input type="checkbox" id="reactionCheckbox" onclick="updateActionType()"> Reaction</label>
+                    <div id="actionTypeDescription"></div>
+                </div>
+                <div class="option-box damage-box">
+                    <h4>Damage: 
+                        <input type="number" id="dieAmount1" min="1" max="99" value="" placeholder="Amount"> d 
+                        <select id="dieSize1">
+                            <option value="" selected disabled>Size</option>
+                            <option value="2">2</option>
+                            <option value="4">4</option>
+                            <option value="6">6</option>
+                            <option value="8">8</option>
+                            <option value="10">10</option>
+                            <option value="12">12</option>
+                        </select>
+                        <select id="damageType1" onchange="updateDamageType()">
+                            <option value="none" selected>No Damage</option>
+                            <option value="magic">Magic</option>
+                            <option value="fire">Fire</option>
+                            <option value="ice">Ice</option>
+                            <option value="lightning">Lightning</option>
+                            <option value="spiritual">Spiritual</option>
+                            <option value="sonic">Sonic</option>
+                            <option value="poison">Poison</option>
+                            <option value="necrotic">Necrotic</option>
+                            <option value="acid">Acid</option>
+                            <option value="psychic">Psychic</option>
+                            <option value="blunt">Blunt</option>
+                            <option value="piercing">Piercing</option>
+                            <option value="slashing">Slashing</option>
+                        </select>
+                        <button id="addDamageRowButton" class="medium-button blue-button" onclick="addDamageRow()">+</button>
+                    </h4>
+                    <div id="additionalDamageRow"></div>
+                </div>
+            </div>
+        </div>
+        <div class="button-row">
+            <button id="addDecreasePartButton">Add % Decrease Part</button>
+            <button id="addPowerPartButton">Add Part</button>
+            <button id="addIncreasePartButton">Add % Increase Part</button>
+        </div>
+        <div id="powerPartsContainer"></div>
+        <div id="powerSummary">
+            <h3>Power Summary</h3>
+            <div class="power-summary-top">
+                <input type="text" id="powerName" placeholder="Power Name" style="flex: 1;">
+                <button id="savePowerButton" class="add-to-library-button" style="margin-left: auto;">Save Power</button>
+                <p>Energy: <span id="summaryEnergy">0</span></p>
+                <p>Building Points: <span id="summaryBP">0</span></p>
+                <p>Range: <span id="summaryRange">1</span></p>
+                <p>Duration: <span id="summaryDuration">1</span></p>
+                <p>Action Type: <span id="summaryActionType">Basic Action</span></p>
+                <p id="summaryFocus" style="display: none;">Focus Required</p>
+                <p id="summarySustain" style="display: none;">Sustain (<span id="summarySustainValue">0</span>) Required</p>
+                <p id="summaryDamage" style="display: none;"></p>
+            </div>
+            <div class="power-summary-parts">
+                <h4>Power Parts:</h4>
+                <div id="summaryParts"></div>
+            </div>
+            <div class="power-summary-description">
+                <h4>Description:</h4>
+                <textarea id="powerDescription" placeholder="Power Description"></textarea>
+            </div>
+        </div>
+        <div id="totalCosts">
+            <h3>Total Power Costs</h3>
+            <p>Total Energy: <span id="totalEnergy">0</span></p>
+            <p>Total BP: <span id="totalBP">0</span></p>
+            <div class="toggle-arrow"><</div> <!-- Add toggle arrow -->
+        </div>
+    </main>
+    <footer id="footer"></footer>
+    <script type="module">
+      import { initializeFirebase, handleAuthStateChange } from '/scripts/auth.js';
+
+      async function loadHeaderFooter() {
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        if (header) {
+          header.innerHTML = await fetch('/header.html').then(response => response.text());
+        }
+        if (footer) {
+          footer.innerHTML = await fetch('/footer.html').then (response => response.text());
+        }
+      }
+      loadHeaderFooter();
+
+      document.addEventListener('DOMContentLoaded', async function() {
+        const { auth, db } = await initializeFirebase();
+        handleAuthStateChange(auth, db);
+      });
+    </script>
+</body>
+</html>
