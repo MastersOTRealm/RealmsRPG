@@ -47,3 +47,72 @@
 .active-tab {
     display: block;
 }
+
+.powers-table {
+    width: 66%;
+    margin: 20px auto;
+    border-collapse: separate;
+    border-spacing: 0 15px;
+}
+
+.powers-table th, .powers-table td {
+    border: none;
+    padding: 8px;
+    text-align: center;
+}
+
+.powers-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    text-align: center;
+}
+
+.powers-table tr {
+    background-color: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.powers-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.powers-table .expanded-row {
+    display: none;
+    background-color: #f9f9f9;
+    border-top: none;
+    margin-top: -1px; /* Ensure the expanded box is attached to the summary row */
+}
+
+.powers-table .expanded-row td {
+    padding: 10px;
+    text-align: left;
+}
+
+.powers-table .expanded-row .details p {
+    display: inline-block;
+    margin-right: 20px; /* Add spacing between items */
+}
+
+.powers-table .expanded-row .power-parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.powers-table .expanded-row .power-parts div {
+    flex: 1 1 calc(20% - 10px);
+    background-color: white;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.powers-table .expanded-row .description {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
