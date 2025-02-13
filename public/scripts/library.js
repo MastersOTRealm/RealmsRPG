@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 
 function openTab(event, tabName) {
@@ -35,8 +35,10 @@ async function showSavedPowers(db, userId) {
 
     try {
         const querySnapshot = await getDocs(collection(db, 'users', userId, 'library'));
-        querySnapshot.forEach((doc) => {
-            const power = doc.data();
+        querySnapshot.forEach((docSnapshot) => {
+            const power = docSnapshot.data();
+            const rowGroup = document.createElement('tbody'); // Create a tbody to group summary and expanded rows
+
             const row = document.createElement('tr');
             row.classList.add('power-row');
             row.addEventListener('click', () => toggleExpand(row));
@@ -74,7 +76,7 @@ async function showSavedPowers(db, userId) {
             damageCell.innerHTML = formatDamage(power.damage);
             row.appendChild(damageCell);
 
-            table.appendChild(row);
+            rowGroup.appendChild(row); // Append summary row to tbody
 
             const expandedRow = document.createElement('tr');
             expandedRow.classList.add('expanded-row');
@@ -104,11 +106,30 @@ async function showSavedPowers(db, userId) {
             description.classList.add('description');
             description.textContent = power.description;
 
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete Power';
+            deleteButton.classList.add('delete-button');
+            deleteButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`Are you sure you want to say goodbye to ${power.name}?`)) {
+                    try {
+                        await deleteDoc(doc(db, 'users', userId, 'library', docSnapshot.id));
+                        rowGroup.remove();
+                    } catch (error) {
+                        console.error('Error deleting power: ', error);
+                        alert('Error deleting power');
+                    }
+                }
+            });
+
             expandedCell.appendChild(details);
             expandedCell.appendChild(powerParts);
             expandedCell.appendChild(description);
+            expandedCell.appendChild(deleteButton);
             expandedRow.appendChild(expandedCell);
-            table.appendChild(expandedRow);
+            rowGroup.appendChild(expandedRow); // Append expanded row to tbody
+
+            table.appendChild(rowGroup); // Append tbody to table
         });
     } catch (e) {
         console.error('Error fetching saved powers: ', e);

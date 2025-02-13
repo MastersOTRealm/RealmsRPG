@@ -153,3 +153,21 @@ exports.savePowerToLibrary = onRequest((req, res) => {
         }
     });
 });
+
+exports.deletePowerFromLibrary = onCall(async (data, context) => {
+    const { powerId } = data;
+    const uid = context.auth.uid;
+
+    if (!uid) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    try {
+        const db = getFirestore();
+        await db.collection('users').doc(uid).collection('library').doc(powerId).delete();
+        return { message: 'Power deleted successfully' };
+    } catch (error) {
+        console.error('Error deleting power: ', error);
+        throw new HttpsError('internal', 'Error deleting power');
+    }
+});
