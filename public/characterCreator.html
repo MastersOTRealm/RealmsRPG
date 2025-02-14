@@ -19,7 +19,6 @@
             <button class="tab-button" data-tab="step6">Step 6: Equip Your Character</button>
         </div>
         <div id="step1" class="tab-content">
-            <h3>Step 1: Decide on an Archetype</h3>
             <p>Your character’s role, theme, and general playstyle, which will help guide their Abilities, Feats, and Development.</p>
             <p>Do you wish to wield power's, harness martial prowess, or perhaps a bit of both?</p>
             <div class="archetype-buttons">
@@ -78,30 +77,73 @@
             </div>
         </div>
         <div id="step2" class="tab-content">
-            <h3>Step 2: Determine your Ancestry</h3>
-            <p>Your Species, along with your choices of that Species' Ancestry Traits, Flaws, and Characteristics.</p>
+            <p class="centered-text">Your character’s Species and Ancestry define their genetic predispositions and inherent qualities. The Species represents a broad classification, while Ancestry delves into the specific traits and attributes passed down through generations.</p>
+            <p class="centered-text">Choose a species to learn more about it!</p>
+            <select id="speciesDropdown" class="normal-dropdown">
+                <option value="">Select a species</option>
+                <!-- Species options will be populated here -->
+            </select>
+            <div id="speciesDetails" class="centered-text" style="display: none;">
+                <button id="descriptionButton">Description</button>
+                <div id="descriptionModal" style="display: none;">
+                    <p id="speciesDescription"></p>
+                    <button id="closeDescriptionButton">Close</button>
+                </div>
+                <div id="speciesInfoBox">
+                    <div id="speciesInfo">
+                        <div class="species-row">
+                            <span class="species-title">Species:</span>
+                            <span id="speciesName"></span>
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Average Height:</span>
+                            <span id="averageHeight"></span>
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Average Weight:</span>
+                            <span id="averageWeight"></span>
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Species Type:</span>
+                            <span id="speciesType"></span>
+                        </div>
+                        <hr class="species-divider">
+                        <div class="species-row">
+                            <span class="species-title">Size:</span>
+                            <select id="sizeDropdown" class="normal-dropdown"></select>
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Skills:</span>
+                            <span id="skills"></span>
+                            <select id="skillsDropdown" class="normal-dropdown" style="display: none;"></select>
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Adulthood:</span>
+                            <span id="adulthood"></span>
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Max Age:</span>
+                            <span id="maxAge"></span>
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Languages:</span>
+                            <span id="languages"></span>
+                            <select id="languagesDropdown" class="normal-dropdown" style="display: none;"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div id="step3" class="tab-content">
-            <h3>Step 3: Determine Abilities</h3>
             <p>Your character's fundamental strengths and weaknesses, determining how they perform physically and mentally.</p>
         </div>
         <div id="step4" class="tab-content">
-            <h3>Step 4: Build your Archetype</h3>
             <p>Based on your Archetype, choose Feats and determine your Skill, Armor, Weapon, Martial, and Power Proficiencies.</p>
         </div>
         <div id="step5" class="tab-content">
-            <h3>Step 5: Fill in Details</h3>
             <p>Using the choices you’ve made fill in the remaining details on your character sheet.</p>
         </div>
         <div id="step6" class="tab-content">
-            <h3>Step 6: Equip Your Character</h3>
             <p>Finally, you will create and choose your character’s Powers, Techniques, and Armaments, then fill their inventory with Items.</p>
         </div>
     </main>
     <footer id="footer"></footer>
     <script type="module">
       import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
-      import { initializeTabs, showMartialOptions, showPoweredMartialOptions, showPowerOptions, initializeAbilityButtons, selectArchetype } from './scripts/characterCreator.js';
+      import { initializeTabs, showMartialOptions, showPoweredMartialOptions, showPowerOptions, initializeAbilityButtons, selectArchetype, populateSpeciesDropdown, displaySpeciesDetails, populateSkillDropdown, populateLanguageDropdown, populateSizeDropdown } from './scripts/characterCreator.js';
 
       async function loadHeaderFooter() {
         const header = document.getElementById('header');
@@ -120,6 +162,8 @@
         handleAuthStateChange(auth, db);
         initializeTabs();
         initializeAbilityButtons();
+        populateSpeciesDropdown();
+        document.getElementById('speciesDropdown').addEventListener('change', displaySpeciesDetails);
       });
 
       // Attach the functions to the window object

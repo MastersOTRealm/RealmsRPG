@@ -1,3 +1,6 @@
+import species from './speciesData.js';
+import skills from './skillsData.js';
+
 export function openTab(evt, tabName) {
     const tabContents = document.querySelectorAll('.tab-content');
     tabContents.forEach(content => content.style.display = 'none');
@@ -74,4 +77,105 @@ export function selectArchetype(button, archetype) {
     } else if (archetype === 'power') {
         showPowerOptions();
     }
+}
+
+export function populateSpeciesDropdown() {
+    const dropdown = document.getElementById('speciesDropdown');
+    species.forEach(species => {
+        const option = document.createElement('option');
+        option.value = species.Name;
+        option.textContent = species.Name;
+        dropdown.appendChild(option);
+    });
+}
+
+export function populateSkillDropdown(excludeSkills) {
+    const skillDropdown = document.createElement('select');
+    skills.forEach(skill => {
+        if (!skill.subSkill && !excludeSkills.includes(skill.name)) {
+            const option = document.createElement('option');
+            option.value = skill.name;
+            option.textContent = skill.name;
+            skillDropdown.appendChild(option);
+        }
+    });
+    return skillDropdown;
+}
+
+export function populateLanguageDropdown(excludeLanguages) {
+    const languageDropdown = document.createElement('select');
+    const allLanguages = ["Universal", "Darkened Tongue", "Any Common"]; // Add all possible languages here
+    allLanguages.forEach(language => {
+        if (!excludeLanguages.includes(language)) {
+            const option = document.createElement('option');
+            option.value = language;
+            option.textContent = language;
+            languageDropdown.appendChild(option);
+        }
+    });
+    return languageDropdown;
+}
+
+export function populateSizeDropdown(sizes) {
+    const sizeDropdown = document.getElementById('sizeDropdown');
+    sizeDropdown.innerHTML = '';
+    sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = size;
+        option.textContent = size;
+        sizeDropdown.appendChild(option);
+    });
+}
+
+export function displaySpeciesDetails() {
+    const selectedSpeciesName = document.getElementById('speciesDropdown').value;
+    const selectedSpecies = species.find(species => species.Name === selectedSpeciesName);
+    if (selectedSpecies) {
+        document.getElementById('speciesName').textContent = selectedSpecies.Name;
+        document.getElementById('averageHeight').textContent = selectedSpecies.AverageHeight;
+        document.getElementById('averageWeight').textContent = selectedSpecies.AverageWeight;
+        document.getElementById('speciesType').textContent = selectedSpecies.SpeciesType;
+        populateSizeDropdown(selectedSpecies.Size);
+
+        const skillsContainer = document.getElementById('skills');
+        skillsContainer.innerHTML = '';
+        selectedSpecies.Skills.forEach(skill => {
+            if (skill === "Any") {
+                skillsContainer.appendChild(populateSkillDropdown(selectedSpecies.Skills));
+            } else {
+                const skillSpan = document.createElement('span');
+                skillSpan.textContent = skill;
+                skillsContainer.appendChild(skillSpan);
+                skillsContainer.appendChild(document.createTextNode(', '));
+            }
+        });
+
+        const languagesContainer = document.getElementById('languages');
+        languagesContainer.innerHTML = '';
+        selectedSpecies.Languages.forEach(language => {
+            if (language === "Any") {
+                languagesContainer.appendChild(populateLanguageDropdown(selectedSpecies.Languages));
+            } else {
+                const languageSpan = document.createElement('span');
+                languageSpan.textContent = language;
+                languagesContainer.appendChild(languageSpan);
+                languagesContainer.appendChild(document.createTextNode(', '));
+            }
+        });
+
+        document.getElementById('adulthood').textContent = selectedSpecies.Adulthood;
+        document.getElementById('maxAge').textContent = selectedSpecies.MaxAge;
+        document.getElementById('speciesDescription').textContent = selectedSpecies.Description;
+        document.getElementById('speciesDetails').style.display = 'block';
+    } else {
+        document.getElementById('speciesDetails').style.display = 'none';
+    }
+
+    document.getElementById('descriptionButton').addEventListener('click', () => {
+        document.getElementById('descriptionModal').style.display = 'block';
+    });
+
+    document.getElementById('closeDescriptionButton').addEventListener('click', () => {
+        document.getElementById('descriptionModal').style.display = 'none';
+    });
 }
