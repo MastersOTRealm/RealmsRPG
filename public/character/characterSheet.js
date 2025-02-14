@@ -1,5 +1,5 @@
 import skills from '../character/skillsData.js';
-import feats from '../character/featsData.js'; // Import feats data
+import feats from '../scripts/featsData.js'; // Correct the import path for feats data
 import './characterTabs.js';
 
 const abilities = ['strength', 'vitality', 'agility', 'acuity', 'intelligence', 'charisma'];
@@ -22,17 +22,6 @@ const abilityAbbreviations = {
     intelligence: 'INT',
     charisma: 'CHA'
 };
-
-async function saveCharacterData(characterData) {
-    const response = await fetch('https://savecharacterdata-ch2wifkjtq-uc.a.run.app', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(characterData),
-    });
-    return response.json();
-}
 
 async function authenticateUser(token) {
     const response = await fetch('https://authenticateuser-ch2wifkjtq-uc.a.run.app', {
@@ -410,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate the feats dropdown on page load
     const updateFeatsDropdown = () => {
         featsDropdown.innerHTML = feats
-            .map(feat => `<option value="${feat.name}">${feat.name}</option>`)
+            .map(feat => `<option value="${feat.Name}">${feat.Name}</option>`) // Update to use 'Name' property
             .join('');
     };
 
@@ -418,8 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const newFeatItem = document.createElement('div');
         newFeatItem.className = 'feat-item';
         newFeatItem.innerHTML = `
-            <span class="feat-name">${feat.name}</span>
-            <span class="feat-description">${feat.description}</span>
+            <span class="feat-name">${feat.Name}</span> <!-- Update to use 'Name' property -->
+            <span class="feat-description">${feat.Description}</span> <!-- Update to use 'Description' property -->
         `;
         return newFeatItem;
     };

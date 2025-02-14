@@ -50,6 +50,7 @@ body {
     border: 1px solid darkgrey;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    color: #000 !important; /* Override text color to black */
 }
 
 input[type="number"], input[type="text"], select, button {
@@ -207,7 +208,7 @@ input:checked + .slider:before {
 
 .stat-values, .defense-score, .defense-bonus, .movement-speed-value, .total-value {
     font-weight: bold;
-    color: black;
+    color: #000 !important; /* Override text color to black */
     font-size: 1em;
 }
 
@@ -393,7 +394,7 @@ body.play-mode .skill-points-container {
     border-radius: 5px;
     background-color: #f0f0f0; /* Revert background color to grey */
     display: inline-block; /* Ensure it doesn't displace anything */
-    color: black; /* Ensure the text is visible */
+    color: #000 !important; /* Override text color to black */
 }
 
 body.play-mode .skill-points-container {
@@ -409,7 +410,7 @@ body.play-mode .skill-points-container {
     border-radius: 5px;
     background-color: white;
     font-size: 1em;
-    color: black;
+    color: #000 !important; /* Override text color to black */
 }
 
 body.play-mode .total-box {
@@ -418,6 +419,7 @@ body.play-mode .total-box {
 
 .skill-roll-button.proficient {
     background-color: lightblue;
+    color: #000 !important; /* Override text color to black */
 }
 
 .evasion-value {
@@ -514,7 +516,7 @@ body.play-mode .skill-points-container {
     border-radius: 5px;
     background-color: #f0f0f0; /* Revert background color to grey */
     display: inline-block; /* Ensure it doesn't displace anything */
-    color: black; /* Ensure the text is visible */
+    color: #000 !important; /* Override text color to black */
 }
 
 /* ...existing code... */
@@ -528,7 +530,7 @@ body.play-mode .skill-points-container {
     border-radius: 5px;
     background-color: white;
     font-size: 1em;
-    color: black;
+    color: #000 !important; /* Override text color to black */
 }
 
 body.play-mode .increase-points-box {
@@ -643,6 +645,7 @@ body.play-mode .increase-points-box {
     justify-content: space-between;
     margin-bottom: 10px;
     font-size: 1em;
+    color: #000 !important; /* Override text color to black */
 }
 
 .feat-name {
