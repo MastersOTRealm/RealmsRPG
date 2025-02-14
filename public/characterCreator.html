@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Creator - Realms</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/characterCreator.css">
+</head>
+<body>
+    <header id="header"></header>
+    <main>
+        <div class="tabs">
+            <button class="tab-button" data-tab="step1">Step 1: Decide on an Archetype</button>
+            <button class="tab-button" data-tab="step2">Step 2: Determine your Ancestry</button>
+            <button class="tab-button" data-tab="step3">Step 3: Determine Abilities</button>
+            <button class="tab-button" data-tab="step4">Step 4: Build your Archetype</button>
+            <button class="tab-button" data-tab="step5">Step 5: Fill in Details</button>
+            <button class="tab-button" data-tab="step6">Step 6: Equip Your Character</button>
+        </div>
+        <div id="step1" class="tab-content">
+            <h3>Step 1: Decide on an Archetype</h3>
+            <p>Your character’s role, theme, and general playstyle, which will help guide their Abilities, Feats, and Development.</p>
+            <p>Do you wish to wield power's, harness martial prowess, or perhaps a bit of both?</p>
+            <div class="archetype-buttons">
+                <button class="archetype-button" onclick="selectArchetype(this, 'martial')">Create Martial Character</button>
+                <button class="archetype-button" onclick="selectArchetype(this, 'powered-martial')">Create Powered-Martial Character</button>
+                <button class="archetype-button" onclick="selectArchetype(this, 'power')">Create Power Character</button>
+            </div>
+            <div id="martial-options" class="martial-options" style="display: none;">
+                <p>Perfect! Now you must pick your Martial Ability. This reflects your character’s physical Combat style and approach to challenges.</p>
+                <div class="ability-buttons">
+                    <button class="ability-button martial" data-tooltip="Strength governs physical Actions like lifting, breaking, throwing, climbing, and stability. It determines your chance to hit and damage dealt with melee weapons.">Strength</button>
+                    <button class="ability-button martial" data-tooltip="Vitality represents resilience and endurance, affecting resistance to damage, toxins, illnesses, and more. It also contributes to your Health (HP) each level.">Vitality</button>
+                    <button class="ability-button martial" data-tooltip="Agility measures speed and reflexes, affecting Evasion (EV), and Speed (SP). It determines your chance to hit and damage dealt with melee or ranged finesse weapons.">Agility</button>
+                    <button class="ability-button martial" data-tooltip="Acuity reflects mental sharpness, influencing perception, reaction, and aim. It determines your chance to hit and damage dealt with ranged weapons.">Acuity</button>
+                    <button class="ability-button martial" data-tooltip="Intelligence covers knowledge, problem-solving, memory, and your understanding of history, lore, and language.">Intelligence</button>
+                    <button class="ability-button martial" data-tooltip="Charisma governs social Skills, including persuasion, intimidation, and emotional intelligence. It also represents your presence, poise, resolve and confidence.">Charisma</button>
+                </div>
+            </div>
+            <div id="powered-martial-options" class="powered-martial-options" style="display: none;">
+                <p class="centered-text">Thrilling! Now you must pick your Martial Ability as well as your Power Ability. These reflect your character’s physical Combat style and approach to challenges as well as your connection to supernatural, magical, or extraordinary abilities.</p>
+                <div class="ability-sections">
+                    <div class="ability-section">
+                        <h4>Martial Ability</h4>
+                        <div class="ability-buttons">
+                            <button class="ability-button martial" data-tooltip="Strength governs physical Actions like lifting, breaking, throwing, climbing, and stability. It determines your chance to hit and damage dealt with melee weapons.">Strength</button>
+                            <button class="ability-button martial" data-tooltip="Vitality represents resilience and endurance, affecting resistance to damage, toxins, illnesses, and more. It also contributes to your Health (HP) each level.">Vitality</button>
+                            <button class="ability-button martial" data-tooltip="Agility measures speed and reflexes, affecting Evasion (EV), and Speed (SP). It determines your chance to hit and damage dealt with melee or ranged finesse weapons.">Agility</button>
+                            <button class="ability-button martial" data-tooltip="Acuity reflects mental sharpness, influencing perception, reaction, and aim. It determines your chance to hit and damage dealt with ranged weapons.">Acuity</button>
+                            <button class="ability-button martial" data-tooltip="Intelligence covers knowledge, problem-solving, memory, and your understanding of history, lore, and language.">Intelligence</button>
+                            <button class="ability-button martial" data-tooltip="Charisma governs social Skills, including persuasion, intimidation, and emotional intelligence. It also represents your presence, poise, resolve and confidence.">Charisma</button>
+                        </div>
+                    </div>
+                    <div class="ability-section">
+                        <h4>Power Ability</h4>
+                        <div class="ability-buttons">
+                            <button class="ability-button power" data-tooltip="Strength governs physical Actions like lifting, breaking, throwing, climbing, and stability. It determines your chance to hit and damage dealt with melee weapons.">Strength</button>
+                            <button class="ability-button power" data-tooltip="Vitality represents resilience and endurance, affecting resistance to damage, toxins, illnesses, and more. It also contributes to your Health (HP) each level.">Vitality</button>
+                            <button class="ability-button power" data-tooltip="Agility measures speed and reflexes, affecting Evasion (EV), and Speed (SP). It determines your chance to hit and damage dealt with melee or ranged finesse weapons.">Agility</button>
+                            <button class="ability-button power" data-tooltip="Acuity reflects mental sharpness, influencing perception, reaction, and aim. It determines your chance to hit and damage dealt with ranged weapons.">Acuity</button>
+                            <button class="ability-button power" data-tooltip="Intelligence covers knowledge, problem-solving, memory, and your understanding of history, lore, and language.">Intelligence</button>
+                            <button class="ability-button power" data-tooltip="Charisma governs social Skills, including persuasion, intimidation, and emotional intelligence. It also represents your presence, poise, resolve and confidence.">Charisma</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="power-options" class="power-options" style="display: none;">
+                <p>Wonderful! Now you must pick your Power Ability. This represents your character’s connection to supernatural, magical, or extraordinary abilities.</p>
+                <div class="ability-buttons">
+                    <button class="ability-button power" data-tooltip="Strength governs physical Actions like lifting, breaking, throwing, climbing, and stability. It determines your chance to hit and damage dealt with melee weapons.">Strength</button>
+                    <button class="ability-button power" data-tooltip="Vitality represents resilience and endurance, affecting resistance to damage, toxins, illnesses, and more. It also contributes to your Health (HP) each level.">Vitality</button>
+                    <button class="ability-button power" data-tooltip="Agility measures speed and reflexes, affecting Evasion (EV), and Speed (SP). It determines your chance to hit and damage dealt with melee or ranged finesse weapons.">Agility</button>
+                    <button class="ability-button power" data-tooltip="Acuity reflects mental sharpness, influencing perception, reaction, and aim. It determines your chance to hit and damage dealt with ranged weapons.">Acuity</button>
+                    <button class="ability-button power" data-tooltip="Intelligence covers knowledge, problem-solving, memory, and your understanding of history, lore, and language.">Intelligence</button>
+                    <button class="ability-button power" data-tooltip="Charisma governs social Skills, including persuasion, intimidation, and emotional intelligence. It also represents your presence, poise, resolve and confidence.">Charisma</button>
+                </div>
+            </div>
+        </div>
+        <div id="step2" class="tab-content">
+            <h3>Step 2: Determine your Ancestry</h3>
+            <p>Your Species, along with your choices of that Species' Ancestry Traits, Flaws, and Characteristics.</p>
+        </div>
+        <div id="step3" class="tab-content">
+            <h3>Step 3: Determine Abilities</h3>
+            <p>Your character's fundamental strengths and weaknesses, determining how they perform physically and mentally.</p>
+        </div>
+        <div id="step4" class="tab-content">
+            <h3>Step 4: Build your Archetype</h3>
+            <p>Based on your Archetype, choose Feats and determine your Skill, Armor, Weapon, Martial, and Power Proficiencies.</p>
+        </div>
+        <div id="step5" class="tab-content">
+            <h3>Step 5: Fill in Details</h3>
+            <p>Using the choices you’ve made fill in the remaining details on your character sheet.</p>
+        </div>
+        <div id="step6" class="tab-content">
+            <h3>Step 6: Equip Your Character</h3>
+            <p>Finally, you will create and choose your character’s Powers, Techniques, and Armaments, then fill their inventory with Items.</p>
+        </div>
+    </main>
+    <footer id="footer"></footer>
+    <script type="module">
+      import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
+      import { initializeTabs, showMartialOptions, showPoweredMartialOptions, showPowerOptions, initializeAbilityButtons, selectArchetype } from './scripts/characterCreator.js';
+
+      async function loadHeaderFooter() {
+        const header = document.getElementById('header');
+        const footer = document.getElementById('footer');
+        if (header) {
+          header.innerHTML = await fetch('/header.html').then(response => response.text());
+        }
+        if (footer) {
+          footer.innerHTML = await fetch('/footer.html').then(response => response.text());
+        }
+      }
+      loadHeaderFooter();
+
+      document.addEventListener('DOMContentLoaded', async function() {
+        const { auth, db } = await initializeFirebase();
+        handleAuthStateChange(auth, db);
+        initializeTabs();
+        initializeAbilityButtons();
+      });
+
+      // Attach the functions to the window object
+      window.showMartialOptions = showMartialOptions;
+      window.showPoweredMartialOptions = showPoweredMartialOptions;
+      window.showPowerOptions = showPowerOptions;
+      window.selectArchetype = selectArchetype;
+    </script>
+</body>
+</html>

@@ -57,7 +57,7 @@
         characterSlots.forEach(slot => {
           slot.addEventListener('click', () => {
             if (auth.currentUser) {
-              window.location.href = '/character/characterSheet.html';
+              window.location.href = '/characterCreator.html';
             } else {
               alert('Login to create a character!');
             }
