@@ -4,7 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
-import { getFirestore, getDocs, collection } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 (() => {
     const powerParts = powerPartsData;
@@ -790,42 +790,43 @@ import { getFirestore, getDocs, collection } from "https://www.gstatic.com/fireb
 
         try {
             const idToken = await getAuth().currentUser.getIdToken();
-            const response = await fetch('https://us-central1-realmsrpg-b3366.cloudfunctions.net/savePowerToLibrary', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify({
-                    powerName,
-                    powerDescription,
-                    totalEnergy,
-                    totalBP,
-                    range,
-                    areaEffect,
-                    areaEffectLevel,
-                    duration,
-                    durationType,
-                    actionType,
-                    reactionChecked,
-                    focusChecked,
-                    sustainValue,
-                    noHarmChecked,
-                    endsOnceChecked,
-                    damage: [
-                        { type: damageType1, amount: dieAmount1, size: dieSize1 },
-                        { type: damageType2, amount: dieAmount2, size: dieSize2 }
-                    ],
-                    powerParts
-                })
-            });
-            const result = await response.json();
-            if (response.ok) {
-                console.log('Document written with ID: ', result.docId);
-                alert('Power saved to library');
+            const db = getFirestore();
+            const powersRef = collection(db, 'users', userId, 'library');
+            const q = query(powersRef, where('name', '==', powerName));
+            const querySnapshot = await getDocs(q);
+
+            let docRef;
+            if (!querySnapshot.empty) {
+                docRef = doc(db, 'users', userId, 'library', querySnapshot.docs[0].id);
             } else {
-                throw new Error(result.message || 'Error saving power to library');
+                docRef = doc(powersRef);
             }
+
+            await setDoc(docRef, {
+                name: powerName,
+                description: powerDescription,
+                totalEnergy,
+                totalBP,
+                range,
+                areaEffect,
+                areaEffectLevel,
+                duration,
+                durationType,
+                actionType,
+                reactionChecked,
+                focusChecked,
+                sustainValue,
+                noHarmChecked,
+                endsOnceChecked,
+                damage: [
+                    { type: damageType1, amount: dieAmount1, size: dieSize1 },
+                    { type: damageType2, amount: dieAmount2, size: dieSize2 }
+                ],
+                powerParts,
+                timestamp: new Date()
+            });
+
+            alert('Power saved to library');
         } catch (e) {
             console.error('Error adding document: ', e);
             alert('Error saving power to library');
