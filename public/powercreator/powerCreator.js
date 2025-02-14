@@ -4,6 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+import { getFirestore, getDocs, collection } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 (() => {
     const powerParts = powerPartsData;
@@ -831,6 +832,111 @@ import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com
         }
     }
 
+    async function loadSavedPowers(db, userId) {
+        const savedPowersList = document.getElementById('savedPowersList');
+        savedPowersList.innerHTML = ''; // Clear existing list
+    
+        try {
+            const querySnapshot = await getDocs(collection(db, 'users', userId, 'library'));
+            querySnapshot.forEach((docSnapshot) => {
+                const power = docSnapshot.data();
+                const listItem = document.createElement('li');
+                listItem.textContent = power.name;
+    
+                const loadButton = document.createElement('button');
+                loadButton.textContent = 'Load';
+                loadButton.addEventListener('click', () => {
+                    loadPower(power);
+                    closeModal();
+                });
+    
+                listItem.appendChild(loadButton);
+                savedPowersList.appendChild(listItem);
+            });
+        } catch (e) {
+            console.error('Error fetching saved powers: ', e);
+            alert('Error fetching saved powers');
+        }
+    }
+    
+    function loadPower(power) {
+        document.getElementById('powerName').value = power.name;
+        document.getElementById('powerDescription').value = power.description;
+        document.getElementById('totalEnergy').textContent = power.totalEnergy;
+        document.getElementById('totalBP').textContent = power.totalBP;
+        document.getElementById('rangeValue').textContent = power.range;
+        document.getElementById('areaEffect').value = power.areaEffect;
+        document.getElementById('areaEffectLevelValue').textContent = power.areaEffectLevel;
+        document.getElementById('durationValue').value = power.duration;
+        document.getElementById('durationType').value = power.durationType;
+        document.getElementById('actionType').value = power.actionType;
+        document.getElementById('reactionCheckbox').checked = power.reactionChecked;
+        document.getElementById('focusCheckbox').checked = power.focusChecked;
+        document.getElementById('sustainValue').value = power.sustainValue;
+        document.getElementById('noHarmCheckbox').checked = power.noHarmChecked;
+        document.getElementById('endsOnceCheckbox').checked = power.endsOnceChecked;
+    
+        // Load damage values
+        document.getElementById('damageType1').value = power.damage[0].type;
+        document.getElementById('dieAmount1').value = power.damage[0].amount;
+        document.getElementById('dieSize1').value = power.damage[0].size;
+        if (power.damage[1]) {
+            addDamageRow();
+            document.getElementById('damageType2').value = power.damage[1].type;
+            document.getElementById('dieAmount2').value = power.damage[1].amount;
+            document.getElementById('dieSize2').value = power.damage[1].size;
+        }
+    
+        // Load power parts
+        selectedPowerParts.length = 0; // Clear existing parts
+        power.powerParts.forEach(partData => {
+            const part = powerParts.find(p => p.name === partData.part);
+            selectedPowerParts.push({
+                part,
+                opt1Level: partData.opt1Level,
+                opt2Level: partData.opt2Level,
+                opt3Level: partData.opt3Level,
+                useAltCost: partData.useAltCost
+            });
+        });
+    
+        renderPowerParts();
+        updateTotalCosts();
+    }
+    
+    function openModal() {
+        document.getElementById('loadPowerModal').style.display = 'block';
+    }
+    
+    function closeModal() {
+        document.getElementById('loadPowerModal').style.display = 'none';
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadPowerButton = document.getElementById('loadPowerButton');
+        const closeButton = document.querySelector('.close-button');
+    
+        loadPowerButton.addEventListener('click', () => {
+            const auth = getAuth();
+            const user = auth.currentUser;
+            if (user) {
+                const db = getFirestore();
+                loadSavedPowers(db, user.uid);
+                openModal();
+            } else {
+                alert('Please login to load saved powers.');
+            }
+        });
+    
+        closeButton.addEventListener('click', closeModal);
+    
+        window.addEventListener('click', (event) => {
+            if (event.target === document.getElementById('loadPowerModal')) {
+                closeModal();
+            }
+        });
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         fetch('/__/firebase/init.json').then(response => response.json()).then(firebaseConfig => {
             firebaseConfig.authDomain = 'realmsroleplaygame.com';
@@ -883,6 +989,9 @@ window.addDecreasePart = addDecreasePart;
 window.addIncreasePart = addIncreasePart;
 window.filterPartsByCategory = filterPartsByCategory;
 window.toggleTotalCosts = toggleTotalCosts;
-
+window.loadSavedPowers = loadSavedPowers;
+window.loadPower = loadPower;
+window.openModal = openModal;
+window.closeModal = closeModal;
 
 })();

@@ -20,7 +20,7 @@
             <div class="option-container">
                 <div class="option-box range-box">
                     <h4>Range: <span id="rangeValue">1</span> space
-                        <div class="button-container">
+                        <div class="range-button-container">
                             <button class="small-button blue-button" onclick="changeRange(1)">+</button>
                             <button class="small-button blue-button" onclick="changeRange(-1)">-</button>
                         </div>
@@ -40,7 +40,7 @@
                         </select>
                         <span id="areaEffectLevelValue">1</span>
                         <div id="areaEffectDescription"></div>
-                        <div class="button-container">
+                        <div class="area-effect-button-container">
                             <button class="small-button blue-button" onclick="changeAreaEffectLevel(1)">+</button>
                             <button class="small-button blue-button" onclick="changeAreaEffectLevel(-1)">-</button>
                         </div>
@@ -144,7 +144,10 @@
             <h3>Power Summary</h3>
             <div class="power-summary-top">
                 <input type="text" id="powerName" placeholder="Power Name" style="flex: 1;">
-                <button id="savePowerButton" class="add-to-library-button" style="margin-left: auto;">Save Power</button>
+                <div class="load-save-button-container" style="display: flex; flex-direction: column;">
+                    <button id="loadPowerButton" class="add-to-library-button">Load Power</button>
+                    <button id="savePowerButton" class="add-to-library-button">Save Power</button>
+                </div>
                 <p>Energy: <span id="summaryEnergy">0</span></p>
                 <p>Building Points: <span id="summaryBP">0</span></p>
                 <p>Range: <span id="summaryRange">1</span></p>
@@ -161,6 +164,13 @@
             <div class="power-summary-description">
                 <h4>Description:</h4>
                 <textarea id="powerDescription" placeholder="Power Description"></textarea>
+            </div>
+        </div>
+        <div id="loadPowerModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">&times;</span>
+                <h3>Load Power</h3>
+                <ul id="savedPowersList"></ul>
             </div>
         </div>
         <div id="totalCosts">

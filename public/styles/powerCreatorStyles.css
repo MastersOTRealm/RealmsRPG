@@ -26,8 +26,7 @@ body {
     color: white;
     cursor: pointer;
     align-self: flex-start;
-    margin-left: 10%;
-    margin-top: 20px; /* Add spacing between the button and the general power options */
+
 }
 
 #addPowerPartButton:hover {
@@ -199,12 +198,6 @@ button:hover {
     width: 60%; /* Make the duration box larger */
 }
 
-.button-container {
-    display: inline-flex; /* Ensure the buttons are on the same line */
-    margin-left: 10px;
-    gap: 5px; /* Add spacing between the buttons */
-}
-
 .small-button {
     padding: 2px 5px;
     font-size: 12px;
@@ -274,6 +267,28 @@ button:hover {
     display: inline-flex; /* Ensure the buttons are on the same line */
     margin-left: 10px;
     gap: 5px; /* Add spacing between the buttons */
+}
+
+.range-button-container {
+    display: inline-flex; /* Ensure the buttons are on the same line */
+    margin-left: 10px;
+    gap: 5px; /* Add spacing between the buttons */
+}
+
+.area-effect-button-container {
+    display: inline-flex; /* Ensure the buttons are on the same line */
+    margin-left: 10px;
+    gap: 5px; /* Add spacing between the buttons */
+}
+
+.load-save-button-container {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    align-items: flex-end; /* Align buttons to the right */
+    gap: 10px; /* Adjust spacing */
+    position: absolute; /* Position absolutely within #powerSummary */
+    top: 10px; /* Adjust as needed */
+    right: 10px; /* Align to the right */
 }
 
 .action-type-box {
@@ -362,7 +377,7 @@ button:hover {
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 100%; /* Widen to fill the page */
-    position: relative; /* Add relative positioning */
+    position: relative; /* Ensure relative positioning */
 }
 
 #powerSummary h3 {
@@ -400,9 +415,6 @@ button:hover {
     color: white;
     border: none;
     border-radius: 5px;
-    position: absolute;
-    top: 0;
-    right: 0;
 }
 
 .power-summary-top button:hover {
@@ -507,9 +519,6 @@ button:hover {
 }
 
 .add-to-library-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     padding: 5px 10px;
     font-size: 14px;
     cursor: pointer;
@@ -517,10 +526,7 @@ button:hover {
     color: white;
     border: none;
     border-radius: 5px;
-}
-
-.add-to-library-button:hover {
-    background-color: #0056b3;
+    margin-bottom: 5px; /* Add some space between buttons */
 }
 
 .button-row {
@@ -545,19 +551,38 @@ button:hover {
     background-color: #0056b3; /* Ensure consistent hover color */
 }
 
-.save-power-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 5px 10px;
-    font-size: 14px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
-.save-power-button:hover {
-    background-color: #0056b3;
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 10px;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
 }
