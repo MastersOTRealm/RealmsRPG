@@ -123,15 +123,152 @@
                             <span id="languages"></span>
                             <select id="languagesDropdown" class="normal-dropdown" style="display: none;"></select>
                         </div>
+                        <hr class="species-divider">
+                        <div class="species-row">
+                            <span class="species-title">Your Age:</span>
+                            <input type="text" id="yourAge">
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Your Height:</span>
+                            <input type="text" id="yourHeight">
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Your Weight:</span>
+                            <input type="text" id="yourWeight">
+                            <div class="vertical-divider"></div>
+                            <span class="species-title">Your Gender:</span>
+                            <input type="text" id="yourGender">
+                        </div>
+                    </div>
+                </div>
+                <div class="species-details-box">
+                    <div class="expandable-box">
+                        <div class="summary-row">
+                            <span>Species Traits</span>
+                            <span class="expand-arrow">▼</span>
+                        </div>
+                        <div class="details-row" style="display: none;">
+                            <ul id="speciesTraitsList"></ul>
+                        </div>
+                    </div>
+                    <div class="expandable-box">
+                        <div class="summary-row">
+                            <span>Choose Ancestry Trait</span>
+                            <span class="expand-arrow">▼</span>
+                        </div>
+                        <div class="details-row" style="display: none;">
+                            <select id="ancestryTraitDropdown" class="normal-dropdown"></select>
+                            <p id="ancestryTraitDescription"></p>
+                        </div>
+                    </div>
+                    <div class="expandable-box">
+                        <div class="summary-row">
+                            <span>Choose Characteristic</span>
+                            <span class="expand-arrow">▼</span>
+                        </div>
+                        <div class="details-row" style="display: none;">
+                            <select id="characteristicDropdown" class="normal-dropdown"></select>
+                            <p id="characteristicDescription"></p>
+                        </div>
+                    </div>
+                    <div class="expandable-box">
+                        <div class="summary-row">
+                            <span>Choose Flaw (Optional)</span>
+                            <span class="expand-arrow">▼</span>
+                        </div>
+                        <div class="details-row" style="display: none;">
+                            <select id="flawDropdown" class="normal-dropdown"></select>
+                            <p id="flawDescription"></p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div id="step3" class="tab-content">
-            <p>Your character's fundamental strengths and weaknesses, determining how they perform physically and mentally.</p>
+            <p>It’s time to define your core Abilities! These Abilities form the foundation of your character’s physical and mental capabilities and will influence their role in Combat, exploration, and other interactions.</p>
+            <div class="ability-row">
+                <div class="ability-box">
+                    <div class="ability-name">Strength</div>
+                    <select class="ability-dropdown">
+                        <option value="">Select</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </div>
+                <div class="ability-box">
+                    <div class="ability-name">Vitality</div>
+                    <select class="ability-dropdown">
+                        <option value="">Select</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </div>
+                <div class="ability-box">
+                    <div class="ability-name">Agility</div>
+                    <select class="ability-dropdown">
+                        <option value="">Select</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </div>
+                <div class="ability-box">
+                    <div class="ability-name">Acuity</div>
+                    <select class="ability-dropdown">
+                        <option value="">Select</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </div>
+                <div class="ability-box">
+                    <div class="ability-name">Intelligence</div>
+                    <select class="ability-dropdown">
+                        <option value="">Select</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </div>
+                <div class="ability-box">
+                    <div class="ability-name">Charisma</div>
+                    <select class="ability-dropdown">
+                        <option value="">Select</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </div>
+            </div>
+            <div class="ability-points-box">
+                <div class="ability-points-title">Ability Points to Allocate</div>
+                <div id="remaining-points" class="ability-points-value">7</div>
+            </div>
         </div>
         <div id="step4" class="tab-content">
             <p>Based on your Archetype, choose Feats and determine your Skill, Armor, Weapon, Martial, and Power Proficiencies.</p>
+            <div class="archetype-feats-box">
+                <div class="archetype-feats-title">Archetype Feats</div>
+                <div id="archetype-feats-list" class="archetype-feats-list"></div>
+            </div>
         </div>
         <div id="step5" class="tab-content">
             <p>Using the choices you’ve made fill in the remaining details on your character sheet.</p>
@@ -143,7 +280,7 @@
     <footer id="footer"></footer>
     <script type="module">
       import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
-      import { initializeTabs, showMartialOptions, showPoweredMartialOptions, showPowerOptions, initializeAbilityButtons, selectArchetype, populateSpeciesDropdown, displaySpeciesDetails, populateSkillDropdown, populateLanguageDropdown, populateSizeDropdown } from './scripts/characterCreator.js';
+      import { initializeTabs, showMartialOptions, showPoweredMartialOptions, showPowerOptions, initializeAbilityButtons, selectArchetype, populateSpeciesDropdown, displaySpeciesDetails, populateSkillDropdown, populateLanguageDropdown, populateSizeDropdown, toggleExpandableBox, updateTraitDescription, toggleDescriptionModal, initializeAbilityDropdowns, initializeArchetypeFeats, updateFeatDescription } from './scripts/characterCreator.js';
 
       async function loadHeaderFooter() {
         const header = document.getElementById('header');
@@ -164,6 +301,15 @@
         initializeAbilityButtons();
         populateSpeciesDropdown();
         document.getElementById('speciesDropdown').addEventListener('change', displaySpeciesDetails);
+        document.querySelectorAll('.expandable-box .summary-row').forEach(row => {
+          row.addEventListener('click', toggleExpandableBox);
+        });
+        document.getElementById('ancestryTraitDropdown').addEventListener('change', updateTraitDescription);
+        document.getElementById('characteristicDropdown').addEventListener('change', updateTraitDescription);
+        document.getElementById('flawDropdown').addEventListener('change', updateTraitDescription);
+        document.getElementById('descriptionButton').addEventListener('click', toggleDescriptionModal);
+        initializeAbilityDropdowns();
+        initializeArchetypeFeats();
       });
 
       // Attach the functions to the window object
@@ -171,6 +317,7 @@
       window.showPoweredMartialOptions = showPoweredMartialOptions;
       window.showPowerOptions = showPowerOptions;
       window.selectArchetype = selectArchetype;
+      window.updateFeatDescription = updateFeatDescription;
     </script>
 </body>
 </html>

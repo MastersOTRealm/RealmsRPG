@@ -1,5 +1,4 @@
-
-const feats = [
+export const featsData = [
     {
         Name: "Example Feat",
         Description: "Description of the feat.",
@@ -158,3 +157,5 @@ const feats = [
         Tags: ["Unarmored"]
     }
 ];
+
+export default featsData;

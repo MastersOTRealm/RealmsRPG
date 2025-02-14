@@ -85,6 +85,36 @@
     margin-top: 1rem; /* Decrease margin above ability lists */
 }
 
+.ability-row {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.ability-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 1rem;
+    background-color: #f9f9f9;
+}
+
+.ability-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.ability-dropdown {
+    font-size: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
 .centered-text {
     max-width: 66%;
     margin: 2rem auto; /* Increase margin above description */
@@ -113,6 +143,14 @@
     flex-wrap: nowrap; /* Prevent wrapping */
 }
 
+.species-row input {
+    margin-left: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100px;
+}
+
 .species-title {
     font-weight: bold;
     margin-right: 0.5rem;
@@ -128,4 +166,89 @@
     border-left: 1px solid lightgrey;
     height: 1.5rem;
     margin: 0 1rem;
+}
+
+.expandable-box {
+    background-color: white;
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 1rem 0;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.details-row {
+    display: none;
+    margin-top: 1rem;
+}
+
+.expand-arrow {
+    font-size: 1.5rem;
+}
+
+#speciesTraitsList li {
+    list-style: none;
+    margin: 0.5rem 0;
+}
+
+.ability-points-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.ability-points-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.ability-points-value {
+    font-size: 1.5rem;
+    color: #007bff;
+}
+
+.archetype-feats-box {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.archetype-feats-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.archetype-feats-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem; /* Reduce gap between feats */
+}
+
+.archetype-feat-dropdown {
+    font-size: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 200px;
+}
+
+.feat-description {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: #333;
+}
+
+.feat-requirements {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
 }

@@ -1,5 +1,7 @@
 import species from './speciesData.js';
 import skills from './skillsData.js';
+import geneticFeats from './geneticFeatsData.js';
+import { featsData } from './featsData.js';
 
 export function openTab(evt, tabName) {
     const tabContents = document.querySelectorAll('.tab-content');
@@ -77,6 +79,7 @@ export function selectArchetype(button, archetype) {
     } else if (archetype === 'power') {
         showPowerOptions();
     }
+    initializeArchetypeFeats(); // Call initializeArchetypeFeats after selecting an archetype
 }
 
 export function populateSpeciesDropdown() {
@@ -128,20 +131,24 @@ export function populateSizeDropdown(sizes) {
 }
 
 export function displaySpeciesDetails() {
-    const selectedSpeciesName = document.getElementById('speciesDropdown').value;
-    const selectedSpecies = species.find(species => species.Name === selectedSpeciesName);
+    const speciesDropdown = document.getElementById('speciesDropdown');
+    const selectedSpecies = species.find(s => s.Name === speciesDropdown.value);
     if (selectedSpecies) {
         document.getElementById('speciesName').textContent = selectedSpecies.Name;
         document.getElementById('averageHeight').textContent = selectedSpecies.AverageHeight;
         document.getElementById('averageWeight').textContent = selectedSpecies.AverageWeight;
         document.getElementById('speciesType').textContent = selectedSpecies.SpeciesType;
+        document.getElementById('adulthood').textContent = selectedSpecies.Adulthood;
+        document.getElementById('maxAge').textContent = selectedSpecies.MaxAge;
+
         populateSizeDropdown(selectedSpecies.Size);
 
         const skillsContainer = document.getElementById('skills');
         skillsContainer.innerHTML = '';
         selectedSpecies.Skills.forEach(skill => {
             if (skill === "Any") {
-                skillsContainer.appendChild(populateSkillDropdown(selectedSpecies.Skills));
+                const skillDropdown = populateSkillDropdown(selectedSpecies.Skills);
+                skillsContainer.appendChild(skillDropdown);
             } else {
                 const skillSpan = document.createElement('span');
                 skillSpan.textContent = skill;
@@ -154,7 +161,8 @@ export function displaySpeciesDetails() {
         languagesContainer.innerHTML = '';
         selectedSpecies.Languages.forEach(language => {
             if (language === "Any") {
-                languagesContainer.appendChild(populateLanguageDropdown(selectedSpecies.Languages));
+                const languageDropdown = populateLanguageDropdown(selectedSpecies.Languages);
+                languagesContainer.appendChild(languageDropdown);
             } else {
                 const languageSpan = document.createElement('span');
                 languageSpan.textContent = language;
@@ -163,10 +171,13 @@ export function displaySpeciesDetails() {
             }
         });
 
-        document.getElementById('adulthood').textContent = selectedSpecies.Adulthood;
-        document.getElementById('maxAge').textContent = selectedSpecies.MaxAge;
         document.getElementById('speciesDescription').textContent = selectedSpecies.Description;
         document.getElementById('speciesDetails').style.display = 'block';
+
+        populateSpeciesTraits(selectedSpecies);
+        populateAncestryTraitDropdown(selectedSpecies);
+        populateCharacteristicDropdown(selectedSpecies);
+        populateFlawDropdown(selectedSpecies);
     } else {
         document.getElementById('speciesDetails').style.display = 'none';
     }
@@ -179,3 +190,222 @@ export function displaySpeciesDetails() {
         document.getElementById('descriptionModal').style.display = 'none';
     });
 }
+
+export function toggleDescriptionModal() {
+    const descriptionButton = document.getElementById('descriptionButton');
+    const descriptionModal = document.getElementById('descriptionModal');
+    if (descriptionModal.style.display === 'none') {
+        descriptionModal.style.display = 'block';
+        descriptionButton.classList.add('active');
+    } else {
+        descriptionModal.style.display = 'none';
+        descriptionButton.classList.remove('active');
+    }
+}
+
+export function toggleExpandableBox(event) {
+    const summaryRow = event.currentTarget;
+    const detailsRow = summaryRow.nextElementSibling;
+    const expandArrow = summaryRow.querySelector('.expand-arrow');
+    if (detailsRow.style.display === 'none') {
+        detailsRow.style.display = 'block';
+        expandArrow.textContent = '▲';
+    } else {
+        detailsRow.style.display = 'none';
+        expandArrow.textContent = '▼';
+    }
+}
+
+export function populateSpeciesTraits(species) {
+    const speciesTraitsList = document.getElementById('speciesTraitsList');
+    speciesTraitsList.innerHTML = '';
+    species.SpeciesTraits.forEach(traitName => {
+        const trait = geneticFeats.find(feat => feat.Name === traitName);
+        if (trait) {
+            const listItem = document.createElement('li');
+            const expandableBox = document.createElement('div');
+            expandableBox.classList.add('expandable-box');
+            expandableBox.innerHTML = `
+                <div class="summary-row">
+                    <span>${trait.Name}</span>
+                    <span class="expand-arrow">▼</span>
+                </div>
+                <div class="details-row" style="display: none;">
+                    <p>${trait.Description}</p>
+                </div>
+            `;
+            expandableBox.querySelector('.summary-row').addEventListener('click', toggleExpandableBox);
+            listItem.appendChild(expandableBox);
+            speciesTraitsList.appendChild(listItem);
+        }
+    });
+}
+
+export function updateTraitDescription(event) {
+    const dropdown = event.currentTarget;
+    const selectedTraitName = dropdown.value;
+    const descriptionElement = dropdown.nextElementSibling;
+    const trait = geneticFeats.find(feat => feat.Name === selectedTraitName);
+    descriptionElement.textContent = trait ? trait.Description : '';
+}
+
+function getSelectedSpecies() {
+    const selectedSpeciesName = document.getElementById('speciesDropdown').value;
+    return species.find(species => species.Name === selectedSpeciesName);
+}
+
+export function populateAncestryTraitDropdown(species) {
+    const ancestryTraitDropdown = document.getElementById('ancestryTraitDropdown');
+    ancestryTraitDropdown.innerHTML = '';
+    species.AncestryTraits.forEach(traitName => {
+        const trait = geneticFeats.find(feat => feat.Name === traitName);
+        if (trait) {
+            const option = document.createElement('option');
+            option.value = trait.Name;
+            option.textContent = trait.Name;
+            ancestryTraitDropdown.appendChild(option);
+        }
+    });
+}
+
+export function populateCharacteristicDropdown(species) {
+    const characteristicDropdown = document.getElementById('characteristicDropdown');
+    characteristicDropdown.innerHTML = '';
+    species.Characteristics.forEach(characteristicName => {
+        const characteristic = geneticFeats.find(feat => feat.Name === characteristicName);
+        if (characteristic) {
+            const option = document.createElement('option');
+            option.value = characteristic.Name;
+            option.textContent = characteristic.Name;
+            characteristicDropdown.appendChild(option);
+        }
+    });
+}
+
+export function populateFlawDropdown(species) {
+    const flawDropdown = document.getElementById('flawDropdown');
+    flawDropdown.innerHTML = '';
+    species.Flaws.forEach(flawName => {
+        const flaw = geneticFeats.find(feat => feat.Name === flawName);
+        if (flaw) {
+            const option = document.createElement('option');
+            option.value = flaw.Name;
+            option.textContent = flaw.Name;
+            flawDropdown.appendChild(option);
+        }
+    });
+}
+
+export function initializeAbilityDropdowns() {
+    const abilityDropdowns = document.querySelectorAll('.ability-dropdown');
+    abilityDropdowns.forEach(dropdown => {
+        dropdown.addEventListener('change', updateAbilityDropdowns);
+    });
+}
+
+function updateAbilityDropdowns() {
+    const abilityDropdowns = document.querySelectorAll('.ability-dropdown');
+    let total = 0;
+    let negativeTotal = 0;
+
+    abilityDropdowns.forEach(dropdown => {
+        const value = parseInt(dropdown.value);
+        if (!isNaN(value)) {
+            total += value;
+            if (value < 0) {
+                negativeTotal += value;
+            }
+        }
+    });
+
+    const remainingPoints = 7 - total;
+    document.getElementById('remaining-points').textContent = remainingPoints;
+
+    abilityDropdowns.forEach(dropdown => {
+        const selectedValue = parseInt(dropdown.value);
+        const options = dropdown.querySelectorAll('option');
+        options.forEach(option => {
+            const optionValue = parseInt(option.value);
+            if (isNaN(optionValue)) return;
+
+            const newTotal = total - (isNaN(selectedValue) ? 0 : selectedValue) + optionValue;
+            const newNegativeTotal = negativeTotal - (selectedValue < 0 ? selectedValue : 0) + (optionValue < 0 ? optionValue : 0);
+
+            if (newTotal > 7 || newNegativeTotal < -3) {
+                option.disabled = true;
+            } else {
+                option.disabled = false;
+            }
+        });
+    });
+}
+
+function getSelectedArchetype() {
+    const selectedButton = document.querySelector('.archetype-button.selected');
+    if (selectedButton) {
+        return selectedButton.getAttribute('onclick').split("'")[1];
+    }
+    return null;
+}
+
+export function initializeArchetypeFeats() {
+    const archetypeFeatsList = document.getElementById('archetype-feats-list');
+    archetypeFeatsList.innerHTML = ''; // Clear previous feats
+    const archetype = getSelectedArchetype();
+    let featCount = 0;
+
+    if (archetype === 'martial') {
+        featCount = 3;
+    } else if (archetype === 'powered-martial') {
+        featCount = 2;
+    } else if (archetype === 'power') {
+        featCount = 1;
+    }
+
+    const availableFeats = featsData
+        .filter(feat => (!feat.Level || feat.Level === 1) && !feat.Name.match(/II|III|IV|V|VI/))
+        .sort((a, b) => a.Name.localeCompare(b.Name));
+
+    for (let i = 0; i < featCount; i++) {
+        const expandableBox = document.createElement('div');
+        expandableBox.classList.add('expandable-box');
+        expandableBox.innerHTML = `
+            <div class="summary-row">
+                <span>Choose an Archetype Feat</span>
+                <span class="expand-arrow">▼</span>
+            </div>
+            <div class="details-row" style="display: none;">
+                <select class="archetype-feat-dropdown" onchange="updateFeatDescription(this)">
+                    <option value="">Select a feat</option>
+                    ${availableFeats.map(feat => `<option value="${feat.Name}">${feat.Name}</option>`).join('')}
+                </select>
+                <div class="feat-description"></div>
+                <div class="feat-requirements"></div>
+            </div>
+        `;
+        expandableBox.querySelector('.summary-row').addEventListener('click', toggleExpandableBox);
+        archetypeFeatsList.appendChild(expandableBox);
+    }
+}
+
+export function updateFeatDescription(selectElement) {
+    const selectedFeatName = selectElement.value;
+    const descriptionElement = selectElement.nextElementSibling;
+    const requirementsElement = descriptionElement.nextElementSibling;
+    const feat = featsData.find(feat => feat.Name === selectedFeatName);
+    if (feat) {
+        descriptionElement.textContent = feat.Description;
+        requirementsElement.textContent = `Requires: ${feat.Requirements || 'None'}`;
+    } else {
+        descriptionElement.textContent = '';
+        requirementsElement.textContent = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    initializeTabs();
+    initializeAbilityButtons();
+    initializeAbilityDropdowns();
+    populateSpeciesDropdown();
+    document.getElementById('speciesDropdown').addEventListener('change', displaySpeciesDetails);
+});

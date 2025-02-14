@@ -1,4 +1,3 @@
-
 const geneticFeats = [
     {
         Name: "Example Feat",
@@ -315,3 +314,5 @@ const geneticFeats = [
         Tags: ["darkness", "flames", "presence"]
       }
 ];
+
+export default geneticFeats;
