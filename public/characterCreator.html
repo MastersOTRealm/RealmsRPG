@@ -14,8 +14,8 @@
             <button class="tab-button" data-tab="step1">Step 1: Decide on an Archetype</button>
             <button class="tab-button" data-tab="step2">Step 2: Determine your Ancestry</button>
             <button class="tab-button" data-tab="step3">Step 3: Determine Abilities</button>
-            <button class="tab-button" data-tab="step4">Step 4: Build your Archetype</button>
-            <button class="tab-button" data-tab="step5">Step 5: Fill in Details</button>
+            <button class="tab-button" data-tab="step4">Step 4: Choose Feats</button>
+            <button class="tab-button" data-tab="step5">Step 5: Choose Skills</button>
             <button class="tab-button" data-tab="step6">Step 6: Equip Your Character</button>
         </div>
         <div id="step1" class="tab-content">
@@ -179,6 +179,16 @@
                             <p id="flawDescription"></p>
                         </div>
                     </div>
+                    <div id="additional-ancestry-trait-box" class="expandable-box" style="display: none;">
+                        <div class="summary-row">
+                            <span>Choose Additional Ancestry Trait</span>
+                            <span class="expand-arrow">▼</span>
+                        </div>
+                        <div class="details-row" style="display: none;">
+                            <select id="additionalAncestryTraitDropdown" class="normal-dropdown"></select>
+                            <p id="additionalAncestryTraitDescription"></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -264,14 +274,25 @@
             </div>
         </div>
         <div id="step4" class="tab-content">
-            <p>Based on your Archetype, choose Feats and determine your Skill, Armor, Weapon, Martial, and Power Proficiencies.</p>
+            <p>Based on your Archetype, choose Feats that best fit your character idea.</p>
             <div class="archetype-feats-box">
                 <div class="archetype-feats-title">Archetype Feats</div>
                 <div id="archetype-feats-list" class="archetype-feats-list"></div>
             </div>
+            <div class="character-feats-box">
+                <div class="character-feats-title">Character Feats</div>
+                <div id="character-feats-list" class="character-feats-list"></div>
+            </div>
         </div>
         <div id="step5" class="tab-content">
-            <p>Using the choices you’ve made fill in the remaining details on your character sheet.</p>
+            <p>Now it's time to pick your skills! Picking a new skill grants you proficiency, while allocating more points to a skill you have increases its bonus!</p>
+            <div id="species-skills" class="centered-text"></div>
+            <div class="skill-selection-box">
+                <div class="skill-selection-title">Select 3 Skills</div>
+                <div id="skill-boxes" class="skill-boxes">
+                    <!-- Skill boxes will be populated here -->
+                </div>
+            </div>
         </div>
         <div id="step6" class="tab-content">
             <p>Finally, you will create and choose your character’s Powers, Techniques, and Armaments, then fill their inventory with Items.</p>
@@ -280,7 +301,7 @@
     <footer id="footer"></footer>
     <script type="module">
       import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
-      import { initializeTabs, showMartialOptions, showPoweredMartialOptions, showPowerOptions, initializeAbilityButtons, selectArchetype, populateSpeciesDropdown, displaySpeciesDetails, populateSkillDropdown, populateLanguageDropdown, populateSizeDropdown, toggleExpandableBox, updateTraitDescription, toggleDescriptionModal, initializeAbilityDropdowns, initializeArchetypeFeats, updateFeatDescription } from './scripts/characterCreator.js';
+      import { initializeTabs, showMartialOptions, showPoweredMartialOptions, showPowerOptions, initializeAbilityButtons, selectArchetype, populateSpeciesDropdown, displaySpeciesDetails, populateSkillDropdown, populateLanguageDropdown, populateSizeDropdown, toggleExpandableBox, updateTraitDescription, toggleDescriptionModal, initializeAbilityDropdowns, initializeArchetypeFeats, initializeSkillSelection, updateFeatDescription } from './scripts/characterCreator.js';
 
       async function loadHeaderFooter() {
         const header = document.getElementById('header');
@@ -310,6 +331,7 @@
         document.getElementById('descriptionButton').addEventListener('click', toggleDescriptionModal);
         initializeAbilityDropdowns();
         initializeArchetypeFeats();
+        initializeSkillSelection();
       });
 
       // Attach the functions to the window object

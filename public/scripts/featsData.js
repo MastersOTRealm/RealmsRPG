@@ -155,7 +155,84 @@ export const featsData = [
         Requirements: "Vitality of at least 4",
         Category: "Damage Reduction",
         Tags: ["Unarmored"]
-    }
+    },
+    {
+        Name: "Empowered Build",
+        Description: "Your Strength increases and can exceed the maximum by 3. Choose 4 of your other abilities; they decrease by 1.",
+        Category: "Utility",
+        Tags: ["Strength", "Bonus"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Forklift",
+        Description: "Can lift double your STR in 100 pounds. i.e., +4 STR can lift 800 pounds.",
+        Category: "Utility",
+        Tags: ["Lifting"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Indomitable Might",
+        Description: "When you would fail a Strength skill or defense roll, you may choose to use the score as the value instead.",
+        Category: "Utility",
+        Tags: ["Strength", "Skill", "Defense Roll"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Indomitable Might II",
+        Description: "When you would fail a Strength skill or defense roll, you may choose to use the score as the value instead.",
+        Category: "Utility",
+        Tags: ["Strength", "Skill", "Defense Roll"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Undeniable Body",
+        Description: "You add your Strength or Vitality (choose when obtaining this feat) to Charm; however, you treat failure as one degree lower when doing so.",
+        Category: "Utility",
+        Tags: ["Charm", "Strength/Vitality"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Unwavering Might",
+        Description: "As a reaction to your Might being targeted or rolled, you may increase your Might by +3 for 4 rounds.",
+        Category: "Defensive",
+        Tags: ["Reaction", "Might", "Bonus"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Intimidating Physique",
+        Description: "Add 1/2 of your Strength to Intimidate rolls.",
+        Category: "Utility",
+        Tags: ["Intimidation"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Intimidating Physique II",
+        Description: "Add your Strength to Intimidate rolls.",
+        Category: "Utility",
+        Tags: ["Intimidation"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Confident Prowess",
+        Description: "While attempting to charm, persuade, or convince someone of your capability (real or not) to accomplish a task, you may add your Strength to any rolls or scores involved.",
+        Category: "Utility",
+        Tags: ["Charm", "Persuade", "Convince"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Passive Intimidation",
+        Description: "When you intimidate using Strength or Vitality, you may cause the target to become aggressive or defensive as a result of that action, no matter the action's outcome.",
+        Category: "Utility",
+        Tags: ["Intimidation", "Aggressive", "Defensive"],
+        characterFeat: "True"
+      },
+      {
+        Name: "Goading Strength",
+        Description: "When you taunt, you may use Strength instead of Charisma.",
+        Category: "Utility",
+        Tags: ["Taunt"],
+        characterFeat: "True"
+      },
 ];
 
 export default featsData;

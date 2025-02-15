@@ -252,3 +252,73 @@
     font-size: 0.9rem;
     color: #666;
 }
+
+.character-feats-box {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.character-feats-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.character-feats-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem; /* Reduce gap between feats */
+}
+
+.character-feat-dropdown {
+    font-size: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 200px;
+}
+
+.feat-description {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: #333;
+}
+
+.feat-requirements {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.skill-selection-box {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.skill-selection-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.skill-boxes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem; /* Reduce gap between skill boxes */
+}
+
+.skill-dropdown {
+    font-size: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 200px;
+}
+
+.skill-description {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: #333;
+}

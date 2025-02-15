@@ -84,6 +84,7 @@ export function selectArchetype(button, archetype) {
 
 export function populateSpeciesDropdown() {
     const dropdown = document.getElementById('speciesDropdown');
+    dropdown.innerHTML = ''; // Clear existing options
     species.forEach(species => {
         const option = document.createElement('option');
         option.value = species.Name;
@@ -256,7 +257,7 @@ function getSelectedSpecies() {
 
 export function populateAncestryTraitDropdown(species) {
     const ancestryTraitDropdown = document.getElementById('ancestryTraitDropdown');
-    ancestryTraitDropdown.innerHTML = '';
+    ancestryTraitDropdown.innerHTML = ''; // Clear existing options
     species.AncestryTraits.forEach(traitName => {
         const trait = geneticFeats.find(feat => feat.Name === traitName);
         if (trait) {
@@ -266,6 +267,50 @@ export function populateAncestryTraitDropdown(species) {
             ancestryTraitDropdown.appendChild(option);
         }
     });
+
+    // Populate additional ancestry trait dropdown with the same options
+    const additionalAncestryTraitDropdown = document.getElementById('additionalAncestryTraitDropdown');
+    additionalAncestryTraitDropdown.innerHTML = ancestryTraitDropdown.innerHTML;
+
+    // Add event listener for additional ancestry trait dropdown
+    additionalAncestryTraitDropdown.addEventListener('change', updateAdditionalAncestryTraitDescription);
+
+    function updateAdditionalAncestryTraitDescription(event) {
+        const dropdown = event.currentTarget;
+        const selectedTraitName = dropdown.value;
+        const descriptionElement = document.getElementById('additionalAncestryTraitDescription');
+        const trait = geneticFeats.find(feat => feat.Name === selectedTraitName);
+        descriptionElement.textContent = trait ? trait.Description : '';
+        populateAncestryTraitDropdowns();
+    }
+
+    function populateAncestryTraitDropdowns() {
+        const selectedTraits = [ancestryTraitDropdown.value, additionalAncestryTraitDropdown.value];
+        [ancestryTraitDropdown, additionalAncestryTraitDropdown].forEach(dropdown => {
+            const selectedTrait = dropdown.value;
+            dropdown.innerHTML = '';
+            species.AncestryTraits.forEach(traitName => {
+                const trait = geneticFeats.find(feat => feat.Name === traitName);
+                if (trait && (!selectedTrait || selectedTrait === trait.Name || !selectedTraits.includes(trait.Name))) {
+                    const option = document.createElement('option');
+                    option.value = trait.Name;
+                    option.textContent = trait.Name;
+                    option.selected = trait.Name === selectedTrait;
+                    dropdown.appendChild(option);
+                }
+            });
+        });
+    }
+
+    populateAncestryTraitDropdowns();
+}
+
+export function updateAdditionalAncestryTraitDescription(event) {
+    const dropdown = event.currentTarget;
+    const selectedTraitName = dropdown.value;
+    const descriptionElement = document.getElementById('additionalAncestryTraitDescription');
+    const trait = geneticFeats.find(feat => feat.Name === selectedTraitName);
+    descriptionElement.textContent = trait ? trait.Description : '';
 }
 
 export function populateCharacteristicDropdown(species) {
@@ -284,7 +329,7 @@ export function populateCharacteristicDropdown(species) {
 
 export function populateFlawDropdown(species) {
     const flawDropdown = document.getElementById('flawDropdown');
-    flawDropdown.innerHTML = '';
+    flawDropdown.innerHTML = '<option value="">No Flaw</option>'; // Add "No Flaw" option
     species.Flaws.forEach(flawName => {
         const flaw = geneticFeats.find(feat => feat.Name === flawName);
         if (flaw) {
@@ -292,6 +337,16 @@ export function populateFlawDropdown(species) {
             option.value = flaw.Name;
             option.textContent = flaw.Name;
             flawDropdown.appendChild(option);
+        }
+    });
+
+    flawDropdown.addEventListener('change', function() {
+        const selectedFlaw = flawDropdown.value;
+        const additionalAncestryTraitBox = document.getElementById('additional-ancestry-trait-box');
+        if (selectedFlaw && selectedFlaw !== 'No Flaw') {
+            additionalAncestryTraitBox.style.display = 'block';
+        } else {
+            additionalAncestryTraitBox.style.display = 'none';
         }
     });
 }
@@ -363,7 +418,7 @@ export function initializeArchetypeFeats() {
     }
 
     const availableFeats = featsData
-        .filter(feat => (!feat.Level || feat.Level === 1) && !feat.Name.match(/II|III|IV|V|VI/))
+        .filter(feat => (!feat.Level || feat.Level === 1) && !feat.Name.match(/II|III|IV|V|VI/) && !feat.characterFeat)
         .sort((a, b) => a.Name.localeCompare(b.Name));
 
     for (let i = 0; i < featCount; i++) {
@@ -375,10 +430,7 @@ export function initializeArchetypeFeats() {
                 <span class="expand-arrow">▼</span>
             </div>
             <div class="details-row" style="display: none;">
-                <select class="archetype-feat-dropdown" onchange="updateFeatDescription(this)">
-                    <option value="">Select a feat</option>
-                    ${availableFeats.map(feat => `<option value="${feat.Name}">${feat.Name}</option>`).join('')}
-                </select>
+                <select class="archetype-feat-dropdown" onchange="updateFeatDescription(this)"></select>
                 <div class="feat-description"></div>
                 <div class="feat-requirements"></div>
             </div>
@@ -386,6 +438,37 @@ export function initializeArchetypeFeats() {
         expandableBox.querySelector('.summary-row').addEventListener('click', toggleExpandableBox);
         archetypeFeatsList.appendChild(expandableBox);
     }
+
+    const featDropdowns = document.querySelectorAll('.archetype-feat-dropdown');
+    const featDescriptions = document.querySelectorAll('.feat-description');
+    const featRequirements = document.querySelectorAll('.feat-requirements');
+
+    function populateFeatDropdowns() {
+        featDropdowns.forEach((dropdown, index) => {
+            const selectedFeat = dropdown.value;
+            dropdown.innerHTML = '<option value="">Select a feat</option>';
+            availableFeats.forEach(feat => {
+                if (!selectedFeat || selectedFeat === feat.Name || !Array.from(featDropdowns).some(d => d.value === feat.Name)) {
+                    const option = document.createElement('option');
+                    option.value = feat.Name;
+                    option.textContent = feat.Name;
+                    option.selected = feat.Name === selectedFeat;
+                    dropdown.appendChild(option);
+                }
+            });
+        });
+    }
+
+    featDropdowns.forEach((dropdown, index) => {
+        dropdown.addEventListener('change', () => {
+            const selectedFeat = featsData.find(feat => feat.Name === dropdown.value);
+            featDescriptions[index].textContent = selectedFeat ? selectedFeat.Description : '';
+            featRequirements[index].textContent = selectedFeat ? `Requires: ${selectedFeat.Requirements || 'None'}` : '';
+            populateFeatDropdowns();
+        });
+    });
+
+    populateFeatDropdowns();
 }
 
 export function updateFeatDescription(selectElement) {
@@ -402,10 +485,80 @@ export function updateFeatDescription(selectElement) {
     }
 }
 
+export function initializeSkillSelection() {
+    const skillBoxesContainer = document.getElementById('skill-boxes');
+    const speciesSkillsContainer = document.getElementById('species-skills');
+    skillBoxesContainer.innerHTML = ''; // Clear existing skill boxes
+    speciesSkillsContainer.innerHTML = ''; // Clear existing species skills
+    const selectedSkills = [];
+
+    // Example: Pre-select skills for a chosen species
+    const chosenSpeciesSkills = ['Acrobatics', 'Animal Handling']; // Replace with actual species skills
+    speciesSkillsContainer.textContent = `Species Skills: ${chosenSpeciesSkills.join(', ')} Proficiency`;
+
+    // Create skill boxes
+    for (let i = 0; i < 3; i++) {
+        const skillBox = document.createElement('div');
+        skillBox.classList.add('expandable-box');
+        skillBox.innerHTML = `
+            <div class="summary-row">
+                <span>Choose a Skill</span>
+                <span class="expand-arrow">▼</span>
+            </div>
+            <div class="details-row" style="display: none;">
+                <select class="skill-dropdown"></select>
+                <div class="skill-description"></div>
+            </div>
+        `;
+        skillBox.querySelector('.summary-row').addEventListener('click', toggleExpandableBox);
+        skillBoxesContainer.appendChild(skillBox);
+    }
+
+    const skillDropdowns = document.querySelectorAll('.skill-dropdown');
+    const skillDescriptions = document.querySelectorAll('.skill-description');
+
+    // Populate skill dropdowns
+    function populateSkillDropdowns() {
+        skillDropdowns.forEach((dropdown, index) => {
+            const selectedSkill = dropdown.value;
+            dropdown.innerHTML = '';
+            skills.forEach(skill => {
+                if ((!skill.subSkill || selectedSkills.includes(skill.baseSkill)) && !selectedSkills.includes(skill.name)) {
+                    const option = document.createElement('option');
+                    option.value = skill.name;
+                    option.textContent = skill.name;
+                    option.selected = skill.name === selectedSkill;
+                    dropdown.appendChild(option);
+                }
+            });
+        });
+    }
+
+    skillDropdowns.forEach((dropdown, index) => {
+        dropdown.addEventListener('change', () => {
+            const selectedSkill = skills.find(skill => skill.name === dropdown.value);
+            skillDescriptions[index].textContent = selectedSkill ? selectedSkill.description : '';
+            selectedSkills[index] = dropdown.value;
+            populateSkillDropdowns();
+        });
+    });
+
+    populateSkillDropdowns();
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
     initializeTabs();
     initializeAbilityButtons();
     initializeAbilityDropdowns();
     populateSpeciesDropdown();
     document.getElementById('speciesDropdown').addEventListener('change', displaySpeciesDetails);
+    document.querySelectorAll('.expandable-box .summary-row').forEach(row => {
+        row.addEventListener('click', toggleExpandableBox);
+    });
+    document.getElementById('ancestryTraitDropdown').addEventListener('change', updateTraitDescription);
+    document.getElementById('characteristicDropdown').addEventListener('change', updateTraitDescription);
+    document.getElementById('flawDropdown').addEventListener('change', updateTraitDescription);
+    document.getElementById('descriptionButton').addEventListener('click', toggleDescriptionModal);
+    initializeArchetypeFeats();
+    initializeSkillSelection();
 });
