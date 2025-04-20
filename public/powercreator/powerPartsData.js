@@ -2259,11 +2259,11 @@ const powerPartsData = [
     },
     {
         name: "Slow",
-        description: "3 EN: Decrease target's Speed by 1 for the round. Target's Might, Evasion, or Reflex",
+        description: "2 EN: Target gains the Slowed 1 condition. Target's Might, Evasion, or Reflex",
         baseBP: 1,
-        baseEnergy: 3,
-        opt1Cost: 2.5,
-        opt1Description: "+2.5 EN for each additional 1 Speed decreased, to a minimum of 1.",
+        baseEnergy: 2,
+        opt1Cost: 1.5,
+        opt1Description: "+2.5 EN for each additional level of the Slowed condition.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Control"
@@ -2357,14 +2357,6 @@ const powerPartsData = [
         baseEnergy: 4,
         opt1Cost: 2.5,
         opt1Description: "+2.5 EN for each additional space the target is knocked back.",
-        type: "base",
-        category: "Control"
-    },
-    {
-        name: "Immobilize",
-        description: "6 EN: Target becomes immobile. Targets the target's choice of either Might or Reflex.",
-        baseBP: 1,
-        baseEnergy: 6,
         type: "base",
         category: "Control"
     },
@@ -2722,8 +2714,8 @@ const powerPartsData = [
         name: "Choose Affected Targets",
         description: "12.5% EN: If the power affects more than one creature, you may choose to exclude some or all of the targets.",
         baseBP: 1,
-        baseEnergy: 12.5,
-        type: "base",
+        baseEnergy: 0.125,
+        type: "increase",
         category: "General"
     },
     {
@@ -2929,14 +2921,14 @@ const powerPartsData = [
       },
       {
         name: "Stipulation",
-        description: "0 BP, -12.5% EN: Part or all of a power affects only specific targets based on creature type, elemental affinity, species, or other traits. Alternatively, the power may only affect creatures under specific conditions (e.g., being grappled, dying, being terminal, etc)",
+        description: "0 BP, -12.5% EN: Part or all of a power affects only specific targets based on creature type, elemental affinity, species, or other traits. Alternatively, the power may only affect creatures under specific conditions (e.g., being grappled, dying, being terminal, etc). As another alternative, this power can only be used under certain conditions such as wheil within darkness.",
         baseBP: 0,
         baseEnergy: -0.125,
         opt1Cost: -0.0625,
         opt1Description: "-6.25%% EN to add another acceptable stipulation in addition to the first (an additional creature type, or condition needed.) I.e. Undead or Constructs, grappled or immobile, etc.",
-        opt1Cost: -0.03125,
-        opt1Description: "-3.125%% EN for each additional acceptable stipulation in addition to the first two (an additional creature type, or condition needed.) I.e. Undead or Constructs, grappled or immobile, etc.",
-        BPIncreaseOpt1: 0,
+        opt2Cost: -0.03125,
+        opt2Description: "-3.125%% EN for each additional acceptable stipulation in addition to the first two (an additional creature type, or condition needed.) I.e. Undead or Constructs, grappled or immobile, etc.",
+        BPIncreaseOpt2: 0,
         type: "decrease",
         category: "Power Mechanics"
     },

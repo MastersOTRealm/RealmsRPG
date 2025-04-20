@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character Sheet - Realms: The Freeform Roleplaying Game</title>
-    <link rel="stylesheet" href="/styles/main.css">
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Welcome to Realms</title>
     <link rel="stylesheet" href="characterSheet.css">
+    <script type="module" src="characterSheet.js"></script>
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- update the version number as needed -->
     <script defer src="/__/firebase/11.3.0/firebase-app-compat.js"></script>
+    <!-- include only the Firebase features as you need -->
     <script defer src="/__/firebase/11.3.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/11.3.0/firebase-database-compat.js"></script>
     <script defer src="/__/firebase/11.3.0/firebase-firestore-compat.js"></script>
@@ -16,289 +19,276 @@
     <script defer src="/__/firebase/11.3.0/firebase-analytics-compat.js"></script>
     <script defer src="/__/firebase/11.3.0/firebase-remote-config-compat.js"></script>
     <script defer src="/__/firebase/11.3.0/firebase-performance-compat.js"></script>
+    <!-- 
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
     <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-    <script type="module" src="/scripts/auth.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <header id="header"></header>
-    <main>
-        <div class="mode-switch-container">
-            <label class="mode-switch">
-                <input type="checkbox" id="modeSwitch">
-                <span class="slider"></span>
-            </label>
-            <span id="modeLabel">Edit Mode</span>
-        </div>
-        <div class="character-sheet-container">
-            <div class="character-sheet">
-                <div class="header">
-                    <input type="text" id="characterName" placeholder="Name">
-                    <label for="level">Level</label>
-                    <input type="number" id="level" min="1" max="20" value="1" placeholder="Level">
-                    <button id="restButton">Rest</button>
-                    <button id="settingsButton">Settings</button>
+    <div class="container">
+        <div class="header">
+            <div class="character-info">
+                <img src="https://via.placeholder.com/80" alt="Character Avatar">
+                <div class="character-details">
+                    <h2>Sariah Lightoak</h2>
+                    <p>Lightfoot Halfling Ranger</p>
+                    <p>XP: 0 | Level: 1</p>
                 </div>
-
-                <div class="abilities-container">
-                    <div class="ability-box">
-                        <label for="strength">Strength</label>
-                        <button id="strength-button" class="ability-button">+0</button>
-                        <select id="strength" class="ability hidden"></select>
-                        <input type="checkbox" id="strength-half" class="hidden">
-                        <label for="strength-half" class="half-point-label hidden">Half Point</label>
-                    </div>
-                    <div class="ability-box">
-                        <label for="vitality">Vitality</label>
-                        <button id="vitality-button" class="ability-button">+0</button>
-                        <select id="vitality" class="ability hidden"></select>
-                        <input type="checkbox" id="vitality-half" class="hidden">
-                        <label for="vitality-half" class="half-point-label hidden">Half Point</label>
-                    </div>
-                    <div class="ability-box">
-                        <label for="agility">Agility</label>
-                        <button id="agility-button" class="ability-button">+0</button>
-                        <select id="agility" class="ability hidden"></select>
-                        <input type="checkbox" id="agility-half" class="hidden">
-                        <label for="agility-half" class="half-point-label hidden">Half Point</label>
-                    </div>
-                    <div class="ability-box">
-                        <label for="acuity">Acuity</label>
-                        <button id="acuity-button" class="ability-button">+0</button>
-                        <select id="acuity" class="ability hidden"></select>
-                        <input type="checkbox" id="acuity-half" class="hidden">
-                        <label for="acuity-half" class="half-point-label hidden">Half Point</label>
-                    </div>
-                    <div class="ability-box">
-                        <label for="intelligence">Intelligence</label>
-                        <button id="intelligence-button" class="ability-button">+0</button>
-                        <select id="intelligence" class="ability hidden"></select>
-                        <input type="checkbox" id="intelligence-half" class="hidden">
-                        <label for="intelligence-half" class="half-point-label hidden">Half Point</label>
-                    </div>
-                    <div class="ability-box">
-                        <label for="charisma">Charisma</label>
-                        <button id="charisma-button" class="ability-button">+0</button>
-                        <select id="charisma" class="ability hidden"></select>
-                        <input type="checkbox" id="charisma-half" class="hidden">
-                        <label for="charisma-half" class="half-point-label hidden">Half Point</label>
-                    </div>
-                    <div class="ability-box">
-                        <label for="evasion">Evasion</label>
-                        <div id="evasion" class="evasion-value">10</div>
-                    </div>
-                    <div class="stat-box">
-                        <label for="terminal">Terminal</label>
-                        <div id="terminal" class="stat-values">
-                            <span id="terminal-value">X</span>
-                        </div>
-                    </div>
-                    <div class="stat-box">
-                        <label for="hit-points">Hit Points</label>
-                        <div id="hit-points" class="stat-values">
-                            <input type="number" id="current-hp" min="-999" value="0" class="current-value"> / <span id="max-hp">0</span>
-                        </div>
-                        <div class="stat-labels">
-                            <span>current</span> <span>max</span>
-                        </div>
-                        <div class="stat-buttons hp-buttons hidden">
-                            <button id="hp-increase">+</button>
-                            <button id="hp-decrease">-</button>
-                        </div>
-                    </div>
+            </div>
+            <div class="stats">
+                <div class="stat-box">
+                    <p>Speed: +7</p>
                 </div>
-
-                <div class="defense-container">
-                    <div class="defense-box">
-                        <label for="might-score">Might</label>
-                        <div id="might-score" class="defense-score">10</div>
-                        <div id="might-bonus" class="defense-bonus hidden">0</div>
-                        <div class="defense-buttons-container hidden">
-                            <button id="might-increase" class="defense-button">+</button>
-                            <button id="might-decrease" class="defense-button">-</button>
-                        </div>
-                        <button id="might-roll" class="defense-roll-button">+0</button>
-                    </div>
-                    <div class="defense-box">
-                        <label for="fortitude-score">Fortitude</label>
-                        <div id="fortitude-score" class="defense-score">10</div>
-                        <div id="fortitude-bonus" class="defense-bonus hidden">0</div>
-                        <div class="defense-buttons-container hidden">
-                            <button id="fortitude-increase" class="defense-button">+</button>
-                            <button id="fortitude-decrease" class="defense-button">-</button>
-                        </div>
-                        <button id="fortitude-roll" class="defense-roll-button">+0</button>
-                    </div>
-                    <div class="defense-box">
-                        <label for="reflex-score">Reflex</label>
-                        <div id="reflex-score" class="defense-score">10</div>
-                        <div id="reflex-bonus" class="defense-bonus hidden">0</div>
-                        <div class="defense-buttons-container hidden">
-                            <button id="reflex-increase" class="defense-button">+</button>
-                            <button id="reflex-decrease" class="defense-button">-</button>
-                        </div>
-                        <button id="reflex-roll" class="defense-roll-button">+0</button>
-                    </div>
-                    <div class="defense-box">
-                        <label for="discernment-score">Discernment</label>
-                        <div id="discernment-score" class="defense-score">10</div>
-                        <div id="discernment-bonus" class="defense-bonus hidden">0</div>
-                        <div class="defense-buttons-container hidden">
-                            <button id="discernment-increase" class="defense-button">+</button>
-                            <button id="discernment-decrease" class="defense-button">-</button>
-                        </div>
-                        <button id="discernment-roll" class="defense-roll-button">+0</button>
-                    </div>
-                    <div class="defense-box">
-                        <label for="mental-fortitude-score">Mental Fort.</label>
-                        <div id="mental-fortitude-score" class="defense-score">10</div>
-                        <div id="mental-fortitude-bonus" class="defense-bonus hidden">0</div>
-                        <div class="defense-buttons-container hidden">
-                            <button id="mental-fortitude-increase" class="defense-button">+</button>
-                            <button id="mental-fortitude-decrease" class="defense-button">-</button>
-                        </div>
-                        <button id="mental-fortitude-roll" class="defense-roll-button">+0</button>
-                    </div>
-                    <div class="defense-box">
-                        <label for="resolve-score">Resolve</label>
-                        <div id="resolve-score" class="defense-score">10</div>
-                        <div id="resolve-bonus" class="defense-bonus hidden">0</div>
-                        <div class="defense-buttons-container hidden">
-                            <button id="resolve-increase" class="defense-button">+</button>
-                            <button id="resolve-decrease" class="defense-button">-</button>
-                        </div>
-                        <button id="resolve-roll" class="defense-roll-button">+0</button>
-                    </div>
-                    <div class="ability-box">
-                        <label for="movement-speed">Movement</label>
-                        <div id="movement-speed" class="movement-speed-value">6</div>
-                        <span class="movement-speed-label">speed</span>
-                    </div>
-                    <div class="defense-box">
-                        <label for="inspiration">Inspiration</label>
-                        <input type="checkbox" id="inspiration" class="inspiration-checkbox">
-                    </div>
-                    <div class="stat-box">
-                        <label for="energy">Energy</label>
-                        <div id="energy" class="stat-values">
-                            <input type="number" id="current-energy" min="0" value="0" class="current-value"> / <span id="max-energy">0</span>
-                        </div>
-                        <div class="stat-labels">
-                            <span>current</span> <span>max</span>
-                        </div>
-                        <div class="stat-buttons energy-buttons hidden">
-                            <button id="energy-increase">+</button>
-                            <button id="energy-decrease">-</button>
-                        </div>
-                    </div>
+                <div class="stat-box">
+                    <p>Evasion: 12</p>
                 </div>
-
-                <div class="skills-and-extras-container">
-                    <div class="skills-container">
-                        <h2 id="skills-title">Skills</h2>
-                        <div class="skill-points-container">
-                            <div class="skill-points-title">Total Skill Points</div>
-                            <span id="skill-points-total" class="skill-points-total">0</span>
-                        </div>
-                        <div id="skills-list"></div>
-                        <select id="skillDropdown"></select>
-                        <button id="addSkillButton">Add Skill</button>
-                    </div>
-                    <div class="extra-boxes-container">
-                        <div class="extra-box" id="bonuses-box">
-                            <h3>Bonuses</h3>
-                            <div class="proficiency-container">
-                                <div class="proficiency-box">
-                                    <label for="martial-proficiency">Martial Proficiency</label>
-                                    <select id="martial-proficiency">
-                                        <option value="0">0</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                        <option value="4">4</option>
-                                        <option value="5">5</option>
-                                        <option value="6">6</option>
-                                    </select>
-                                    <span id="martial-proficiency-value" class="hidden"></span>
-                                </div>
-                                <div class="proficiency-box">
-                                    <label for="power-proficiency">Power Proficiency</label>
-                                    <select id="power-proficiency">
-                                        <option value="0">0</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                        <option value="4">4</option>
-                                        <option value="5">5</option>
-                                        <option value="6">6</option>
-                                    </select>
-                                    <span id="power-proficiency-value" class="hidden"></span>
-                                </div>
-                            </div>
-                            <div class="bonus-attack-container">
-                                <div class="bonus-attack-row">
-                                    <span>Strength Attack</span>
-                                    <button id="strength-attack-roll" class="bonus-attack-roll">+0</button>
-                                </div>
-                                <div class="bonus-attack-row">
-                                    <span>Agility Attack</span>
-                                    <button id="agility-attack-roll" class="bonus-attack-roll">+0</button>
-                                </div>
-                                <div class="bonus-attack-row">
-                                    <span>Acuity Attack</span>
-                                    <button id="acuity-attack-roll" class="bonus-attack-roll">+0</button>
-                                </div>
-                                <div class="bonus-attack-row">
-                                    <span>Power Attack</span>
-                                    <button id="power-attack-roll" class="bonus-attack-roll">+0</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="extra-box" id="weapons-box">
-                            <h3>Weapons</h3>
-                            <!-- Content for weapons -->
-                        </div>
-                        <div class="extra-box" id="armor-box">
-                            <h3>Armor</h3>
-                            <!-- Content for armor -->
-                        </div>
-                    </div>
-                    <div class="feats-box">
-                        <div class="tabs">
-                            <button class="tab active" data-target="feats-content">Feats</button>
-                            <button class="tab" data-target="techniques-content">Techniques</button>
-                            <button class="tab" data-target="powers-content">Powers</button>
-                            <button class="tab" data-target="inventory-content">Inventory</button>
-                            <button class="tab" data-target="notes-content">Notes</button>
-                        </div>
-                        <div id="feats-content" class="tab-content">
-                            <select id="featsDropdown"></select>
-                            <button id="addFeatButton" class="hidden">Add Feat</button>
-                            <div id="feats-list"></div>
-                        </div>
-                        <div id="techniques-content" class="tab-content hidden"> <!-- Content for techniques --> </div>
-                        <div id="powers-content" class="tab-content hidden"> <!-- Content for powers --> </div>
-                        <div id="inventory-content" class="tab-content hidden"> <!-- Content for inventory --> </div>
-                        <div id="notes-content" class="tab-content hidden"> <!-- Content for notes --> </div>
-                    </div>
+                <div class="stat-box">
+                    <p>Health: <input type="number" id="currentHealth" value="7" min="0" max="7"> / 7</p>
+                    <p>Terminal: 2</p>
                 </div>
-
-                <div id="total-box" class="total-box">Total HP: 0, Total Energy: 0</div>
-                <div id="increase-points-box" class="increase-points-box">Remaining Increase Points: 0</div>
-
+                <div class="stat-box">
+                    <p>Energy: <input type="number" id="currentEnergy" value="2" min="0" max="2"> / 2</p>
+                    <p>Innate Energy: 2</p>
+                </div>
             </div>
         </div>
 
-        <div id="logContainer" class="log-container">
-            <div id="logHeader" class="log-header">
-                <span>Roll Log</span>
-                <button id="toggleLogButton">Toggle Log</button>
+        <div class="abilities-defenses">
+            <div class="abilities">
+                <div class="ability">
+                    <p>Strength</p>
+                    <button onclick="rollAbility('Strength', 2)">+2</button>
+                </div>
+                <div class="ability">
+                    <p>Vitality</p>
+                    <button onclick="rollAbility('Vitality', -1)">-1</button>
+                </div>
+                <div class="ability">
+                    <p>Agility</p>
+                    <button onclick="rollAbility('Agility', 2)">+2</button>
+                </div>
+                <div class="ability">
+                    <p>Acuity</p>
+                    <button onclick="rollAbility('Acuity', 1)">+1</button>
+                </div>
+                <div class="ability">
+                    <p>Intelligence</p>
+                    <button onclick="rollAbility('Intelligence', 1)">+1</button>
+                </div>
+                <div class="ability highlighted">
+                    <p>Charisma</p>
+                    <button onclick="rollAbility('Charisma', 2)">+2</button>
+                </div>
             </div>
-            <div id="logContent" class="log-content"></div>
         </div>
-    </main>
+
+        <div class="abilities-defenses">
+            <div class="defenses">
+                <div class="defense">
+                    <p>Might</p>
+                    <button onclick="rollDefense('Might', 3)">+3</button>
+                </div>
+                <div class="defense">
+                    <p>Fortitude</p>
+                    <button onclick="rollDefense('Fortitude', -1)">-1</button>
+                </div>
+                <div class="defense">
+                    <p>Reflex</p>
+                    <button onclick="rollDefense('Reflex', 2)">+2</button>
+                </div>
+                <div class="defense">
+                    <p>Discernment</p>
+                    <button onclick="rollDefense('Discernment', 1)">+1</button>
+                </div>
+                <div class="defense">
+                    <p>Mental Fort.</p>
+                    <button onclick="rollDefense('Mental Fort.', 1)">+1</button>
+                </div>
+                <div class="defense">
+                    <p>Resolve</p>
+                    <button onclick="rollDefense('Resolve', 2)">+2</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-column">
+                <div class="skills">
+                    <h4>Skills</h4>
+                    <table>
+                        <tr>
+                            <th>Prof.</th>
+                            <th>Skill</th>
+                            <th>Ability</th>
+                            <th>Bonus</th>
+                        </tr>
+                        <tr>
+                            <td><span class="prof-circle prof-grey"></span></td>
+                            <td>Stealth</td>
+                            <td>AGI</td>
+                            <td><button class="roll-button" onclick="rollSkill('Stealth', 1)">+1</button></td>
+                        </tr>
+                        <tr>
+                            <td><span class="prof-circle prof-grey"></span></td>
+                            <td>Persuasion</td>
+                            <td>CHA</td>
+                            <td><button class="roll-button" onclick="rollSkill('Persuasion', 1)">+1</button></td>
+                        </tr>
+                        <tr>
+                            <td><span class="prof-circle prof-grey"></span></td>
+                            <td>Arcana</td>
+                            <td>INT</td>
+                            <td><button class="roll-button" onclick="rollSkill('Arcana', 1)">+1</button></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="middle-column">
+                <div class="info-box">
+                    <h4>Archetype Prof</h4>
+                    <table class="proficiencies-table">
+                        <tr>
+                            <td>Martial</td>
+                            <td>Power</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>1</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="info-box">
+                    <h4>Bonuses</h4>
+                    <table class="bonuses-table">
+                        <tr>
+                            <th colspan="3">Attack Bonuses</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th>Prof.</th>
+                            <th>Unprof.</th>
+                        </tr>
+                        <tr>
+                            <td>Strength</td>
+                            <td><button class="roll-button" onclick="rollBonus('Strength (Prof.)', 3)">+3</button></td>
+                            <td><button class="roll-button" onclick="rollBonus('Strength (Unprof.)', 1)">+1</button></td>
+                        </tr>
+                        <tr>
+                            <td>Agility</td>
+                            <td><button class="roll-button" onclick="rollBonus('Agility (Prof.)', 3)">+3</button></td>
+                            <td><button class="roll-button" onclick="rollBonus('Agility (Unprof.)', 1)">+1</button></td>
+                        </tr>
+                        <tr>
+                            <td>Acuity</td>
+                            <td><button class="roll-button" onclick="rollBonus('Acuity (Prof.)', 2)">+2</button></td>
+                            <td><button class="roll-button" onclick="rollBonus('Acuity (Unprof.)', 1)">+1</button></td>
+                        </tr>
+                        <tr>
+                            <td>Power</td>
+                            <td><button class="roll-button" onclick="rollBonus('Power (Prof.)', 1)">+1</button></td>
+                            <td><button class="roll-button" onclick="rollBonus('Power (Unprof.)', 1)">+1</button></td>
+                        </tr>
+                    </table>
+                    <p class="separator">Power Potency: 13</p>
+                </div>
+                <div class="info-box">
+                    <h4>Weapons</h4>
+                    <div class="weapon-item">
+                        <p>Shortsword: <button class="damage-button" onclick="rollDamage('Shortsword', 6, 'Slashing')">1d6</button> Slashing, Range 1</p>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <h4>Armor</h4>
+                    <div class="armor-item">
+                        <p>Leather Armor: -1 Damage, -1 Agility, +2 Crit Range</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="tabs">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="openTab('feats')">Feats</button>
+                        <button class="tab-button" onclick="openTab('techniques')">Techniques</button>
+                        <button class="tab-button" onclick="openTab('powers')">Powers</button>
+                        <button class="tab-button" onclick="openTab('proficiencies')">Proficiencies</button>
+                        <button class="tab-button" onclick="openTab('inventory')">Inventory</button>
+                        <button class="tab-button" onclick="openTab('notes')">Notes</button>
+                    </div>
+                    <div id="feats" class="tab-content active">
+                        <div class="feat">
+                            <label><input type="checkbox"> Sharpshooter</label>
+                            <p>Description: Increase crit range by 1.</p>
+                            <div class="uses">
+                                <p>Uses: <span id="sharpshooterUses">2</span> / 2 PR</p>
+                                <button onclick="changeUses('sharpshooterUses', 1, 2)">+</button>
+                                <button onclick="changeUses('sharpshooterUses', -1, 2)">-</button>
+                            </div>
+                        </div>
+                        <div class="feat">
+                            <label><input type="checkbox"> Lucky</label>
+                            <p>Description: Reroll a failed check once.</p>
+                            <div class="uses">
+                                <p>Uses: <span id="luckyUses">1</span> / 1 FR</p>
+                                <button onclick="changeUses('luckyUses', 1, 1)">+</button>
+                                <button onclick="changeUses('luckyUses', -1, 1)">-</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="techniques" class="tab-content">
+                        <div class="technique">
+                            <p><button onclick="useEnergy(1)">1 Energy</button> Quick Draw</p>
+                            <p>Range: Self</p>
+                            <p>Damage: None</p>
+                            <p>Description: Draw a weapon as a free action.</p>
+                        </div>
+                    </div>
+                    <div id="powers" class="tab-content">
+                        <div class="power">
+                            <p><button onclick="useEnergy(2)">2 Energy</button> Minor Illusion</p>
+                            <p>Range: 5 spaces</p>
+                            <p>Damage: None</p>
+                            <p>Targets: Resolve</p>
+                            <p>Duration: 1 minute</p>
+                            <p>Description: Create a small illusion.</p>
+                        </div>
+                    </div>
+                    <div id="proficiencies" class="tab-content">
+                        <p>Building Points: 11 / 11</p>
+                        <p>Slashing Weapons - BP: 2</p>
+                        <p>Description: Proficiency with 1d6 slashing weapons.</p>
+                    </div>
+                    <div id="inventory" class="tab-content">
+                        <div class="inventory-item">
+                            <p>Bag: 6GP, Quantity: 1, A regular carrying bag, can hold 50lb's.</p>
+                        </div>
+                        <div class="inventory-item">
+                            <p>Bed Roll: 10GP, Quantity: 1, Regular sleeping roll, provides comfort and warmth.</p>
+                        </div>
+                        <div class="inventory-item">
+                            <p>Flint & Steel Fire Starter: 4GP, Quantity: 1, Flint and steel to be used to create sparks thus starting fires.</p>
+                        </div>
+                    </div>
+                    <div id="notes" class="tab-content">
+                        <p>Prefers ranged combat, avoids close quarters.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="roll-log" id="rollLog">
+        <h4>Roll Log</h4>
+        <div id="logEntries"></div>
+    </div>
+    <button class="log-toggle" onclick="toggleLog()"><span class="arrow">↑</span></button>
+    
     <footer id="footer"></footer>
     <script type="module">
-      import { initializeFirebase, handleAuthStateChange } from '../scripts/auth.js';
+      import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
 
       async function loadHeaderFooter() {
         const header = document.getElementById('header');
@@ -317,6 +307,5 @@
         handleAuthStateChange(auth, db);
       });
     </script>
-    <script type="module" src="characterSheet.js"></script>
-</body>
+  </body>
 </html>

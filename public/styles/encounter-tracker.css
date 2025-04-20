@@ -1,0 +1,375 @@
+/* General Layout */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #F5F5F5;
+}
+
+header {
+    background-color: #2C3E50;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 24px;
+    margin: 0;
+}
+
+header .back-button {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.tracker-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.initiative-list {
+    width: 80%;
+    max-width: 1200px;
+    background-color: white;
+    border: 1px solid #CCC;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 20px;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+
+.initiative-entry {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    cursor: move;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.initiative-entry.dragging {
+    opacity: 0.5;
+    background-color: #e0e0e0;
+}
+
+.initiative-entry:hover {
+    background-color: #f0f0f0;
+}
+
+.initiative-entry.active-turn {
+    background-color: #d0e8ff;
+    border-color: #007bff;
+}
+
+.initiative-entry input,
+.initiative-entry select {
+    margin-right: 10px;
+    padding: 5px;
+    font-size: 14px;
+}
+
+.initiative-entry .creature-name {
+    flex: 3;
+    max-width: 150px; /* Shrink name box width */
+    width: 80px;
+    padding: 5px;
+}
+
+.initiative-entry .initiative-roll,
+.initiative-entry .acuity-score {
+    flex: 1;
+    max-width: 50px; /* Shrink roll and acuity box width */
+    text-align: center;
+    width: 80px;
+    padding: 5px;
+}
+
+.initiative-entry .initiative-skill {
+    flex: 2;
+}
+
+.initiative-entry .side-toggle {
+    flex: 2;
+    display: flex;
+    justify-content: space-around;
+    margin-right: 20px; /* Increase horizontal spacing */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.initiative-entry .surprised-checkbox {
+    flex: 1;
+    text-align: center;
+    margin-right: 20px; /* Increase horizontal spacing */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.initiative-entry button {
+    flex: 0.5;
+    padding: 5px;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+}
+
+.initiative-entry .remove-entry {
+    background-color: #C0392B;
+    color: white;
+    border-radius: 3px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.initiative-entry .ap-tracker {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px; /* Adjust spacing */
+    margin-right: 20px; /* Increase horizontal spacing */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.initiative-entry .ap-tracker button {
+    width: 15px; /* Further shrink button width */
+    height: 20px;
+    font-size: 12px;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+    background-color: #3498DB;
+    color: white;
+}
+
+.initiative-entry .hp-input-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 10px; /* Add spacing between AP tracker and HP inputs */
+}
+
+.initiative-entry .hp-input {
+    width: 50px;
+    text-align: center;
+    font-size: 12px;
+    margin-bottom: 2px; /* Add spacing between current and max HP inputs */
+    width: 80px;
+    padding: 5px;
+}
+
+.initiative-entry.enemy-zero-hp {
+    background-color: rgba(192, 57, 43, 0.2); /* Highlight enemies with 0 HP in red */
+    background-color: #ffd0d0;
+}
+
+.initiative-entry .drag-handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    margin-left: 10px;
+    font-size: 16px;
+    color: #7F8C8D;
+}
+
+.initiative-entry .drag-handle:hover {
+    color: #2C3E50;
+}
+
+.initiative-entry .ap-tracker .ap-label {
+    font-size: 14px;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.initiative-entry .conditions {
+    flex: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.initiative-entry .condition {
+    padding: 2px 5px;
+    font-size: 12px;
+    border-radius: 3px;
+    background-color: #7F8C8D;
+    color: white;
+    cursor: pointer;
+    position: relative;
+}
+
+.initiative-entry .condition.decaying::after {
+    content: attr(data-level);
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #C0392B;
+    color: white;
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.initiative-entry.active-turn {
+    background-color: rgba(52, 152, 219, 0.2); /* Light blue hue */
+}
+
+.toggle-conditions {
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+}
+
+.conditions-section {
+    display: none;
+    width: 100%;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #ddd;
+}
+
+.conditions-section.active {
+    display: block;
+}
+
+.conditions-label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.conditions-select {
+    padding: 5px;
+    margin-right: 10px;
+}
+
+.conditions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.condition {
+    display: inline-block;
+    padding: 2px 5px;
+    background-color: #eee;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.condition.decaying::after {
+    content: ' (Level ' attr(data-level) ')';
+}
+
+.remove-entry, .increase-ap, .decrease-ap {
+    padding: 5px;
+    cursor: pointer;
+}
+
+/* Control Panel */
+.control-panel {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 80%;
+    max-width: 1200px;
+}
+
+.control-panel button {
+    padding: 10px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.control-panel .green-button {
+    background-color: #27AE60;
+    color: white;
+    /* Button text will now display "Add Creature" */
+}
+
+.control-panel .blue-button {
+    background-color: #3498DB;
+    color: white;
+}
+
+.control-panel .gray-button {
+    background-color: #7F8C8D;
+    color: white;
+}
+
+.control-panel .red-button {
+    background-color: #C0392B;
+    color: white;
+}
+
+.control-panel .surprise-toggle {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.round-number {
+    margin-top: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    color: #2C3E50;
+}
+
+.tooltip {
+    position: relative;
+    margin-top: 20px; /* Add vertical margin between tracker and tooltip */
+    width: 80%; /* Match the width of the tracker */
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: left; /* Align text to the left */
+}
+
+.tooltip h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #2C3E50;
+}
+
+.tooltip p {
+    margin: 5px 0;
+}
+
+.tooltip ul {
+    margin: 5px 0;
+    padding-left: 20px;
+}
+
+.tooltip strong {
+    color: #2C3E50;
+}
