@@ -171,3 +171,192 @@ exports.deletePowerFromLibrary = onCall(async (data, context) => {
         throw new HttpsError('internal', 'Error deleting power');
     }
 });
+
+exports.saveItemToLibrary = onCall(async (data, context) => {
+    // Robust check for authentication
+    if (!context.auth) {
+        logger.error('Unauthenticated request: context.auth is undefined');
+        throw new HttpsError('unauthenticated', 'You must be authenticated to save an item.');
+    }
+
+    const {
+        itemName,
+        itemDescription,
+        totalBP,
+        totalIP,
+        totalGP,
+        range,
+        handedness,
+        rarity,
+        damage,
+        itemParts
+    } = data;
+    const uid = context.auth.uid;
+
+    if (!(typeof itemName === "string") || itemName.length === 0) {
+        logger.error('Invalid itemName:', itemName);
+        throw new HttpsError("invalid-argument", "The function must be called with a valid 'itemName'.");
+    }
+
+    // Validate types for required fields
+    if (typeof totalBP === "undefined" || typeof totalIP === "undefined" || typeof totalGP === "undefined") {
+        logger.error('Missing totalBP, totalIP, or totalGP', { totalBP, totalIP, totalGP });
+        throw new HttpsError("invalid-argument", "Missing required item cost fields.");
+    }
+    if (!Array.isArray(damage)) {
+        logger.error('Damage is not an array:', damage);
+        throw new HttpsError("invalid-argument", "Damage must be an array.");
+    }
+    if (!Array.isArray(itemParts)) {
+        logger.error('itemParts is not an array:', itemParts);
+        throw new HttpsError("invalid-argument", "itemParts must be an array.");
+    }
+
+    try {
+        const db = getFirestore();
+        const docRef = await db.collection('users').doc(uid).collection('itemLibrary').add({
+            name: itemName,
+            description: itemDescription || "",
+            totalBP: Number(totalBP),
+            totalIP: Number(totalIP),
+            totalGP: Number(totalGP),
+            range: range || "",
+            handedness: handedness || "",
+            rarity: rarity || "",
+            damage,
+            itemParts,
+            timestamp: new Date()
+        });
+        logger.info('Item document written with ID: ', docRef.id);
+        return { message: 'Item saved to library', docId: docRef.id };
+    } catch (error) {
+        logger.error('Error adding item document: ', error, data);
+        throw new HttpsError('internal', 'Error saving item to library: ' + error.message);
+    }
+});
+
+// --- Technique Library Functions (copies of power library functions, adapted) ---
+
+exports.saveTechniqueToLibrary = onCall(async (data, context) => {
+    const { techniqueName, techniqueDescription, totalEnergy, totalBP, actionType, reactionChecked, damage, techniqueParts, weapon } = data;
+    const uid = context.auth.uid;
+
+    if (!uid) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    // Validate required fields
+    if (!(typeof techniqueName === "string") || techniqueName.trim().length === 0) {
+        throw new HttpsError("invalid-argument", "The function must be called with a valid 'techniqueName'.");
+    }
+    if (typeof totalEnergy === "undefined" || totalEnergy === null || totalEnergy === "") {
+        throw new HttpsError("invalid-argument", "Missing required 'totalEnergy'.");
+    }
+    if (typeof totalBP === "undefined" || totalBP === null || totalBP === "") {
+        throw new HttpsError("invalid-argument", "Missing required 'totalBP'.");
+    }
+    if (!Array.isArray(damage)) {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'damage' array.");
+    }
+    if (!Array.isArray(techniqueParts)) {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'techniqueParts' array.");
+    }
+
+    try {
+        const db = getFirestore();
+        const docRef = await db.collection('users').doc(uid).collection('techniqueLibrary').add({
+            name: techniqueName,
+            description: techniqueDescription || "",
+            totalEnergy,
+            totalBP,
+            actionType,
+            reactionChecked,
+            damage,
+            techniqueParts,
+            weapon: weapon || { name: "Unarmed Prowess", bp: 0, id: null },
+            timestamp: new Date()
+        });
+        logger.info('Technique document written with ID: ', docRef.id);
+        return { message: 'Technique saved to library', docId: docRef.id };
+    } catch (error) {
+        logger.error('Error adding technique document: ', error);
+        throw new HttpsError('internal', 'Error saving technique to library');
+    }
+});
+
+exports.saveTechniqueToLibrary = onRequest((req, res) => {
+    cors(req, res, async () => {
+        const { techniqueName, techniqueDescription, totalEnergy, totalBP, actionType, reactionChecked, damage, techniqueParts, weapon } = req.body;
+        
+        // Verify the ID token from the Authorization header
+        const idToken = req.headers.authorization?.split('Bearer ')[1];
+        if (!idToken) {
+            res.status(401).json({ error: 'Unauthorized: No ID token provided.' });
+            return;
+        }
+
+        try {
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            const uid = decodedToken.uid;
+
+            // Validate required fields
+            if (!(typeof techniqueName === "string") || techniqueName.trim().length === 0) {
+                res.status(400).json({ error: "The function must be called with a valid 'techniqueName'." });
+                return;
+            }
+            if (typeof totalEnergy === "undefined" || totalEnergy === null || totalEnergy === "") {
+                res.status(400).json({ error: "Missing required 'totalEnergy'." });
+                return;
+            }
+            if (typeof totalBP === "undefined" || totalBP === null || totalBP === "") {
+                res.status(400).json({ error: "Missing required 'totalBP'." });
+                return;
+            }
+            if (!Array.isArray(damage)) {
+                res.status(400).json({ error: "Missing or invalid 'damage' array." });
+                return;
+            }
+            if (!Array.isArray(techniqueParts)) {
+                res.status(400).json({ error: "Missing or invalid 'techniqueParts' array." });
+                return;
+            }
+
+            const db = getFirestore();
+            const docRef = await db.collection('users').doc(uid).collection('techniqueLibrary').add({
+                name: techniqueName,
+                description: techniqueDescription || "",
+                totalEnergy,
+                totalBP,
+                actionType,
+                reactionChecked,
+                damage,
+                techniqueParts,
+                weapon: weapon || { name: "Unarmed Prowess", bp: 0, id: null },
+                timestamp: new Date()
+            });
+            logger.info('Technique document written with ID: ', docRef.id);
+            res.status(200).json({ message: 'Technique saved to library', docId: docRef.id });
+        } catch (error) {
+            logger.error('Error adding technique document: ', error);
+            res.status(500).json({ error: 'Error saving technique to library' });
+        }
+    });
+});
+
+exports.deleteTechniqueFromLibrary = onCall(async (data, context) => {
+    const { techniqueId } = data;
+    const uid = context.auth.uid;
+
+    if (!uid) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    try {
+        const db = getFirestore();
+        await db.collection('users').doc(uid).collection('techniqueLibrary').doc(techniqueId).delete();
+        return { message: 'Technique deleted successfully' };
+    } catch (error) {
+        console.error('Error deleting technique: ', error);
+        throw new HttpsError('internal', 'Error deleting technique');
+    }
+});

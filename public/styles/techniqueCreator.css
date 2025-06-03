@@ -17,7 +17,7 @@ body {
     margin-top: 20px;
 }
 
-#addItemPartButton, #addShieldPartButton, #addArmorPartButton {
+#addTechniquePartButton {
     padding: 10px 20px;
     font-size: 16px;
     border-radius: 5px;
@@ -25,20 +25,21 @@ body {
     background-color: #007bff;
     color: white;
     cursor: pointer;
-    margin: 10px;
+    align-self: flex-start;
+
 }
 
-#addItemPartButton:hover, #addShieldPartButton:hover, #addArmorPartButton:hover {
+#addTechniquePartButton:hover {
     background-color: #0056b3;
 }
 
-#itemPartsContainer {
+#techniquePartsContainer {
     margin-top: 20px;
     width: 100%; /* Widen to fill the page */
     position: relative;
 }
 
-#generalItemOptionsContainer {
+#generalTechniqueOptionsContainer {
     margin-top: 20px;
     width: 100%; /* Widen to fill the page */
     padding: 10px; /* Reduce padding to make the boxes smaller */
@@ -96,7 +97,7 @@ body {
     z-index: 1001; /* Ensure the arrow stays on top */
 }
 
-.item-part-section {
+.technique-part-section {
     margin-bottom: 20px;
     padding: 15px;
     background-color: white;
@@ -105,19 +106,19 @@ body {
     position: relative;
 }
 
-.item-part-section h3 {
-    font-family: 'Merriweather', serif;
+.technique-part-section h3 {
+    font-family: 'American Typewriter', serif;
     font-size: 24px;
     margin: 0;
 }
 
-.item-part-section p {
+.technique-part-section p {
     font-family: 'Nunito', sans-serif;
     font-size: 14px;
     margin: 5px 0;
 }
 
-.item-part-section h4 {
+.technique-part-section h4 {
     font-family: 'Nunito', sans-serif;
     font-size: 16px;
     margin: 10px 0 5px;
@@ -144,22 +145,22 @@ button:hover {
     font-size: 14px;
 }
 
-.item-part-section button {
+.technique-part-section button {
     margin: 5px;
 }
 
-.item-part-section .delete-button {
+.technique-part-section .delete-button {
     background-color: #dc3545;
     position: absolute;
     top: 10px;
     right: 10px;
 }
 
-.item-part-section .delete-button:hover {
+.technique-part-section .delete-button:hover {
     background-color: #c82333;
 }
 
-.item-part-section select {
+.technique-part-section select {
     display: block;
     margin: 0 auto 10px auto;
     padding: 5px;
@@ -189,14 +190,12 @@ button:hover {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
 }
 
-.range-box {
+.range-box, .area-box {
     width: 30%; /* Make the range and area boxes smaller */
 }
 
-.button-container {
-    display: inline-flex; /* Ensure the buttons are on the same line */
-    margin-left: 10px;
-    gap: 5px; /* Add spacing between the buttons */
+.duration-box {
+    width: 60%; /* Make the duration box larger */
 }
 
 .small-button {
@@ -206,6 +205,131 @@ button:hover {
 
 .small-button:hover {
     background-color: #4169e1; /* Darker blue on hover */
+}
+
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap; /* Wrap text for checkboxes */
+    margin-top: 10px;
+}
+
+.checkbox-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.left-column {
+    align-items: flex-start; /* Align left column items to the start */
+}
+
+.right-column {
+    align-items: flex-end; /* Align right column items to the end */
+}
+
+.checkbox-container label {
+    margin-bottom: 5px;
+}
+
+.sustain-container {
+    margin-top: 10px;
+}
+
+.sustain-container label {
+    margin-right: 5px;
+}
+
+.sustain-container select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
+.area-effect-container {
+    margin-top: 10px;
+}
+
+.area-effect-container label {
+    margin-right: 5px;
+}
+
+.area-effect-container select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
+.area-effect-container .button-container {
+    display: inline-flex; /* Ensure the buttons are on the same line */
+    margin-left: 10px;
+    gap: 5px; /* Add spacing between the buttons */
+}
+
+.range-button-container {
+    display: inline-flex; /* Ensure the buttons are on the same line */
+    margin-left: 10px;
+    gap: 5px; /* Add spacing between the buttons */
+}
+
+.area-effect-button-container {
+    display: inline-flex; /* Ensure the buttons are on the same line */
+    margin-left: 10px;
+    gap: 5px; /* Add spacing between the buttons */
+}
+
+.load-save-button-container {
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    align-items: flex-end; /* Align buttons to the right */
+    gap: 10px; /* Adjust spacing */
+    position: absolute; /* Position absolutely within #techniqueSummary */
+    top: 10px; /* Adjust as needed */
+    right: 10px; /* Align to the right */
+}
+
+.action-type-box {
+    margin-top: 10px;
+}
+
+.action-type-box h4 {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.action-type-box select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+    margin-right: 10px;
+}
+
+.action-type-box label {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.action-type-box #actionTypeDescription {
+    margin-top: 10px;
+}
+
+.alt-energy-button {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.alt-energy-button.toggled {
+    background-color: #0056b3; /* Darker blue to indicate toggled state */
 }
 
 .damage-box {
@@ -246,32 +370,35 @@ button:hover {
     background-color: #cc0000;
 }
 
-#itemSummary {
+#techniqueSummary {
     margin-top: 20px;
     padding: 15px;
     background-color: #e6f7ff; /* Very light blue */
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 100%; /* Widen to fill the page */
+    position: relative; /* Ensure relative positioning */
 }
 
-#itemSummary h3 {
+#techniqueSummary h3 {
     margin: 0 0 10px 0;
     font-size: 24px;
 }
 
-.item-summary-top {
+.technique-summary-top {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+    align-items: center;
+    position: relative; /* Add relative positioning */
 }
 
-.item-summary-top p {
+.technique-summary-top p {
     margin: 5px 0;
     flex: 1 1 30%;
 }
 
-.item-summary-top input {
+.technique-summary-top input {
     flex: 1 1 100%;
     padding: 5px;
     font-size: 16px;
@@ -280,11 +407,25 @@ button:hover {
     margin-bottom: 10px;
 }
 
-.item-summary-parts {
+.technique-summary-top button {
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.technique-summary-top button:hover {
+    background-color: #0056b3;
+}
+
+.technique-summary-parts {
     margin-top: 10px;
 }
 
-.item-summary-parts h4 {
+.technique-summary-parts h4 {
     margin: 0 0 5px 0;
 }
 
@@ -302,15 +443,15 @@ button:hover {
     flex: 1 1 30%;
 }
 
-.item-summary-description {
+.technique-summary-description {
     margin-top: 10px;
 }
 
-.item-summary-description h4 {
+.technique-summary-description h4 {
     margin: 0 0 5px 0;
 }
 
-#itemDescription {
+#techniqueDescription {
     width: 100%;
     height: 100px;
     padding: 5px;
@@ -319,16 +460,65 @@ button:hover {
     border: 1px solid #ccc;
 }
 
+.linger-container {
+    margin-top: 10px;
+}
+
+.linger-container label {
+    margin-right: 5px;
+}
+
+.duration-type-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.duration-type-container select {
+    margin-left: 10px;
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif;
+}
+
+.duration-type-container select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.duration-type-container select,
+.duration-box select {
+    padding: 2px 5px;
+    font-size: 14px;
+    border-radius: 5px; /* Rounded edges */
+    border: 1px solid #ccc;
+    font-family: 'Nunito', sans-serif; /* Better font */
+}
+
 .top-right-container {
     position: absolute;
     top: 10px;
     right: 10px;
 }
 
+.switch-page-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.switch-page-button:hover {
+    background-color: #0056b3;
+}
+
 .add-to-library-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     padding: 5px 10px;
     font-size: 14px;
     cursor: pointer;
@@ -336,20 +526,7 @@ button:hover {
     color: white;
     border: none;
     border-radius: 5px;
-}
-
-.add-to-library-button:hover {
-    background-color: #0056b3;
-}
-
-main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 1200px; /* Limit the width of the main content */
-    margin: 0 auto; /* Center the main content */
-    padding: 20px; /* Add padding to ensure content is not cut off */
+    margin-bottom: 5px; /* Add some space between buttons */
 }
 
 .button-row {
@@ -372,4 +549,40 @@ main {
 
 .button-row button:hover {
     background-color: #0056b3; /* Ensure consistent hover color */
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 10px;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
 }

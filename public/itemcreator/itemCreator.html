@@ -3,30 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Item Creator - Realms: The Freeform Roleplaying Game</title>
     <link rel="stylesheet" href="/styles/main.css">
-    <link rel="stylesheet" href="./styles.css">
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
-    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+    <link rel="stylesheet" href="/styles/itemCreator.css">
     <script type="module" src="./itemCreator.js" defer></script>
-    <script type="module" src="/scripts/loadHeader.js"></script>
 </head>
 <body>
-    <header>
-        <div id="loginStatus" class="login-status"><a href="/login.html">Login</a></div>
-        <h1>Item Creator</h1>
-        <nav>
-            <ul>
-                <li><a href="/index.html">Home</a></li>
-                <li><a href="/character/characterSheet.html">Character Sheet</a></li>
-                <li><a href="/itemcreator/itemCreator.html">Item Creator</a></li>
-                <li><a href="/powercreator/powerCreator.html">Power Creator</a></li>
-                <li><a href="/personalLibrary.html">Personal Library</a></li>
-            </ul>
-        </nav>
-    </header>
+    <header id="header"></header>
     <main>
-        <h1 class="page-title">Item Builder</h1>
         <div id="generalItemOptionsContainer">
             <h3 class="centered-title">General Item Options</h3>
             <div class="option-container">
@@ -77,12 +60,12 @@
         </div>
         <div id="itemPartsContainer"></div>
         <div id="itemSummary">
-            <div class="top-right-container">
-                <button id="add-to-library-button" class="add-to-library-button">Sign in to add to library</button>
-            </div>
             <h3>Item Summary</h3>
             <div class="item-summary-top">
-                <input type="text" id="itemName" placeholder="Item Name">
+                <input type="text" id="itemName" placeholder="Item Name" style="flex: 1;">
+                <div class="load-save-button-container" style="display: flex; flex-direction: column;">
+                    <button id="add-to-library-button" class="add-to-library-button">Add to Library</button>
+                </div>
                 <p>Total IP: <span id="summaryIP">0</span></p>
                 <p>Building Points: <span id="summaryBP">0</span></p>
                 <p>Gold Points: <span id="summaryGP">0</span></p>
@@ -105,11 +88,29 @@
             <p>Total BP: <span id="totalBP">0</span></p>
             <p>Total GP: <span id="totalGP">0</span></p>
             <p>Rarity: <span id="totalRarity">Common</span></p>
-            <div class="toggle-arrow"><</div> <!-- Add toggle arrow -->
+            <div class="toggle-arrow"><</div>
         </div>
     </main>
-    <footer>
-        <p>&copy; 2018 Realms. All rights reserved.</p>
-    </footer>
+    <footer id="footer"></footer>
+    <script type="module">
+        import { initializeFirebase, handleAuthStateChange } from '/scripts/auth.js';
+
+        async function loadHeaderFooter() {
+            const header = document.getElementById('header');
+            const footer = document.getElementById('footer');
+            if (header) {
+                header.innerHTML = await fetch('/header.html').then(response => response.text());
+            }
+            if (footer) {
+                footer.innerHTML = await fetch('/footer.html').then(response => response.text());
+            }
+        }
+        loadHeaderFooter();
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const { auth, db } = await initializeFirebase();
+            handleAuthStateChange(auth, db);
+        });
+    </script>
 </body>
 </html>

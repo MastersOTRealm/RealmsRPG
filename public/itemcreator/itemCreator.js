@@ -1,5 +1,11 @@
 import itemPartsData from './itemPartsData.js';
-// import { app, auth, appCheck } from '../scripts/firebaseConfig.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+let appCheckInitialized = false;
 
 (() => {
     const itemParts = itemPartsData;
@@ -309,7 +315,78 @@ import itemPartsData from './itemPartsData.js';
         arrow.textContent = totalCosts.classList.contains('collapsed') ? '>' : '<';
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
+    async function saveItemToLibrary(functions, userId) {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            console.warn('No authenticated user found');
+            alert('You must be logged in to save items.');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        const itemName = document.getElementById('itemName').value || '';
+        const itemDescription = document.getElementById('itemDescription').value || '';
+        const totalBP = document.getElementById('totalBP').textContent || '0';
+        const totalIP = document.getElementById('totalIP').textContent || '0';
+        const totalGP = document.getElementById('totalGP').textContent || '0';
+        const range = document.getElementById('rangeValue').textContent || 'Melee';
+        const handedness = document.getElementById('handedness')?.value || 'One-Handed';
+        const rarity = document.getElementById('totalRarity')?.textContent || 'Common';
+        const damage = [
+            {
+                type: document.getElementById('damageType1').value || 'none',
+                amount: document.getElementById('dieAmount1').value || '0',
+                size: document.getElementById('dieSize1').value || '0'
+            },
+            {
+                type: document.getElementById('damageType2')?.value || 'none',
+                amount: document.getElementById('dieAmount2')?.value || '0',
+                size: document.getElementById('dieSize2')?.value || '0'
+            }
+        ];
+        const itemParts = selectedItemParts.map(partData => ({
+            part: partData.part.name,
+            opt1Level: partData.opt1Level,
+            opt2Level: partData.opt2Level
+        }));
+
+        try {
+            const idToken = await currentUser.getIdToken(true);
+            const db = getFirestore();
+            const itemsRef = collection(db, 'users', userId, 'itemLibrary');
+            const q = query(itemsRef, where('name', '==', itemName));
+            const querySnapshot = await getDocs(q);
+
+            let docRef;
+            if (!querySnapshot.empty) {
+                docRef = doc(db, 'users', userId, 'itemLibrary', querySnapshot.docs[0].id);
+            } else {
+                docRef = doc(itemsRef);
+            }
+
+            await setDoc(docRef, {
+                name: itemName,
+                description: itemDescription,
+                totalBP: Number(totalBP),
+                totalIP: Number(totalIP),
+                totalGP: Number(totalGP),
+                range,
+                handedness,
+                rarity,
+                damage,
+                itemParts,
+                timestamp: new Date()
+            });
+
+            alert('Item saved to library');
+        } catch (e) {
+            console.error('Error saving item:', e.message, e.stack);
+            alert('Error saving item to library: ' + e.message);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
         const addItemPartButton = document.getElementById("addItemPartButton");
         if (addItemPartButton) addItemPartButton.addEventListener("click", addWeaponPart);
     
@@ -341,6 +418,66 @@ import itemPartsData from './itemPartsData.js';
 
         const toggleArrow = document.querySelector('#totalCosts .toggle-arrow');
         if (toggleArrow) toggleArrow.addEventListener('click', toggleTotalCosts);
+
+        let firebaseConfig = null;
+        try {
+            const response = await fetch('/__/firebase/init.json');
+            firebaseConfig = await response.json();
+            console.log('Firebase Config:', firebaseConfig); // Debug log
+            firebaseConfig.authDomain = 'realmsroleplaygame.com';
+        } catch (e) {
+            console.error('Error fetching Firebase config:', e);
+        }
+
+        const addToLibraryButton = document.getElementById("add-to-library-button");
+        if (addToLibraryButton) {
+            addToLibraryButton.disabled = true;
+            addToLibraryButton.textContent = "Loading...";
+        }
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+
+            // --- App Check: Only initialize once ---
+            if (!appCheckInitialized) {
+                initializeAppCheck(app, {
+                    provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
+                    isTokenAutoRefreshEnabled: true
+                });
+                appCheckInitialized = true;
+            }
+            // ---------------------------------------
+
+            const auth = getAuth(app);
+            const functions = getFunctions(app);
+
+            auth.onAuthStateChanged(user => {
+                if (addToLibraryButton) {
+                    setTimeout(() => {
+                        if (user) {
+                            addToLibraryButton.disabled = false;
+                            addToLibraryButton.textContent = "Add to Library";
+                            addToLibraryButton.onclick = async () => {
+                                const currentUser = auth.currentUser;
+                                if (!currentUser) {
+                                    alert("You must be logged in to save items.");
+                                    return;
+                                }
+                                console.log("User is signed in:", currentUser.uid);
+                                await saveItemToLibrary(functions, currentUser.uid);
+                            };
+                        } else {
+                            addToLibraryButton.disabled = false;
+                            addToLibraryButton.textContent = "Login to Add";
+                            addToLibraryButton.onclick = () => {
+                                alert("You must be logged in to save items.");
+                                window.location.href = "/login.html";
+                            };
+                        }
+                    }, 500); // 500ms delay to ensure auth state is stable
+                }
+            });
+        }
     });
 
     function addDamageRow() {
