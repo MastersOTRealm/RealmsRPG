@@ -3,6 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+import skills from '../scripts/skillsData.js'; // Import skillsData.js
 
 // --- Firebase Initialization (v11 compat, global) ---
 let firebaseApp, firebaseAuth, firebaseDb, currentUser;
@@ -37,6 +38,8 @@ let movement = [];
 let feats = [];
 let powersTechniques = []; // { ...power, type: "power" } or { name, bp, type: "technique" }
 let armaments = [];
+let creatureSkills = []; // <-- New: skills for the creature
+let creatureSkillValues = {}; // { skillName: skillValue }
 
 // --- Descriptions for Senses and Movement ---
 const SENSES_DESCRIPTIONS = {
@@ -299,6 +302,23 @@ function updateSummary() {
     if (featPointsElem) {
         featPointsElem.textContent = remaining.toFixed(1).replace(/\.0$/, "");
         featPointsElem.style.color = remaining < 0 ? "red" : "";
+    }
+
+    // --- Skills summary ---
+    const summarySkillsElem = document.getElementById("summarySkills");
+    if (summarySkillsElem) {
+        const skillSummaries = creatureSkills
+            .slice()
+            .sort((a, b) => a.localeCompare(b))
+            .map(skillName => {
+                const skillObj = skills.find(s => s.name === skillName);
+                if (!skillObj) return "";
+                const bonus = getSkillBonus(skillObj);
+                const sign = bonus >= 0 ? "+" : "";
+                return `${skillName} ${sign}${bonus}`;
+            })
+            .filter(Boolean);
+        summarySkillsElem.textContent = skillSummaries.length ? skillSummaries.join(", ") : "None";
     }
 
     // --- Building Points Calculation ---
@@ -920,6 +940,145 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("addPowerBtn").onclick = openPowerModal;
     document.getElementById("addTechniqueBtn").onclick = openTechniqueModal;
 
+    // --- Skills Box Logic ---
+    // Populate skills dropdown (with subskill gating)
+    const skillsDropdown = document.getElementById("skillsDropdown");
+    function updateSkillsDropdownOptions() {
+        if (!skillsDropdown) return;
+        // Remove all except the first option
+        while (skillsDropdown.options.length > 1) skillsDropdown.remove(1);
+        skills
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(skill => {
+                // Only show subskills if their baseSkill is present in creatureSkills
+                if (skill.subSkill) {
+                    if (!skill.baseSkill || !creatureSkills.includes(skill.baseSkill)) return;
+                }
+                // Don't show if already added
+                if (creatureSkills.includes(skill.name)) return;
+                const opt = document.createElement("option");
+                opt.value = skill.name;
+                opt.textContent = skill.name;
+                if (skill.description) opt.title = skill.description;
+                skillsDropdown.appendChild(opt);
+            });
+    }
+    updateSkillsDropdownOptions();
+
+    function updateSkillsList() {
+        const ul = document.getElementById("skillsList");
+        if (!ul) {
+            console.error("skillsList element not found in DOM");
+            return;
+        }
+        ul.innerHTML = "";
+        creatureSkills.slice().sort().forEach((skill, idx) => {
+            const li = document.createElement("li");
+            // Skill name and bonus (always recalculated)
+            li.textContent = skill + formatSkillBonusDisplay(skill);
+
+            // Skill value controls
+            const skillValue = typeof creatureSkillValues[skill] === "number" ? creatureSkillValues[skill] : 0;
+            const minusBtn = document.createElement("button");
+            minusBtn.textContent = "-";
+            minusBtn.className = "small-button";
+            minusBtn.style.marginLeft = "8px";
+            minusBtn.onclick = () => {
+                if (creatureSkillValues[skill] > 0) {
+                    creatureSkillValues[skill]--;
+                    updateSkillsList();
+                    updateDefensesUI();
+                    updateSummary();
+                }
+            };
+            minusBtn.disabled = skillValue <= 0;
+
+            const valueSpan = document.createElement("span");
+            valueSpan.textContent = ` ${skillValue} `;
+            valueSpan.style.fontWeight = "bold";
+            valueSpan.style.margin = "0 2px";
+
+            const plusBtn = document.createElement("button");
+            plusBtn.textContent = "+";
+            plusBtn.className = "small-button";
+            plusBtn.onclick = () => {
+                // Only allow if skill points remain
+                if (creatureSkillValues[skill] < 3 && getSkillPointsRemaining() > 0) {
+                    creatureSkillValues[skill]++;
+                    updateSkillsList();
+                    updateDefensesUI();
+                    updateSummary();
+                }
+            };
+            plusBtn.disabled = skillValue >= 3 || getSkillPointsRemaining() <= 0;
+
+            // Tooltip with skill description if available
+            const skillObj = skills.find(s => s.name === skill);
+            if (skillObj && skillObj.description) {
+                li.title = skillObj.description;
+            }
+
+            li.appendChild(minusBtn);
+            li.appendChild(valueSpan);
+            li.appendChild(plusBtn);
+
+            const btn = document.createElement("button");
+            btn.textContent = "✕";
+            btn.className = "small-button red-button";
+            btn.onclick = () => {
+                creatureSkills.splice(idx, 1);
+                delete creatureSkillValues[skill];
+                updateSkillsList();
+                updateSkillsDropdownOptions();
+                updateDefensesUI(); // update skill points
+                updateSummary();
+            };
+            li.appendChild(btn);
+            ul.appendChild(li);
+        });
+    }
+
+    document.getElementById("addSkillBtn").onclick = () => {
+        const val = skillsDropdown.value;
+        if (!val) return;
+        // Find the skill object
+        const skillObj = skills.find(s => s.name === val);
+        // If subSkill, check baseSkill is present
+        if (skillObj && skillObj.subSkill && skillObj.baseSkill && !creatureSkills.includes(skillObj.baseSkill)) {
+            alert(`You must add the base skill "${skillObj.baseSkill}" before adding "${skillObj.name}".`);
+            return;
+        }
+        // Check skill points
+        if (getSkillPointsRemaining() < 1) {
+            alert("You do not have enough skill points to add another skill.");
+            return;
+        }
+        if (!creatureSkills.includes(val)) {
+            creatureSkills.push(val);
+            creatureSkillValues[val] = 0; // Initialize skillValue to 0
+            updateSkillsList();
+            updateSkillsDropdownOptions();
+            updateDefensesUI(); // update skill points
+            updateSummary();
+        }
+    };
+    // Remove all skills button
+    const removeAllSkillsBtn = document.createElement("button");
+    removeAllSkillsBtn.textContent = "Remove All";
+    removeAllSkillsBtn.className = "small-button red-button";
+    removeAllSkillsBtn.style.marginLeft = "5px";
+    removeAllSkillsBtn.onclick = () => {
+        creatureSkills = [];
+        creatureSkillValues = {};
+        updateSkillsList();
+        updateSkillsDropdownOptions();
+        updateDefensesUI(); // update skill points
+        updateSummary();
+    };
+    document.getElementById("addSkillBtn").after(removeAllSkillsBtn);
+
+    updateSkillsList();
+
     // Modal close for powers
     if (document.querySelector('#loadPowerModal .close-button')) {
         document.querySelector('#loadPowerModal .close-button').onclick = closePowerModal;
@@ -1385,12 +1544,14 @@ function updateAllHealthEnergy() {
 
 // --- Attach listeners for creature ability dropdowns and health/energy ---
 document.addEventListener('DOMContentLoaded', () => {
-    // ...existing code...
     document.querySelectorAll('.creature-ability-dropdown').forEach(dropdown => {
         dropdown.addEventListener('change', () => {
+            // Debug log to confirm event fires and value is correct
+            console.log(`Ability dropdown changed: ${dropdown.id}, value: ${dropdown.value}`);
             updateCreatureAbilityDropdowns();
             updateAllHealthEnergy();
             updateDefensesUI();
+            updateSkillsList(); // This ensures skill bonuses update when abilities change
         });
     });
     const levelInput = document.getElementById('creatureLevel');
@@ -1399,6 +1560,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCreatureAbilityDropdowns();
             updateAllHealthEnergy();
             updateDefensesUI();
+            updateSkillsList(); // Ensure skill bonuses update when abilities change
         });
     }
     // Health/Energy handlers
@@ -1409,7 +1571,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Defense skill button listeners ---
     setupDefenseSkillButtons();
-    // ...existing code...
 });
 
 // --- Defense Skill State ---
@@ -1424,15 +1585,21 @@ const defenseSkillState = {
 
 // --- Skill Point Calculation ---
 function getSkillPointTotal() {
+    // Should be 2 + 3 * level (including first level)
     const level = parseInt(document.getElementById('creatureLevel')?.value) || 1;
-    return level * 3 + 2;
+    return 2 + 3 * level;
 }
 function getSkillPointsSpent() {
-    // Each +1 costs 2 skill points
-    return Object.values(defenseSkillState).reduce((sum, v) => sum + v * 2, 0);
+    // Each +1 to a defense costs 2 skill points, each skill costs 1 skill point, each skillValue costs 1 skill point
+    let skillValuePoints = 0;
+    for (const skill of creatureSkills) {
+        skillValuePoints += creatureSkillValues[skill] || 0;
+    }
+    return Object.values(defenseSkillState).reduce((sum, v) => sum + v * 2, 0) + creatureSkills.length + skillValuePoints;
 }
 function getSkillPointsRemaining() {
-    return getSkillPointTotal() - getSkillPointsSpent();
+    // Defensive: never negative, always at least 0
+    return Math.max(0, getSkillPointTotal() - getSkillPointsSpent());
 }
 
 // --- Defense Calculation Helpers ---
@@ -1440,7 +1607,31 @@ function getAbilityValue(id) {
     const el = document.getElementById(id);
     return el ? parseInt(el.value) || 0 : 0;
 }
+function getSkillBonus(skillObj) {
+    if (!skillObj || !Array.isArray(skillObj.abilities) || skillObj.abilities.length === 0) return 0;
+    // Map ability names to dropdown IDs
+    const abilityMap = {
+        strength: 'creatureAbilityStrength',
+        vitality: 'creatureAbilityVitality',
+        agility: 'creatureAbilityAgility',
+        acuity: 'creatureAbilityAcuity',
+        intelligence: 'creatureAbilityIntelligence',
+        charisma: 'creatureAbilityCharisma'
+    };
+    let max = -Infinity;
+    skillObj.abilities.forEach(ability => {
+        const id = abilityMap[ability.toLowerCase()];
+        if (id) {
+            const val = getAbilityValue(id);
+            if (val > max) max = val;
+        }
+    });
+    // Add skillValue (default 0 if not present)
+    const skillValue = typeof creatureSkillValues[skillObj.name] === "number" ? creatureSkillValues[skillObj.name] : 0;
+    return (max === -Infinity ? 0 : max) + skillValue;
+}
 function getSkillPointsForDefense(defense) {
+    // Fix: use the correct parameter name
     return defenseSkillState[defense] || 0;
 }
 function getBaseDefenseValue(defense) {
@@ -1506,5 +1697,87 @@ function setupDefenseSkillButtons() {
                 updateDefensesUI();
             }
         };
+    });
+}
+
+// --- Skills List Update ---
+function formatSkillBonusDisplay(skillName) {
+    const skillObj = skills.find(s => s.name === skillName);
+    if (!skillObj) return "";
+    const bonus = getSkillBonus(skillObj); // Always calculate fresh
+    const sign = bonus >= 0 ? "+" : "";
+    return ` (${sign}${bonus})`;
+}
+
+function updateSkillsList() {
+    const ul = document.getElementById("skillsList");
+    if (!ul) {
+        console.error("skillsList element not found in DOM");
+        return;
+    }
+    ul.innerHTML = "";
+    creatureSkills.slice().sort().forEach((skill, idx) => {
+        const li = document.createElement("li");
+        // Skill name and bonus (always recalculated)
+        li.textContent = skill + formatSkillBonusDisplay(skill);
+
+        // Skill value controls
+        const skillValue = typeof creatureSkillValues[skill] === "number" ? creatureSkillValues[skill] : 0;
+        const minusBtn = document.createElement("button");
+        minusBtn.textContent = "-";
+        minusBtn.className = "small-button";
+        minusBtn.style.marginLeft = "8px";
+        minusBtn.onclick = () => {
+            if (creatureSkillValues[skill] > 0) {
+                creatureSkillValues[skill]--;
+                updateSkillsList();
+                updateDefensesUI();
+                updateSummary();
+            }
+        };
+        minusBtn.disabled = skillValue <= 0;
+
+        const valueSpan = document.createElement("span");
+        valueSpan.textContent = ` ${skillValue} `;
+        valueSpan.style.fontWeight = "bold";
+        valueSpan.style.margin = "0 2px";
+
+        const plusBtn = document.createElement("button");
+        plusBtn.textContent = "+";
+        plusBtn.className = "small-button";
+        plusBtn.onclick = () => {
+            // Only allow if skill points remain
+            if (creatureSkillValues[skill] < 3 && getSkillPointsRemaining() > 0) {
+                creatureSkillValues[skill]++;
+                updateSkillsList();
+                updateDefensesUI();
+                updateSummary();
+            }
+        };
+        plusBtn.disabled = skillValue >= 3 || getSkillPointsRemaining() <= 0;
+
+        // Tooltip with skill description if available
+        const skillObj = skills.find(s => s.name === skill);
+        if (skillObj && skillObj.description) {
+            li.title = skillObj.description;
+        }
+
+        li.appendChild(minusBtn);
+        li.appendChild(valueSpan);
+        li.appendChild(plusBtn);
+
+        const btn = document.createElement("button");
+        btn.textContent = "✕";
+        btn.className = "small-button red-button";
+        btn.onclick = () => {
+            creatureSkills.splice(idx, 1);
+            delete creatureSkillValues[skill];
+            updateSkillsList();
+            updateSkillsDropdownOptions();
+            updateDefensesUI(); // update skill points
+            updateSummary();
+        };
+        li.appendChild(btn);
+        ul.appendChild(li);
     });
 }

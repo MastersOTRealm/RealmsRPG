@@ -196,6 +196,16 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Skills Box -->
+                    <div class="mechanic-box" id="skillsBox">
+                        <h3>Skills</h3>
+                        <ul id="skillsList"></ul>
+                        <select id="skillsDropdown">
+                            <option value="" disabled selected>Add Skill</option>
+                            <!-- Skill options will be populated by JS -->
+                        </select>
+                        <button class="small-button blue-button" id="addSkillBtn">Add</button>
+                    </div>
                 </div>
             </section>
             <!-- Abilities Section -->
@@ -422,6 +432,9 @@
                 </div>
                 <div>
                     <strong>Skill Points:</strong> <span id="summarySkillPoints">0</span>
+                </div>
+                <div>
+                    <strong>Skills:</strong> <span id="summarySkills"></span>
                 </div>
             </section>
         </div>
