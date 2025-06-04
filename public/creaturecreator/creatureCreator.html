@@ -312,6 +312,62 @@
                     </div>
                 </div>
             </section>
+            <!-- Defenses Section -->
+            <section id="defensesSection" class="abilities-section" style="width:100%;padding:15px;background-color:#e6f7ff;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);margin-bottom:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
+                    <h2 style="font-family:'Merriweather',serif;font-size:24px;font-weight:bold;margin:0;text-align:left;">Defenses</h2>
+                </div>
+                <div class="ability-row" style="display:flex;justify-content:center;gap:1rem;">
+                    <div class="ability-box">
+                        <div class="ability-name">Might</div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <button type="button" class="small-button defense-minus" data-defense="Might">-</button>
+                            <div id="defenseMight" class="defense-value" style="font-size:1.3rem;font-weight:bold;">10</div>
+                            <button type="button" class="small-button defense-plus" data-defense="Might">+</button>
+                        </div>
+                    </div>
+                    <div class="ability-box">
+                        <div class="ability-name">Fortitude</div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <button type="button" class="small-button defense-minus" data-defense="Fortitude">-</button>
+                            <div id="defenseFortitude" class="defense-value" style="font-size:1.3rem;font-weight:bold;">10</div>
+                            <button type="button" class="small-button defense-plus" data-defense="Fortitude">+</button>
+                        </div>
+                    </div>
+                    <div class="ability-box">
+                        <div class="ability-name">Reflex</div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <button type="button" class="small-button defense-minus" data-defense="Reflex">-</button>
+                            <div id="defenseReflex" class="defense-value" style="font-size:1.3rem;font-weight:bold;">10</div>
+                            <button type="button" class="small-button defense-plus" data-defense="Reflex">+</button>
+                        </div>
+                    </div>
+                    <div class="ability-box">
+                        <div class="ability-name">Discernment</div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <button type="button" class="small-button defense-minus" data-defense="Discernment">-</button>
+                            <div id="defenseDiscernment" class="defense-value" style="font-size:1.3rem;font-weight:bold;">10</div>
+                            <button type="button" class="small-button defense-plus" data-defense="Discernment">+</button>
+                        </div>
+                    </div>
+                    <div class="ability-box">
+                        <div class="ability-name">Mental Fortitude</div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <button type="button" class="small-button defense-minus" data-defense="Mental Fortitude">-</button>
+                            <div id="defenseMentalFortitude" class="defense-value" style="font-size:1.3rem;font-weight:bold;">10</div>
+                            <button type="button" class="small-button defense-plus" data-defense="Mental Fortitude">+</button>
+                        </div>
+                    </div>
+                    <div class="ability-box">
+                        <div class="ability-name">Resolve</div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <button type="button" class="small-button defense-minus" data-defense="Resolve">-</button>
+                            <div id="defenseResolve" class="defense-value" style="font-size:1.3rem;font-weight:bold;">10</div>
+                            <button type="button" class="small-button defense-plus" data-defense="Resolve">+</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
             <!-- Powers and Techniques Section -->
             <section id="powersTechniquesSection" class="powers-techniques-section">
                 <div class="powers-techniques-header">
@@ -364,6 +420,9 @@
                     <strong>Innate Powers:</strong> <span id="summaryInnatePowers">0</span> |
                     <strong>Innate Energy:</strong> <span id="summaryInnateEnergy">0</span>
                 </div>
+                <div>
+                    <strong>Skill Points:</strong> <span id="summarySkillPoints">0</span>
+                </div>
             </section>
         </div>
     </main>
@@ -374,6 +433,14 @@
             <span class="close-button">&times;</span>
             <h2>Select a Power</h2>
             <div id="savedPowersList" class="power-list"></div>
+        </div>
+    </div>
+    <!-- Load Technique Modal -->
+    <div id="loadTechniqueModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Select a Technique</h2>
+            <div id="savedTechniquesList" class="power-list"></div>
         </div>
     </div>
     <!-- Load Armament Modal -->

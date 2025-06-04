@@ -168,7 +168,6 @@ function updateList(listId, arr, removeHandler, descMap, displayMap) {
 function updateMovementList() {
     const ul = document.getElementById("movementList");
     ul.innerHTML = "";
-    // Show all movement types alphabetically
     const sorted = movement.slice().sort((a, b) => a.type.localeCompare(b.type));
     sorted.forEach((move, idx) => {
         const li = document.createElement("li");
@@ -250,8 +249,8 @@ function getSpecialFeatPoints() {
     return points;
 }
 function isMartialCreature() {
-    const martial = document.getElementById("martialCreatureToggle");
-    return martial && martial.checked;
+    const dropdown = document.getElementById("creatureTypeDropdown");
+    return dropdown && dropdown.value === "Martial";
 }
 
 function getBaseFeatPoints(level) {
@@ -313,16 +312,22 @@ function updateSummary() {
     }
 
     function getSpentBP() {
-        // Sum up BP spent on powers/techniques and armaments
-        let spent = powersTechniques.reduce((sum, item) => {
+        // Sum up BP spent on powers, techniques, and armaments
+        let spent = 0;
+        spent += powersTechniques.reduce((sum, item) => {
+            // Powers: use totalBP or bp
             if (item.type === "power") return sum + (parseFloat(item.totalBP) || 0);
-            if (item.type === "technique") return sum + (parseFloat(item.bp) || 0);
+            // Techniques: use totalBP or bp
+            if (item.type === "technique") return sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0);
             return sum;
         }, 0);
-        spent += armaments.reduce((sum, item) => sum + (parseFloat(item.bp) || 0), 0);
+        spent += armaments.reduce((sum, item) => {
+            // Armaments: use totalBP or bp
+            return sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0);
+        }, 0);
         return spent;
     }
-    // Add BP summary for powers/techniques
+    // Add BP summary for powers/techniques/armaments
     let level = document.getElementById("creatureLevel").value || 1;
     let bpTotal = getCreatureBP(level);
     let bpSpent = getSpentBP();
@@ -345,6 +350,7 @@ function renderPowersTechniques() {
     container.innerHTML = "";
     powersTechniques.forEach((item, idx) => {
         const isPower = item.type === "power";
+        const isTechnique = item.type === "technique";
         const div = document.createElement("div");
         div.className = "power-technique-item";
         if (isPower) {
@@ -372,8 +378,29 @@ function renderPowersTechniques() {
                     </table>
                 </div>
             `;
+        } else if (isTechnique) {
+            // Expandable technique display (like powers)
+            const detailsId = `technique-details-${idx}`;
+            div.innerHTML = `
+                <div class="power-header">
+                    <span class="toggle-details" data-details-id="${detailsId}" style="cursor:pointer;">[+]</span>
+                    <span>${item.name} (BP: ${item.totalBP || item.bp || 0})</span>
+                    <button class="small-button red-button remove-btn">✕</button>
+                </div>
+                <div id="${detailsId}" class="power-details" style="display: none;">
+                    <table class="power-table">
+                        <tr><th>Energy</th><td>${item.totalEnergy !== undefined ? item.totalEnergy : (item.energy !== undefined ? item.energy : '-')}</td></tr>
+                        <tr><th>Action</th><td>${formatTechniqueAction(item)}</td></tr>
+                        <tr><th>Weapon</th><td>${item.weapon && item.weapon.name ? item.weapon.name : "Unarmed Prowess"}</td></tr>
+                        <tr><th>Damage</th><td>${formatTechniqueDamage(item.damage)}</td></tr>
+                        <tr><th>Building Points</th><td>${item.totalBP !== undefined ? item.totalBP : (item.bp !== undefined ? item.bp : '-')}</td></tr>
+                        <tr><th>Technique Parts</th><td>${formatTechniqueParts(item.techniqueParts)}</td></tr>
+                        <tr><th>Description</th><td>${item.description || '-'}</td></tr>
+                    </table>
+                </div>
+            `;
         } else {
-            // Technique
+            // fallback for legacy/blank
             div.innerHTML = `
                 <span>${item.name} (BP: ${item.bp})</span>
                 <button class="small-button red-button remove-btn">✕</button>
@@ -384,9 +411,10 @@ function renderPowersTechniques() {
             renderPowersTechniques();
             updateSummary();
         };
-        if (isPower) {
+        // Expand/collapse logic for both powers and techniques
+        if (div.querySelector('.toggle-details')) {
             div.querySelector('.toggle-details').onclick = () => {
-                const details = document.getElementById(`power-details-${idx}`);
+                const details = document.getElementById(isPower ? `power-details-${idx}` : `technique-details-${idx}`);
                 const toggle = div.querySelector('.toggle-details');
                 if (details.style.display === 'none') {
                     details.style.display = 'block';
@@ -403,7 +431,7 @@ function renderPowersTechniques() {
 }
 
 function formatDamage(damageArr) {
-    if (!damageArr || !Array.isArray(damageArr)) return '';
+    if (!Array.isArray(damageArr)) return '';
     return damageArr.map(d => {
         if (d.amount && d.size && d.type && d.type !== 'none') {
             return `${d.amount}d${d.size} ${d.type}`;
@@ -411,9 +439,37 @@ function formatDamage(damageArr) {
         return '';
     }).filter(Boolean).join(', ');
 }
+
+// --- Utility: Capitalize a string ---
 function capitalize(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// --- Technique display helpers ---
+function formatTechniqueAction(item) {
+    // Try to match the library display: Action Type + Reaction if checked
+    let action = item.actionType ? capitalize(item.actionType) : '-';
+    if (item.reactionChecked) action += " Reaction";
+    else if (action !== '-') action += " Action";
+    return action;
+}
+function formatTechniqueDamage(damageArr) {
+    if (!Array.isArray(damageArr)) return '';
+    return damageArr
+        .filter(d => d && d.amount && d.size && d.amount !== '0' && d.size !== '0')
+        .map(d => `Increased Damage: ${d.amount}d${d.size}`)
+        .join(', ');
+}
+function formatTechniqueParts(partsArr) {
+    if (!Array.isArray(partsArr) || !partsArr.length) return '-';
+    return partsArr.map(part => {
+        let txt = part.part || '';
+        if (part.opt1Level) txt += ` Opt 1: (${part.opt1Level})`;
+        if (part.opt2Level) txt += ` Opt 2: (${part.opt2Level})`;
+        if (part.opt3Level) txt += ` Opt 3: (${part.opt3Level})`;
+        return txt;
+    }).join(', ');
 }
 
 // --- Modal Power Loading ---
@@ -472,7 +528,6 @@ async function fetchSavedArmaments() {
     await authReadyPromise;
     if (!currentUser || !firebaseDb) return [];
     try {
-        // FIX: Use 'itemLibrary' instead of 'armaments'
         const querySnapshot = await getDocs(collection(firebaseDb, 'users', currentUser.uid, 'itemLibrary'));
         const items = [];
         querySnapshot.forEach(doc => {
@@ -495,15 +550,73 @@ function displaySavedArmaments(items) {
         armamentList.innerHTML = '<div>No saved armaments found.</div>';
         return;
     }
-    items.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'armament-item';
-        div.innerHTML = `
-            <span>${item.name} (BP: ${item.totalBP || 0})</span>
-            <button class="small-button blue-button select-armament-btn" data-id="${item.id}">Select</button>
-        `;
-        armamentList.appendChild(div);
+    // Table style for armaments
+    const table = document.createElement('table');
+    table.className = 'powers-table';
+    const headers = ['Name', 'Rarity', 'Gold', 'BP', 'Range', 'Damage', 'Select'];
+    const headerRow = document.createElement('tr');
+    headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
     });
+    table.appendChild(headerRow);
+
+    items.forEach(item => {
+        const row = document.createElement('tr');
+        // Name
+        const nameCell = document.createElement('td');
+        nameCell.textContent = item.name || '';
+        row.appendChild(nameCell);
+        // Rarity
+        const rarityCell = document.createElement('td');
+        rarityCell.textContent = item.rarity || '';
+        row.appendChild(rarityCell);
+        // Gold
+        const goldCell = document.createElement('td');
+        goldCell.textContent = item.totalGP !== undefined ? item.totalGP : '';
+        row.appendChild(goldCell);
+        // BP
+        const bpCell = document.createElement('td');
+        bpCell.textContent = item.totalBP !== undefined ? item.totalBP : '';
+        row.appendChild(bpCell);
+        // Range
+        const rangeCell = document.createElement('td');
+        let rangeStr = "-";
+        if (item.range !== undefined && item.range !== null && item.range !== "") {
+            if (typeof item.range === "number" && item.range > 0) {
+                rangeStr = `${item.range} spaces`;
+            } else if (typeof item.range === "string" && item.range.trim() !== "") {
+                rangeStr = item.range;
+            } else if (item.range === 0) {
+                rangeStr = "Melee";
+            }
+        }
+        rangeCell.textContent = rangeStr;
+        row.appendChild(rangeCell);
+        // Damage
+        const dmgCell = document.createElement('td');
+        let damageStr = "";
+        if (item.damage && Array.isArray(item.damage)) {
+            damageStr = item.damage
+                .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
+                .map(d => `${d.amount}d${d.size} ${d.type}`)
+                .join(', ');
+        }
+        dmgCell.textContent = damageStr;
+        row.appendChild(dmgCell);
+        // Select button
+        const selectCell = document.createElement('td');
+        const selectBtn = document.createElement('button');
+        selectBtn.className = 'small-button blue-button select-armament-btn';
+        selectBtn.dataset.id = item.id;
+        selectBtn.textContent = 'Select';
+        selectCell.appendChild(selectBtn);
+        row.appendChild(selectCell);
+
+        table.appendChild(row);
+    });
+    armamentList.appendChild(table);
 }
 function openArmamentModal() {
     if (!currentUser) {
@@ -517,16 +630,111 @@ function openArmamentModal() {
 function closeArmamentModal() {
     document.getElementById('loadArmamentModal').style.display = 'none';
 }
-
-// Expose modal functions to global scope for HTML onclick or other uses
 window.openArmamentModal = openArmamentModal;
 window.closeArmamentModal = closeArmamentModal;
 
-// --- Prevent duplicate modal event listeners for powers ---
-let powerModalListenerAdded = false;
+// --- Modal Technique Loading (like powers/armaments) ---
+async function fetchSavedTechniques() {
+    await authReadyPromise;
+    if (!currentUser || !firebaseDb) return [];
+    try {
+        const querySnapshot = await getDocs(collection(firebaseDb, 'users', currentUser.uid, 'techniqueLibrary'));
+        const techniques = [];
+        querySnapshot.forEach(doc => {
+            techniques.push({ id: doc.id, ...doc.data(), type: 'technique' });
+        });
+        return techniques;
+    } catch (error) {
+        if (error.code === "permission-denied") {
+            alert("You do not have permission to access your saved techniques. Please ensure you are logged in and your account has access.");
+        } else {
+            alert("Error fetching saved techniques: " + (error.message || error));
+        }
+        return [];
+    }
+}
+function displaySavedTechniques(techniques) {
+    const techList = document.getElementById('savedTechniquesList');
+    techList.innerHTML = '';
+    if (!techniques.length) {
+        techList.innerHTML = '<div>No saved techniques found.</div>';
+        return;
+    }
+    // Table style for techniques
+    const table = document.createElement('table');
+    table.className = 'powers-table';
+    const headers = ['Name', 'BP', 'Energy', 'Weapon', 'Damage', 'Select'];
+    const headerRow = document.createElement('tr');
+    headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+
+    techniques.forEach(tech => {
+        const row = document.createElement('tr');
+        // Name
+        const nameCell = document.createElement('td');
+        nameCell.textContent = tech.name || '';
+        row.appendChild(nameCell);
+        // BP
+        const bpCell = document.createElement('td');
+        bpCell.textContent = tech.totalBP !== undefined ? tech.totalBP : (tech.bp !== undefined ? tech.bp : '');
+        row.appendChild(bpCell);
+        // Energy
+        const energyCell = document.createElement('td');
+        energyCell.textContent = tech.totalEnergy !== undefined ? tech.totalEnergy : '';
+        row.appendChild(energyCell);
+        // Weapon
+        const weaponCell = document.createElement('td');
+        weaponCell.textContent = tech.weapon && tech.weapon.name ? tech.weapon.name : "Unarmed Prowess";
+        row.appendChild(weaponCell);
+        // Damage
+        const dmgCell = document.createElement('td');
+        let damageStr = "";
+        if (tech.damage && Array.isArray(tech.damage)) {
+            damageStr = tech.damage
+                .filter(d => d && d.amount && d.size && d.amount !== '0' && d.size !== '0')
+                .map(d => `${d.amount}d${d.size}`)
+                .join(', ');
+        }
+        dmgCell.textContent = damageStr;
+        row.appendChild(dmgCell);
+        // Select button
+        const selectCell = document.createElement('td');
+        const selectBtn = document.createElement('button');
+        selectBtn.className = 'small-button blue-button select-technique-btn';
+        selectBtn.dataset.id = tech.id;
+        selectBtn.textContent = 'Select';
+        selectCell.appendChild(selectBtn);
+        row.appendChild(selectCell);
+
+        table.appendChild(row);
+    });
+    techList.appendChild(table);
+}
+function openTechniqueModal() {
+    if (!currentUser) {
+        alert('Please log in to access saved techniques.');
+        return;
+    }
+    const modal = document.getElementById('loadTechniqueModal');
+    modal.style.display = 'block';
+    fetchSavedTechniques().then(displaySavedTechniques);
+}
+function closeTechniqueModal() {
+    document.getElementById('loadTechniqueModal').style.display = 'none';
+}
+window.openTechniqueModal = openTechniqueModal;
+window.closeTechniqueModal = closeTechniqueModal;
 
 // --- Prevent duplicate modal event listeners for armaments ---
 let armamentModalListenerAdded = false;
+// --- Prevent duplicate modal event listeners for powers ---
+let powerModalListenerAdded = false;
+// --- Prevent duplicate modal event listeners for techniques ---
+let techniqueModalListenerAdded = false;
 
 // --- Event Listeners for Modal and UI ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -660,7 +868,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!val) return;
 
         // Replacement logic for movement levels
-        // Define movement level groups
         const movementGroups = [
             ["Fly Half", "Fly"],
             ["Burrow", "Burrow II"],
@@ -669,23 +876,18 @@ document.addEventListener('DOMContentLoaded', () => {
             ["Slow", "Slow II", "Slow III"]
         ];
 
-        // Find if the new value is in a group
-        let replaced = false;
         for (const group of movementGroups) {
             if (group.includes(val)) {
-                // Remove any other in the group
                 for (const g of group) {
                     if (g !== val) {
                         const idx = movement.findIndex(m => m.type === g);
                         if (idx !== -1) {
                             movement.splice(idx, 1);
-                            replaced = true;
                         }
                     }
                 }
             }
         }
-        // Add or replace
         if (!movement.some(m => m.type === val)) {
             movement.push({ type: val });
         }
@@ -716,11 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Powers/Techniques
     renderPowersTechniques();
     document.getElementById("addPowerBtn").onclick = openPowerModal;
-    document.getElementById("addTechniqueBtn").onclick = () => {
-        powersTechniques.push({ name: "", bp: 0, type: "technique" });
-        renderPowersTechniques();
-        updateSummary();
-    };
+    document.getElementById("addTechniqueBtn").onclick = openTechniqueModal;
 
     // Modal close for powers
     if (document.querySelector('#loadPowerModal .close-button')) {
@@ -746,6 +944,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Modal close for techniques
+    if (document.querySelector('#loadTechniqueModal .close-button')) {
+        document.querySelector('#loadTechniqueModal .close-button').onclick = closeTechniqueModal;
+    }
+    if (!techniqueModalListenerAdded) {
+        const techList = document.getElementById('savedTechniquesList');
+        if (techList) {
+            techList.addEventListener('click', async (e) => {
+                if (e.target.classList.contains('select-technique-btn')) {
+                    const techId = e.target.dataset.id;
+                    const techniques = await fetchSavedTechniques();
+                    const tech = techniques.find(t => t.id === techId);
+                    if (tech) {
+                        powersTechniques.push(tech);
+                        renderPowersTechniques();
+                        closeTechniqueModal();
+                        updateSummary();
+                    }
+                }
+            });
+            techniqueModalListenerAdded = true;
+        }
+    }
+
     // Armaments section
     renderArmaments();
     document.getElementById("addArmamentBtn").onclick = openArmamentModal;
@@ -763,12 +985,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const items = await fetchSavedArmaments();
                     const item = items.find(i => i.id === armamentId);
                     if (item) {
-                        // Add to armaments array, using name and BP
-                        armaments.push({
-                            name: item.name,
-                            bp: item.totalBP || 0,
-                            // Optionally, you can add more fields if needed
-                        });
+                        // Add to armaments array, copy all fields for display
+                        armaments.push({ ...item });
                         renderArmaments();
                         closeArmamentModal();
                         updateSummary();
@@ -792,24 +1010,43 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSummary();
 });
 
-// --- Armaments Section Logic (placeholder, like powers/techniques) ---
+// --- Armaments Section Logic (table style, like library, but styled for creature creator) ---
 function renderArmaments() {
     const container = document.getElementById("armamentsContainer");
     container.innerHTML = "";
+    if (!armaments.length) return;
+    // Table style
+    const table = document.createElement('table');
+    table.className = 'powers-table';
+    const headers = ['Name', 'Rarity', 'Gold', 'BP', 'Range', 'Damage', 'Parts', 'Description', 'Remove'];
+    const headerRow = document.createElement('tr');
+    headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+
     armaments.forEach((item, idx) => {
-        // Top row: name, rarity, gold cost, building point cost, damage, range
-        const div = document.createElement("div");
-        div.className = "armament-row";
-        div.style.fontFamily = "'Nunito', sans-serif";
-        // Format damage string
-        let damageStr = "";
-        if (item.damage && Array.isArray(item.damage)) {
-            damageStr = item.damage
-                .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
-                .map(d => `${d.amount}d${d.size} ${d.type}`)
-                .join(', ');
-        }
-        // Range string
+        const row = document.createElement('tr');
+        // Name
+        const nameCell = document.createElement('td');
+        nameCell.textContent = item.name || '';
+        row.appendChild(nameCell);
+        // Rarity
+        const rarityCell = document.createElement('td');
+        rarityCell.textContent = item.rarity || '';
+        row.appendChild(rarityCell);
+        // Gold
+        const goldCell = document.createElement('td');
+        goldCell.textContent = item.totalGP !== undefined ? item.totalGP : (item.gp !== undefined ? item.gp : '');
+        row.appendChild(goldCell);
+        // BP
+        const bpCell = document.createElement('td');
+        bpCell.textContent = item.totalBP !== undefined ? item.totalBP : (item.bp !== undefined ? item.bp : '');
+        row.appendChild(bpCell);
+        // Range
+        const rangeCell = document.createElement('td');
         let rangeStr = "-";
         if (item.range !== undefined && item.range !== null && item.range !== "") {
             if (typeof item.range === "number" && item.range > 0) {
@@ -820,44 +1057,23 @@ function renderArmaments() {
                 rangeStr = "Melee";
             }
         }
-        div.innerHTML = `
-            <span style="font-family:'Merriweather',serif;font-size:17px;">
-                ${item.name || "Armament"}
-            </span>
-            <span style="margin-left:10px;">Rarity: ${item.rarity || "-"}</span>
-            <span style="margin-left:10px;">Gold: ${item.totalGP !== undefined ? item.totalGP : (item.gp !== undefined ? item.gp : "-")}</span>
-            <span style="margin-left:10px;">BP: ${item.totalBP !== undefined ? item.totalBP : (item.bp !== undefined ? item.bp : "-")}</span>
-            <span style="margin-left:10px;">Range: ${rangeStr}</span>
-            <span style="margin-left:10px;">${damageStr ? "Damage: " + damageStr : ""}</span>
-            <button class="small-button blue-button" style="margin-left:10px;" id="expand-armament-${idx}">Details</button>
-            <button class="small-button red-button remove-btn" style="margin-left:10px;">✕</button>
-        `;
-        // Remove button
-        div.querySelector('.remove-btn').onclick = () => {
-            armaments.splice(idx, 1);
-            renderArmaments();
-            updateSummary();
-        };
-        // Details button
-        div.querySelector(`#expand-armament-${idx}`).onclick = () => {
-            const expanded = document.getElementById(`armament-details-${idx}`);
-            if (expanded) {
-                expanded.style.display = expanded.style.display === "none" ? "block" : "none";
-            }
-        };
-        // Expanded details row (hidden by default)
-        const detailsDiv = document.createElement("div");
-        detailsDiv.id = `armament-details-${idx}`;
-        detailsDiv.style.display = "none";
-        detailsDiv.style.background = "#f7f7f7";
-        detailsDiv.style.border = "1px solid #ccc";
-        detailsDiv.style.margin = "8px 0 8px 0";
-        detailsDiv.style.padding = "8px";
-        // Item parts with hover descriptions
-        let partsHtml = "";
+        rangeCell.textContent = rangeStr;
+        row.appendChild(rangeCell);
+        // Damage
+        const dmgCell = document.createElement('td');
+        let damageStr = "";
+        if (item.damage && Array.isArray(item.damage)) {
+            damageStr = item.damage
+                .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
+                .map(d => `${d.amount}d${d.size} ${d.type}`)
+                .join(', ');
+        }
+        dmgCell.textContent = damageStr;
+        row.appendChild(dmgCell);
+        // Parts
+        const partsCell = document.createElement('td');
         if (item.itemParts && item.itemParts.length > 0) {
-            partsHtml += `<div><strong>Parts:</strong> `;
-            partsHtml += item.itemParts.map(part => {
+            partsCell.innerHTML = item.itemParts.map(part => {
                 let desc = "";
                 if (window.itemPartsData) {
                     const found = window.itemPartsData.find(p => p.name === part.part);
@@ -866,16 +1082,31 @@ function renderArmaments() {
                 let opt = "";
                 if (part.opt1Level) opt += ` Opt 1: (${part.opt1Level})`;
                 if (part.opt2Level) opt += ` Opt 2: (${part.opt2Level})`;
+                if (part.opt3Level) opt += ` Opt 3: (${part.opt3Level})`;
                 return `<span style="margin-right:10px;cursor:help;" title="${desc}">${part.part}${opt}</span>`;
             }).join('');
-            partsHtml += `</div>`;
         }
+        row.appendChild(partsCell);
         // Description
-        partsHtml += `<div style="margin-top:8px;"><strong>Description:</strong> ${item.description || ""}</div>`;
-        detailsDiv.innerHTML = partsHtml;
-        container.appendChild(div);
-        container.appendChild(detailsDiv);
+        const descCell = document.createElement('td');
+        descCell.textContent = item.description || '';
+        row.appendChild(descCell);
+        // Remove button
+        const removeCell = document.createElement('td');
+        const removeBtn = document.createElement('button');
+        removeBtn.className = "small-button red-button";
+        removeBtn.textContent = "✕";
+        removeBtn.onclick = () => {
+            armaments.splice(idx, 1);
+            renderArmaments();
+            updateSummary();
+        };
+        removeCell.appendChild(removeBtn);
+        row.appendChild(removeCell);
+
+        table.appendChild(row);
     });
+    container.appendChild(table);
     updateSummary();
 }
 
@@ -1159,6 +1390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dropdown.addEventListener('change', () => {
             updateCreatureAbilityDropdowns();
             updateAllHealthEnergy();
+            updateDefensesUI();
         });
     });
     const levelInput = document.getElementById('creatureLevel');
@@ -1166,13 +1398,113 @@ document.addEventListener('DOMContentLoaded', () => {
         levelInput.addEventListener('input', () => {
             updateCreatureAbilityDropdowns();
             updateAllHealthEnergy();
+            updateDefensesUI();
         });
     }
     // Health/Energy handlers
     setupHealthEnergyHandlers();
     updateCreatureAbilityDropdowns();
     updateAllHealthEnergy();
+    updateDefensesUI();
+
+    // --- Defense skill button listeners ---
+    setupDefenseSkillButtons();
     // ...existing code...
 });
 
-//# sourceMappingURL=creatureCreator.js.map
+// --- Defense Skill State ---
+const defenseSkillState = {
+    "Might": 0,
+    "Fortitude": 0,
+    "Reflex": 0,
+    "Discernment": 0,
+    "Mental Fortitude": 0,
+    "Resolve": 0
+};
+
+// --- Skill Point Calculation ---
+function getSkillPointTotal() {
+    const level = parseInt(document.getElementById('creatureLevel')?.value) || 1;
+    return level * 3 + 2;
+}
+function getSkillPointsSpent() {
+    // Each +1 costs 2 skill points
+    return Object.values(defenseSkillState).reduce((sum, v) => sum + v * 2, 0);
+}
+function getSkillPointsRemaining() {
+    return getSkillPointTotal() - getSkillPointsSpent();
+}
+
+// --- Defense Calculation Helpers ---
+function getAbilityValue(id) {
+    const el = document.getElementById(id);
+    return el ? parseInt(el.value) || 0 : 0;
+}
+function getSkillPointsForDefense(defense) {
+    return defenseSkillState[defense] || 0;
+}
+function getBaseDefenseValue(defense) {
+    switch (defense) {
+        case "Might": return 10 + getAbilityValue('creatureAbilityStrength');
+        case "Fortitude": return 10 + getAbilityValue('creatureAbilityVitality');
+        case "Reflex": return 10 + getAbilityValue('creatureAbilityAgility');
+        case "Discernment": return 10 + getAbilityValue('creatureAbilityAcuity');
+        case "Mental Fortitude": return 10 + getAbilityValue('creatureAbilityIntelligence');
+        case "Resolve": return 10 + getAbilityValue('creatureAbilityCharisma');
+        default: return 10;
+    }
+}
+
+function updateDefensesUI() {
+    const defenses = [
+        "Might",
+        "Fortitude",
+        "Reflex",
+        "Discernment",
+        "Mental Fortitude",
+        "Resolve"
+    ];
+    defenses.forEach(def => {
+        const el = document.getElementById('defense' + def.replace(/\s/g, ''));
+        if (el) {
+            const base = getBaseDefenseValue(def);
+            const bonus = getSkillPointsForDefense(def);
+            el.textContent = base + bonus;
+        }
+        // Disable minus if at base, disable plus if not enough skill points
+        const minusBtn = document.querySelector(`.defense-minus[data-defense="${def}"]`);
+        const plusBtn = document.querySelector(`.defense-plus[data-defense="${def}"]`);
+        if (minusBtn) minusBtn.disabled = (defenseSkillState[def] <= 0);
+        if (plusBtn) plusBtn.disabled = (getSkillPointsRemaining() < 2);
+    });
+    // Update skill points in summary
+    const skillPointsElem = document.getElementById('summarySkillPoints');
+    if (skillPointsElem) {
+        skillPointsElem.textContent = getSkillPointsRemaining();
+        skillPointsElem.style.color = getSkillPointsRemaining() < 0 ? "red" : "";
+    }
+}
+
+// --- Defense Skill Button Handlers ---
+function setupDefenseSkillButtons() {
+    document.querySelectorAll('.defense-plus').forEach(btn => {
+        btn.onclick = () => {
+            const def = btn.dataset.defense;
+            if (getSkillPointsRemaining() >= 2) {
+                defenseSkillState[def] = (defenseSkillState[def] || 0) + 1;
+                updateDefensesUI();
+            }
+        };
+    });
+    document.querySelectorAll('.defense-minus').forEach(btn => {
+        btn.onclick = () => {
+            const def = btn.dataset.defense;
+            const base = getBaseDefenseValue(def);
+            const current = getBaseDefenseValue(def) + (defenseSkillState[def] || 0);
+            if ((defenseSkillState[def] || 0) > 0 && current > base) {
+                defenseSkillState[def] = (defenseSkillState[def] || 0) - 1;
+                updateDefensesUI();
+            }
+        };
+    });
+}

@@ -20,27 +20,130 @@
             <button class="tab-button" onclick="openTab(event, 'powers')">Powers</button>
             <button class="tab-button" onclick="openTab(event, 'techniques')">Techniques</button>
             <button class="tab-button" onclick="openTab(event, 'armaments')">Armaments</button>
-            <button class="tab-button" onclick="openTab(event, 'savedFeats')">Saved Feats</button>
+            <button class="tab-button" onclick="openTab(event, 'creatures')">Creatures</button>
         </div>
         <div id="powers" class="tab-content">
-            <h3>Powers</h3>
             <ul id="powersList"></ul>
         </div>
         <div id="techniques" class="tab-content">
-            <h3>Techniques</h3>
-            <ul id="techniquesList">
-                <li>Example Technique</li>
-            </ul>
+            <ul id="techniquesList"></ul>
         </div>
         <div id="armaments" class="tab-content">
-            <h3>Armaments</h3>
             <ul id="armamentsList"></ul>
         </div>
-        <div id="savedFeats" class="tab-content">
-            <h3>Saved Feats</h3>
-            <ul id="savedFeatsList">
-                <li>Example Feat</li>
-            </ul>
+        <div id="creatures" class="tab-content">
+            <table class="creature-table">
+                <tbody>
+                    <!-- Summary row -->
+                    <tr class="creature-summary-row" onclick="toggleCreatureExpand(this)">
+                        <td>
+                            Shadow Drake
+                        </td>
+                        <td>
+                            Level 5
+                        </td>
+                        <td>
+                            Dragon
+                        </td>
+                        <td>
+                            Power Creature
+                        </td>
+                    </tr>
+                    <!-- Expanded row -->
+                    <tr class="creature-expanded-row">
+                        <td colspan="4">
+                            <div class="creature-expanded-content" style="flex-wrap:wrap;">
+                                <!-- Left: Abilities and Defenses in soft boxes -->
+                                <div style="display:flex;flex-direction:column;gap:10px;min-width:200px;max-width:250px;">
+                                    <div style="display:flex;gap:10px;">
+                                        <div class="creature-abilities-box">
+                                            <div class="creature-abilities">
+                                                <table>
+                                                    <tr>
+                                                        <th>STR</th><th>VIT</th><th>AGG</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>+2</td><td>+3</td><td>+4</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>ACU</th><th>INT</th><th>CHA</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>+1</td><td>+0</td><td>+2</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <div class="creature-defenses-box">
+                                            <div class="creature-defenses">
+                                                <table>
+                                                    <tr>
+                                                        <th>MGT</th><th>FRT</th><th>RFX</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>12</td><td>13</td><td>14</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>DSC</th><th>MFT</th><th>RSL</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>11</td><td>10</td><td>12</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Other Details box below abilities/defenses -->
+                                    <div class="creature-other-box">
+                                        <h4>Other Details</h4>
+                                        <div><strong>Equipment:</strong> None</div>
+                                        <div style="margin-top:10px;"><strong>Description:</strong> A sleek, dark-scaled drake that lurks in the shadows, its eyes glinting with malevolent cunning. The Shadow Drake is a territorial predator that uses its necrotic breath and stealth to ambush prey.</div>
+                                    </div>
+                                </div>
+                                <!-- Middle: Details and Feats stacked vertically -->
+                                <div style="display:flex;flex-direction:column;gap:10px;min-width:220px;max-width:260px;flex:1 1 220px;">
+                                    <div class="creature-details-box">
+                                        <h4>Details</h4>
+                                        <div class="creature-details-group">
+                                            <div><strong>Resistances:</strong> Necrotic, Poison</div>
+                                            <div><strong>Weaknesses:</strong> Radiant</div>
+                                            <div><strong>Senses:</strong> Darkvision 60 ft., Passive Perception 12</div>
+                                            <div><strong>Languages:</strong> Draconic, Common</div>
+                                            <div><strong>Immunities:</strong> Poisoned</div>
+                                            <div><strong>Movement:</strong> 40 ft., Fly 60 ft.</div>
+                                            <div><strong>Skills:</strong> Hide +5, Stealth +2</div>
+                                        </div>
+                                    </div>
+                                    <div class="creature-feats-box">
+                                        <h4>Feats</h4>
+                                        <div>
+                                            <strong>Stealthy Predator:</strong> The Shadow Drake has advantage on Stealth checks in dim light or darkness.
+                                            <strong>Shadow Blend:</strong> Can become invisible in shadows for 1 minute (recharges after a short rest).
+                                            <strong>Night Stalker:</strong> Gains +2 to attack rolls when in dim light or darkness.
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Right: Attacks and Powers stacked vertically -->
+                                <div style="display:flex;flex-direction:column;gap:10px;min-width:220px;max-width:260px;flex:1 1 220px;">
+                                    <div class="creature-attacks-box">
+                                        <h4>Attacks</h4>
+                                        <div>
+                                            <strong>Bite:</strong> Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 2d6 + 4 piercing damage.
+                                            <strong>Tail Whip:</strong> Melee Weapon Attack: +6 to hit, reach 10 ft., one target. Hit: 1d8 + 4 bludgeoning damage.
+                                        </div>
+                                    </div>
+                                    <div class="creature-powers-box">
+                                        <h4>Powers</h4>
+                                        <div>
+                                            <strong>Shadow Breath (Recharge 5-6):</strong> The Shadow Drake exhales a 15 ft. cone of shadowy mist. Each creature in the area must make a DC 14 Dexterity saving throw, taking 4d8 necrotic damage on a failed save, or half as much on a successful one.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </main>
     <footer id="footer"></footer>

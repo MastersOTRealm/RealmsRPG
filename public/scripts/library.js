@@ -411,6 +411,14 @@ function toggleExpand(row) {
     }
 }
 
+// Creature stat block expand/collapse
+window.toggleCreatureExpand = function(row) {
+    const expanded = row.nextElementSibling;
+    if (expanded && expanded.classList.contains('creature-expanded-row')) {
+        expanded.style.display = expanded.style.display === 'table-row' ? 'none' : 'table-row';
+    }
+};
+
 function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }

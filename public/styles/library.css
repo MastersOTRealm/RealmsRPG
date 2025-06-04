@@ -19,6 +19,14 @@
     background-color: #0056b3;
 }
 
+.tab-button.active,
+.tab-button:focus {
+    background-color: #0056b3;
+    color: #fff;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+}
+
 .tab-content {
     display: none;
     padding: 20px;
@@ -28,7 +36,7 @@
 }
 
 .tab-content h3 {
-    margin-top: 0;
+    display: none;
 }
 
 .tab-content ul {
@@ -130,4 +138,167 @@
 
 .delete-button:hover {
     background-color: #ff1a1a;
+}
+
+.creature-table {
+    width: 66%;
+    min-width: 600px;
+    max-width: 950px;
+    margin: 20px auto;
+    border-collapse: separate;
+    border-spacing: 0 18px; /* More space between each creature */
+    table-layout: auto;
+}
+.creature-summary-row {
+    background: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    color: #007bff;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+}
+.creature-summary-row:hover {
+    background: #e6f0ff;
+}
+.creature-summary-row td {
+    padding: 10px 8px;
+    font-size: 1em;
+}
+.creature-expanded-row {
+    display: none;
+    background: #f9f9f9;
+}
+.creature-expanded-row td {
+    padding: 0;
+}
+.creature-expanded-content {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 18px;
+    padding: 18px 18px 18px 18px;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 220px;
+}
+.creature-abilities-box, .creature-defenses-box {
+    background: #f7faff;
+    border-radius: 8px;
+    box-shadow: 0 0 3px rgba(0,0,0,0.04);
+    padding: 8px 8px 8px 8px;
+    margin-bottom: 6px;
+    border: 1px solid #e3e8f0;
+    min-width: 110px;
+    max-width: 140px;
+    flex: 0 1 120px;
+}
+.creature-abilities, .creature-defenses {
+    width: 100%;
+}
+.creature-abilities table, .creature-defenses table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+}
+.creature-abilities th, .creature-defenses th {
+    text-align: left;
+    color: #007bff;
+    padding: 1px 6px 1px 0;
+    background: none;
+    border: none;
+    font-size: 0.95em;
+}
+.creature-abilities td, .creature-defenses td {
+    text-align: left;
+    padding: 1px 6px 1px 0;
+    border: none;
+    font-size: 0.95em;
+}
+.creature-abilities tr:not(:last-child) td,
+.creature-abilities tr:not(:last-child) th,
+.creature-defenses tr:not(:last-child) td,
+.creature-defenses tr:not(:last-child) th {
+    border-bottom: 1px solid #e3e8f0;
+}
+.creature-abilities tr:nth-child(2) td,
+.creature-defenses tr:nth-child(2) td {
+    border-bottom: 1.5px dashed #b5c7e6;
+}
+.creature-details-box, .creature-attacks-box, .creature-feats-box, .creature-powers-box, .creature-other-box {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.07);
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    font-size: 0.97em;
+}
+.creature-details-box, .creature-attacks-box, .creature-feats-box, .creature-powers-box {
+    min-width: 160px;
+    max-width: 240px;
+    flex: 1 1 180px;
+}
+.creature-other-box {
+    min-width: 120px;
+    max-width: 180px;
+    flex: 1 1 120px;
+    font-size: 0.96em;
+}
+.creature-details-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.creature-details-group > div {
+    min-width: 70px;
+    font-size: 0.96em;
+}
+.creature-details-box h4,
+.creature-attacks-box h4,
+.creature-feats-box h4,
+.creature-powers-box h4,
+.creature-other-box h4 {
+    margin: 0 0 4px 0;
+    color: #007bff;
+    font-size: 1em;
+}
+.creature-feats-box div > strong,
+.creature-attacks-box div > strong,
+.creature-powers-box div > strong {
+    display: block;
+    margin-top: 8px;
+}
+.creature-feats-box div > strong:first-child,
+.creature-attacks-box div > strong:first-child,
+.creature-powers-box div > strong:first-child {
+    margin-top: 0;
+}
+.creature-feats-box div br,
+.creature-attacks-box div br,
+.creature-powers-box div br {
+    display: none;
+}
+@media (max-width: 1200px) {
+    .creature-table {
+        width: 98%;
+        min-width: 0;
+        max-width: 100vw;
+    }
+    .creature-expanded-content {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px;
+    }
+}
+@media (max-width: 900px) {
+    .creature-expanded-content {
+        flex-direction: column;
+        gap: 6px;
+        align-items: stretch;
+        min-height: 0;
+    }
+    .creature-other-box {
+        margin-left: 0;
+        max-width: 100%;
+    }
 }
