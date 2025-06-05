@@ -3,7 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
-import skills from '../scripts/skillsData.js'; // Import skillsData.js
+import skills from '../scripts/skillsData.js';
 
 // --- Firebase Initialization (v11 compat, global) ---
 let firebaseApp, firebaseAuth, firebaseDb, currentUser;
@@ -28,7 +28,6 @@ let authReadyPromise = new Promise(resolve => {
         });
     });
 });
-
 // --- Basic Mechanics State ---
 let resistances = [];
 let weaknesses = [];
@@ -40,7 +39,10 @@ let powersTechniques = []; // { ...power, type: "power" } or { name, bp, type: "
 let armaments = [];
 let creatureSkills = []; // <-- New: skills for the creature
 let creatureSkillValues = {}; // { skillName: skillValue }
-
+// --- Languages State ---
+let creatureLanguages = []; // Array of strings
+// --- Condition Immunities State ---
+let conditionImmunities = []; // <-- Add this line
 // --- Descriptions for Senses and Movement ---
 const SENSES_DESCRIPTIONS = {
     "Darkvision": "Can see in darkness up to 6 spaces as shades of grey.",
@@ -58,7 +60,6 @@ const SENSES_DESCRIPTIONS = {
     "Waterbreathing": "This creature can only breathe underwater.",
     "Unrestrained Movement": "Ignores difficult terrain, the slowed condition, and any other effect that would slow its movement due to environmental effects."
 };
-
 const MOVEMENT_DESCRIPTIONS = {
     "Ground": "Standard ground movement.",
     "Fly Half": "You can fly with a speed equal to half of your regular speed.",
@@ -77,7 +78,6 @@ const MOVEMENT_DESCRIPTIONS = {
     "Slow Walker": "Ground Speed is 1/4 of your normal speed.",
     "Hover": "Must end turn within 1 space of the ground, but need not touch it. Only applicable if the creature has a flying speed."
 };
-
 // --- Display Names for Senses and Movement ---
 const SENSES_DISPLAY = {
     "Darkvision": "Darkvision (6 spaces)",
@@ -95,7 +95,6 @@ const SENSES_DISPLAY = {
     "Waterbreathing": "Waterbreathing",
     "Unrestrained Movement": "Unrestrained Movement"
 };
-
 const MOVEMENT_DISPLAY = {
     "Ground": "Ground",
     "Fly Half": "Flying (Half Speed)",
@@ -114,7 +113,6 @@ const MOVEMENT_DISPLAY = {
     "Slow Walker": "Slow Walker",
     "Hover": "Hover"
 };
-
 // --- Feat Point Values for Senses and Movement ---
 const SENSES_POINTS = {
     "Darkvision": 1,
@@ -149,7 +147,6 @@ const MOVEMENT_POINTS = {
     "Slow Walker": -0.5,
     "Hover": 0 // Only applies if flying, handled in points logic if needed
 };
-
 // --- Utility Functions ---
 function updateList(listId, arr, removeHandler, descMap, displayMap) {
     const ul = document.getElementById(listId);
@@ -224,23 +221,19 @@ function updateImmunitiesList() {
 }
 function getSpecialFeatPoints() {
     let points = 0;
-
     // Immunities, Resistances, Weaknesses
     points += immunities.length * 2;
     points += resistances.length * 1;
     points += weaknesses.length * -0.5;
-
     // Senses
     senses.forEach(sense => {
         if (SENSES_POINTS.hasOwnProperty(sense)) points += SENSES_POINTS[sense];
     });
-
     // Movement
     movement.forEach(move => {
         if (move.type === "Ground") return;
         if (MOVEMENT_POINTS.hasOwnProperty(move.type)) points += MOVEMENT_POINTS[move.type];
     });
-
     // Hover: -1 per level of flying speed if flying is present
     if (movement.some(m => m.type === "Hover")) {
         let flyingLevel = 0;
@@ -248,14 +241,14 @@ function getSpecialFeatPoints() {
         else if (movement.some(m => m.type === "Fly Half")) flyingLevel = 1;
         points += -1 * flyingLevel;
     }
-
+    // Condition Immunities: 1.5 feat points each
+    points += (Array.isArray(conditionImmunities) ? conditionImmunities.length : 0) * 1.5;
     return points;
 }
 function isMartialCreature() {
     const dropdown = document.getElementById("creatureTypeDropdown");
     return dropdown && dropdown.value === "Martial";
 }
-
 function getBaseFeatPoints(level) {
     level = parseInt(level) || 1;
     let base = 4.5 + 1.5 * (level - 1);
@@ -268,25 +261,49 @@ function getBaseFeatPoints(level) {
     }
     return base;
 }
-
 function getSpentFeatPoints() {
     let points = feats.reduce((sum, f) => sum + (parseFloat(f.points) || 0), 0);
     points += getSpecialFeatPoints();
     return points;
 }
-
 function getRemainingFeatPoints() {
     const level = document.getElementById("creatureLevel").value || 1;
     return getBaseFeatPoints(level) - getSpentFeatPoints();
 }
+function getProficiency(level) {
+    level = parseInt(level) || 1;
+    return 2 + Math.floor((level) / 5);
+}
+// --- Currency Calculation ---
+function getCreatureCurrency(level) {
+    level = parseInt(level) || 1;
+    // Exponential growth: 200 * (1.45)^(level-1)
+    return Math.round(200 * Math.pow(1.45, level - 1));
+}
 
+// --- Calculate total GP spent on armaments ---
+function getArmamentsTotalGP() {
+    return armaments.reduce((sum, item) => {
+        // Prefer totalGP, fallback to gp, fallback to 0
+        let gp = 0;
+        if (typeof item.totalGP === "number") gp = item.totalGP;
+        else if (typeof item.gp === "number") gp = item.gp;
+        else if (!isNaN(Number(item.totalGP))) gp = Number(item.totalGP);
+        else if (!isNaN(Number(item.gp))) gp = Number(item.gp);
+        return sum + (gp || 0);
+    }, 0);
+}
+// --- Summary Update ---
 function updateSummary() {
     document.getElementById("summaryName").textContent = document.getElementById("creatureName").value || "-";
     document.getElementById("summaryLevel").textContent = document.getElementById("creatureLevel").value || "-";
     document.getElementById("summaryType").textContent = document.getElementById("creatureType").value || "-";
     document.getElementById("summaryResistances").textContent = resistances.slice().sort().join(", ") || "None";
     document.getElementById("summaryWeaknesses").textContent = weaknesses.slice().sort().join(", ") || "None";
-    document.getElementById("summaryImmunities").textContent = immunities.slice().sort().join(", ") || "None";
+    // --- Immunities: combine damage and condition immunities, alphabetically ---
+    const allImmunities = [...immunities, ...conditionImmunities].map(x => String(x)).filter(Boolean);
+    allImmunities.sort((a, b) => a.localeCompare(b));
+    document.getElementById("summaryImmunities").textContent = allImmunities.length ? allImmunities.join(", ") : "None";
     document.getElementById("summarySenses").textContent = senses
         .slice()
         .sort()
@@ -303,7 +320,6 @@ function updateSummary() {
         featPointsElem.textContent = remaining.toFixed(1).replace(/\.0$/, "");
         featPointsElem.style.color = remaining < 0 ? "red" : "";
     }
-
     // --- Skills summary ---
     const summarySkillsElem = document.getElementById("summarySkills");
     if (summarySkillsElem) {
@@ -320,7 +336,12 @@ function updateSummary() {
             .filter(Boolean);
         summarySkillsElem.textContent = skillSummaries.length ? skillSummaries.join(", ") : "None";
     }
-
+    // --- Languages summary ---
+    const summaryLanguagesElem = document.getElementById("summaryLanguages");
+    if (summaryLanguagesElem) {
+        const langs = creatureLanguages.slice().sort((a, b) => a.localeCompare(b));
+        summaryLanguagesElem.textContent = langs.length ? langs.join(", ") : "None";
+    }
     // --- Building Points Calculation ---
     function getCreatureBP(level) {
         level = parseInt(level) || 1;
@@ -330,7 +351,6 @@ function updateSummary() {
         }
         return 9 + highestNonVit + (level - 1) * (1 + highestNonVit);
     }
-
     function getSpentBP() {
         // Sum up BP spent on powers, techniques, and armaments
         let spent = 0;
@@ -353,7 +373,6 @@ function updateSummary() {
     let bpSpent = getSpentBP();
     let summaryBP = document.getElementById("summaryBP");
     if (summaryBP) summaryBP.textContent = `${bpTotal - bpSpent} / ${bpTotal}`;
-
     // Add Innate Powers/Energy summary
     const isPower = getCreatureTypeToggle();
     const innatePowers = getInnatePowers(level, isPower);
@@ -362,8 +381,242 @@ function updateSummary() {
     let summaryInnateEnergy = document.getElementById("summaryInnateEnergy");
     if (summaryInnatePowers) summaryInnatePowers.textContent = innatePowers;
     if (summaryInnateEnergy) summaryInnateEnergy.textContent = innateEnergy;
+    // --- Power/Martial Proficiency summary ---
+    const profLabelElem = document.getElementById("summaryProfLabel");
+    const profValueElem = document.getElementById("summaryProfValue");
+    const typeDropdown = document.getElementById("creatureTypeDropdown");
+    const levelValProf = document.getElementById("creatureLevel")?.value || 1;
+    if (profLabelElem && profValueElem && typeDropdown) {
+        if (typeDropdown.value === "Power") {
+            profLabelElem.textContent = "Power Proficiency: ";
+            profValueElem.textContent = getProficiency(levelValProf);
+        } else if (typeDropdown.value === "Martial") {
+            profLabelElem.textContent = "Martial Proficiency: ";
+            profValueElem.textContent = getProficiency(levelValProf);
+        } else {
+            profLabelElem.textContent = "";
+            profValueElem.textContent = "";
+        }
+    }
+    // --- Armament Attacks summary ---
+    // Find armaments with damage and display attack info
+    const summaryElem = document.getElementById("creatureSummary");
+    // Get strength and martial proficiency
+    const strength = getAbilityValue('creatureAbilityStrength');
+    const levelValArm = document.getElementById("creatureLevel")?.value || 1;
+    const martialProf = getProficiency(levelValArm);
+    // Only show if there are armaments with damage
+    const armamentAttacks = armaments
+        .filter(item => Array.isArray(item.damage) && item.damage.length > 0 && item.damage.some(d => d && d.amount && d.size && d.type && d.type !== 'none'))
+        .map(item => {
+            // Range: "Melee" if 0, otherwise number value
+            let rangeStr = "Melee";
+            if (item.range !== undefined && item.range !== null && item.range !== "") {
+                if (typeof item.range === "number" && item.range > 0) {
+                    rangeStr = `${item.range}`;
+                } else if (typeof item.range === "string" && item.range.trim() !== "") {
+                    rangeStr = item.range;
+                } else if (item.range === 0) {
+                    rangeStr = "Melee";
+                }
+            }
+            // Attack bonus: strength + martial proficiency
+            const attackBonus = strength + martialProf;
+            // Damage: use first valid damage entry
+            const dmg = item.damage.find(d => d && d.amount && d.size && d.type && d.type !== 'none');
+            let dmgStr = "";
+            if (dmg) {
+                dmgStr = `${dmg.amount}d${dmg.size} ${dmg.type}`;
+            }
+            // Properties: list all itemParts, sorted alphabetically, with options
+            let propsStr = "";
+            if (Array.isArray(item.itemParts) && item.itemParts.length > 0) {
+                // Sort alphabetically by part name
+                const sortedParts = [...item.itemParts].sort((a, b) => {
+                    const nameA = (a.part || "").toLowerCase();
+                    const nameB = (b.part || "").toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                propsStr = sortedParts.map(part => {
+                    let prop = part.part || "";
+                    let opts = [];
+                    if (part.opt1Level) opts.push(`Opt 1 +${part.opt1Level}`);
+                    if (part.opt2Level) opts.push(`Opt 2 +${part.opt2Level}`);
+                    if (part.opt3Level) opts.push(`Opt 3 +${part.opt3Level}`);
+                    if (opts.length > 0) {
+                        prop += " (" + opts.join(", ") + ")";
+                    }
+                    return prop;
+                }).join(", ");
+                if (propsStr) propsStr = " " + propsStr;
+            }
+            // Description
+            let descStr = "";
+            if (item.description) {
+                descStr = ` ${item.description}`;
+            }
+            // Format: "Long Claws: Melee range attack. +4 to hit. 1d10 slashing damage. [properties] Description"
+            return `${item.name}: ${rangeStr} range attack. +${attackBonus} to hit. ${dmgStr} damage.${propsStr}${descStr}`;
+        });
+    // --- Techniques summary ---
+    const techniqueSummaries = powersTechniques
+        .filter(item =>
+            item.type === "technique" &&
+            item.weapon &&
+            // Show techniques even if they have no damage
+            (Array.isArray(item.damage) ? true : true)
+        )
+        .map(item => {
+            // Range: "Melee" if 0, otherwise number value
+            let rangeStr = "Melee";
+            if (item.weapon && item.weapon.range !== undefined && item.weapon.range !== null && item.weapon.range !== "") {
+                if (typeof item.weapon.range === "number" && item.weapon.range > 0) {
+                    rangeStr = `${item.weapon.range}`;
+                } else if (typeof item.weapon.range === "string" && item.weapon.range.trim() !== "") {
+                    rangeStr = item.weapon.range;
+                } else if (item.weapon.range === 0) {
+                    rangeStr = "Melee";
+                }
+            }
+            // Attack bonus: strength + martial proficiency
+            const strength = getAbilityValue('creatureAbilityStrength');
+            const levelValArm = document.getElementById("creatureLevel")?.value || 1;
+            const martialProf = getProficiency(levelValArm);
+            const attackBonus = strength + martialProf;
+            // Damage: use first valid damage entry, or blank if none
+            let dmgStr = "";
+            if (Array.isArray(item.damage)) {
+                const dmg = item.damage.find(d => d && d.amount && d.size && d.amount !== '0' && d.size !== '0');
+                if (dmg) {
+                    dmgStr = `${dmg.amount}d${dmg.size}`;
+                }
+            }
+            // Properties: list all itemParts, sorted alphabetically, with options
+            let propsStr = "";
+            if (item.weapon && Array.isArray(item.weapon.itemParts) && item.weapon.itemParts.length > 0) {
+                const sortedParts = [...item.weapon.itemParts].sort((a, b) => {
+                    const nameA = (a.part || "").toLowerCase();
+                    const nameB = (b.part || "").toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                propsStr = sortedParts.map(part => {
+                    let prop = part.part || "";
+                    let opts = [];
+                    if (part.opt1Level) opts.push(`Opt 1 +${part.opt1Level}`);
+                    if (part.opt2Level) opts.push(`Opt 2 +${part.opt2Level}`);
+                    if (part.opt3Level) opts.push(`Opt 3 +${part.opt3Level}`);
+                    if (opts.length > 0) {
+                        prop += " (" + opts.join(", ") + ")";
+                    }
+                    return prop;
+                }).join(", ");
+                if (propsStr) propsStr = " " + propsStr;
+            }
+            // Energy cost
+            const energy = item.totalEnergy !== undefined ? item.totalEnergy : (item.energy !== undefined ? item.energy : "-");
+            // Action type
+            let action = item.actionType ? capitalize(item.actionType) : '-';
+            if (item.reactionChecked) action += " Reaction";
+            else if (action !== '-') action += " Action";
+            // Description
+            const desc = item.description ? ` ${item.description}` : "";
+            // Format: "TechniqueName: Range range attack. +X to hit. YdZ damage. [properties] (Energy: N, Action: X). Description"
+            // If no damage, omit damage wording
+            let attackStr = `${item.name}: ${rangeStr} range attack. +${attackBonus} to hit.`;
+            if (dmgStr) attackStr += ` ${dmgStr} damage.`;
+            else attackStr += " ";
+            attackStr += `${propsStr} (Energy: ${energy}, Action: ${action}).${desc}`;
+            return attackStr.trim();
+        });
+    // --- Powers summary ---
+    const powerSummaries = powersTechniques
+        .filter(item => item.type === "power")
+        .map(item => {
+            // Name
+            const name = item.name || "";
+            // Energy: round up, show as "EN"
+            let energy = 0;
+            if (item.totalEnergy !== undefined && !isNaN(item.totalEnergy)) {
+                energy = Math.ceil(Number(item.totalEnergy));
+            } else if (item.energy !== undefined && !isNaN(item.energy)) {
+                energy = Math.ceil(Number(item.energy));
+            }
+            // Action: if missing or '-', show "Basic Action"
+            let action = (item.action && item.action !== "-") ? item.action : (item.actionType && item.actionType !== "-") ? capitalize(item.actionType) : "Basic Action";
+            if (!action || action === "-") action = "Basic Action";
+            // Range: show as "X spaces Range"
+            let range = 1;
+            if (item.range !== undefined && item.range !== null && item.range !== "") {
+                if (!isNaN(item.range)) {
+                    range = Number(item.range);
+                } else if (typeof item.range === "string" && item.range.trim() !== "") {
+                    // Try to parse as number, fallback to string
+                    const parsed = parseInt(item.range, 10);
+                    if (!isNaN(parsed)) range = parsed;
+                }
+            }
+            let rangeStr = `${range} ${range === 1 ? "space" : "spaces"} Range`;
+            // Description
+            const desc = item.description ? `Description: ${item.description}` : "";
+            // Compose summary
+            return `${name}: ${energy} EN, ${action}, ${rangeStr}. ${desc}`.replace(/\s+\./g, '.').replace(/\s+$/, '');
+        });
+    // Remove previous attacks/techniques/powers summary if present
+    let prevAttackDiv = document.getElementById("summaryAttacks");
+    if (prevAttackDiv) prevAttackDiv.remove();
+    let prevTechDiv = document.getElementById("summaryTechniques");
+    if (prevTechDiv) prevTechDiv.remove();
+    let prevPowerDiv = document.getElementById("summaryPowers");
+    if (prevPowerDiv) prevPowerDiv.remove();
+    // Insert armament attacks if any
+    if (armamentAttacks.length > 0 && summaryElem) {
+        const attackDiv = document.createElement("div");
+        attackDiv.id = "summaryAttacks";
+        attackDiv.innerHTML = `<strong>Attacks:</strong> <span>${armamentAttacks.join("<br>")}</span>`;
+        const movementDiv = document.getElementById("summaryMovement");
+        if (movementDiv && movementDiv.parentElement) {
+            movementDiv.parentElement.insertAdjacentElement("afterend", attackDiv);
+        } else {
+            summaryElem.appendChild(attackDiv);
+        }
+    }
+    // Insert techniques if any
+    if (techniqueSummaries.length > 0 && summaryElem) {
+        const techDiv = document.createElement("div");
+        techDiv.id = "summaryTechniques";
+        techDiv.innerHTML = `<strong>Techniques:</strong> <span>${techniqueSummaries.join("<br>")}</span>`;
+        // Insert after attacks if present, else after movement
+        let afterElem = document.getElementById("summaryAttacks") || document.getElementById("summaryMovement");
+        if (afterElem && afterElem.parentElement) {
+            afterElem.parentElement.insertAdjacentElement("afterend", techDiv);
+        } else {
+            summaryElem.appendChild(techDiv);
+        }
+    }
+    // Insert powers if any
+    if (powerSummaries.length > 0 && summaryElem) {
+        const powerDiv = document.createElement("div");
+        powerDiv.id = "summaryPowers";
+        powerDiv.innerHTML = `<strong>Powers:</strong> <span>${powerSummaries.join("<br>")}</span>`;
+        // Insert after techniques if present, else after attacks or movement
+        let afterElem = document.getElementById("summaryTechniques") || document.getElementById("summaryAttacks") || document.getElementById("summaryMovement");
+        if (afterElem && afterElem.parentElement) {
+            afterElem.parentElement.insertAdjacentElement("afterend", powerDiv);
+        } else {
+            summaryElem.appendChild(powerDiv);
+        }
+    }
+    // --- Currency summary ---
+    let currencyElem = document.getElementById("summaryCurrency");
+    if (currencyElem) {
+        const levelVal = document.getElementById("creatureLevel").value || 1;
+        const baseCurrency = getCreatureCurrency(levelVal);
+        const spent = getArmamentsTotalGP();
+        const remaining = baseCurrency - spent; // allow negative values
+        currencyElem.textContent = remaining;
+        currencyElem.title = `Base: ${baseCurrency} - Spent: ${spent}`;
+    }
 }
-
 // --- Powers/Techniques Section (updated) ---
 function renderPowersTechniques() {
     const container = document.getElementById("powersTechniquesContainer");
@@ -420,7 +673,7 @@ function renderPowersTechniques() {
                 </div>
             `;
         } else {
-            // fallback for legacy/blank
+        // fallback for legacy/blank
             div.innerHTML = `
                 <span>${item.name} (BP: ${item.bp})</span>
                 <button class="small-button red-button remove-btn">✕</button>
@@ -459,13 +712,11 @@ function formatDamage(damageArr) {
         return '';
     }).filter(Boolean).join(', ');
 }
-
 // --- Utility: Capitalize a string ---
 function capitalize(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
-
 // --- Technique display helpers ---
 function formatTechniqueAction(item) {
     // Try to match the library display: Action Type + Reaction if checked
@@ -491,7 +742,6 @@ function formatTechniqueParts(partsArr) {
         return txt;
     }).join(', ');
 }
-
 // --- Modal Power Loading ---
 // Use users/{uid}/library for saved powers, as in the library page
 async function fetchSavedPowers() {
@@ -542,7 +792,6 @@ function openPowerModal() {
 function closePowerModal() {
     document.getElementById('loadPowerModal').style.display = 'none';
 }
-
 // --- Modal Armament Loading (like powers) ---
 async function fetchSavedArmaments() {
     await authReadyPromise;
@@ -1036,6 +1285,19 @@ document.addEventListener('DOMContentLoaded', () => {
             li.appendChild(btn);
             ul.appendChild(li);
         });
+
+        // Add skill points remaining display at the bottom of the skill box
+        let skillPointsDisplay = document.getElementById("skillPointsBoxDisplay");
+        if (!skillPointsDisplay) {
+            skillPointsDisplay = document.createElement("div");
+            skillPointsDisplay.id = "skillPointsBoxDisplay";
+            skillPointsDisplay.style.marginTop = "8px";
+            skillPointsDisplay.style.fontWeight = "bold";
+            ul.parentElement.appendChild(skillPointsDisplay);
+        }
+        const points = getSkillPointsRemaining();
+        skillPointsDisplay.textContent = `Skill Points Remaining: ${points}`;
+        skillPointsDisplay.style.color = points < 0 ? "red" : "";
     }
 
     document.getElementById("addSkillBtn").onclick = () => {
@@ -1078,6 +1340,56 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("addSkillBtn").after(removeAllSkillsBtn);
 
     updateSkillsList();
+
+    // --- Languages Box Logic ---
+    function updateLanguagesList() {
+        const ul = document.getElementById("languagesList");
+        if (!ul) return;
+        ul.innerHTML = "";
+        creatureLanguages.slice().sort((a, b) => a.localeCompare(b)).forEach((lang, idx) => {
+            const li = document.createElement("li");
+            li.textContent = lang;
+            const btn = document.createElement("button");
+            btn.textContent = "✕";
+            btn.className = "small-button red-button";
+            btn.style.marginLeft = "6px";
+            btn.onclick = () => {
+                creatureLanguages.splice(idx, 1);
+                updateLanguagesList();
+                updateSummary();
+            };
+            li.appendChild(btn);
+            ul.appendChild(li);
+        });
+    }
+
+    document.getElementById("addLanguageBtn").onclick = () => {
+        const input = document.getElementById("languageInput");
+        let val = input.value.trim();
+        if (!val) return;
+        // Prevent duplicates (case-insensitive)
+        if (!creatureLanguages.some(l => l.toLowerCase() === val.toLowerCase())) {
+            creatureLanguages.push(val);
+            updateLanguagesList();
+            updateSummary();
+        }
+        input.value = "";
+        input.focus();
+    };
+
+    // Remove all languages button (optional, not required by prompt)
+    // const removeAllLangBtn = document.createElement("button");
+    // removeAllLangBtn.textContent = "Remove All";
+    // removeAllLangBtn.className = "small-button red-button";
+    // removeAllLangBtn.style.marginLeft = "5px";
+    // removeAllLangBtn.onclick = () => {
+    //     creatureLanguages = [];
+    //     updateLanguagesList();
+    //     updateSummary();
+    // };
+    // document.getElementById("addLanguageBtn").after(removeAllLangBtn);
+
+    updateLanguagesList();
 
     // Modal close for powers
     if (document.querySelector('#loadPowerModal .close-button')) {
@@ -1268,13 +1580,11 @@ function renderArmaments() {
     container.appendChild(table);
     updateSummary();
 }
-
 // --- Creature Type Dropdown Logic ---
 function getCreatureTypeToggle() {
     const dropdown = document.getElementById("creatureTypeDropdown");
     return dropdown && dropdown.value === "Power";
 }
-
 // --- Innate Powers/Energy Logic (unchanged) ---
 function getInnatePowers(level, isPowerCreature) {
     if (!isPowerCreature) return 0;
@@ -1296,7 +1606,6 @@ function updateInnateInfo() {
     document.getElementById("summaryInnatePowers").textContent = innatePowers;
     document.getElementById("summaryInnateEnergy").textContent = innateEnergy;
 }
-
 // --- Update getTotalBP to use totalBP for powers ---
 function getTotalBP() {
     return powersTechniques.reduce((sum, item) => {
@@ -1305,7 +1614,6 @@ function getTotalBP() {
         return sum;
     }, 0);
 }
-
 // --- Feats Section (allow removal and re-selection) ---
 function renderFeats() {
     const container = document.getElementById("featsContainer");
@@ -1313,7 +1621,6 @@ function renderFeats() {
     feats.forEach((feat, idx) => {
         const row = document.createElement("div");
         row.className = "feat-row";
-
         // Feat dropdown
         const select = document.createElement("select");
         select.style.minWidth = "220px";
@@ -1329,7 +1636,6 @@ function renderFeats() {
             if (feat.name === f.name) opt.selected = true;
             select.appendChild(opt);
         });
-
         select.onchange = e => {
             const selected = creatureFeatsData.find(f => f.name === e.target.value);
             if (selected) {
@@ -1344,7 +1650,6 @@ function renderFeats() {
         };
 
         row.appendChild(select);
-
         // Show feat name, points, and description if selected
         if (feat.name) {
             const selected = creatureFeatsData.find(f => f.name === feat.name);
@@ -1355,7 +1660,6 @@ function renderFeats() {
                 row.appendChild(info);
             }
         }
-
         // Remove button
         const removeBtn = document.createElement("button");
         removeBtn.className = "small-button red-button";
@@ -1366,7 +1670,6 @@ function renderFeats() {
         container.appendChild(row);
     });
 }
-
 // --- Ability Point Calculation for Creature Creator ---
 function getAbilityPointCost(val) {
     val = parseInt(val);
@@ -1389,7 +1692,6 @@ function updateCreatureAbilityDropdowns() {
             total += cost;
         }
     });
-
     // Get level if present, default to 1
     let level = 1;
     const levelInput = document.getElementById('creatureLevel');
@@ -1397,17 +1699,12 @@ function updateCreatureAbilityDropdowns() {
         level = parseInt(levelInput.value) || 1;
     }
     const maxPoints = getAbilityPointTotal(level);
-
     // Show remaining points (can be negative)
-    const remaining = maxPoints - total;
-
-    // Update counter if present
     const counter = document.getElementById('remaining-points');
     if (counter) {
-        counter.textContent = remaining;
-        counter.style.color = remaining <= 0 ? "red" : "#007bff";
+        counter.textContent = maxPoints - total;
+        counter.style.color = (maxPoints - total) <= 0 ? "red" : "#007bff";
     }
-
     // No disabling of options for negative values
     abilityDropdowns.forEach(dropdown => {
         const options = dropdown.querySelectorAll('option');
@@ -1416,7 +1713,6 @@ function updateCreatureAbilityDropdowns() {
         });
     });
 }
-
 // --- Hit-Energy Points Logic ---
 function getHitEnergyTotal(level) {
     level = parseInt(level) || 1;
@@ -1460,27 +1756,22 @@ function updateHealthEnergyUI() {
     const baseHP = getBaseHitPoints();
     const baseEN = getBaseEnergy();
     const totalPoints = getHitEnergyTotal(level);
-
     // Get current allocated values or set to base
     const hpInput = document.getElementById('hitPointsInput');
     const enInput = document.getElementById('energyInput');
     let hp = parseInt(hpInput.value);
     let en = parseInt(enInput.value);
-
     // If not set, initialize to base
     if (isNaN(hp) || hp < baseHP) hp = baseHP;
     if (isNaN(en) || en < baseEN) en = baseEN;
-
     // Calculate allocated points (above base)
     let allocatedHP = hp - baseHP;
     let allocatedEN = en - baseEN;
     if (allocatedHP < 0) allocatedHP = 0;
     if (allocatedEN < 0) allocatedEN = 0;
-
     // Remaining hit-energy points
     let spent = allocatedHP + allocatedEN;
     let remaining = totalPoints - spent;
-
     // Clamp so you can't allocate more than available
     if (remaining < 0) {
         // Reduce the one that was just changed
@@ -1498,12 +1789,10 @@ function updateHealthEnergyUI() {
         spent = allocatedHP + allocatedEN;
         remaining = totalPoints - spent;
     }
-
     // Update UI
     document.getElementById('hitEnergyTotal').textContent = remaining;
     hpInput.value = hp;
     enInput.value = en;
-
     // Disable - buttons if at minimum
     document.getElementById('decreaseHitPoints').disabled = hp <= baseHP;
     document.getElementById('decreaseEnergy').disabled = en <= baseEN;
@@ -1511,7 +1800,6 @@ function updateHealthEnergyUI() {
     document.getElementById('increaseHitPoints').disabled = remaining <= 0;
     document.getElementById('increaseEnergy').disabled = remaining <= 0;
 }
-
 // --- Event Listeners for Health & Energy ---
 function setupHealthEnergyHandlers() {
     const hpInput = document.getElementById('hitPointsInput');
@@ -1520,7 +1808,6 @@ function setupHealthEnergyHandlers() {
     const decHP = document.getElementById('decreaseHitPoints');
     const incEN = document.getElementById('increaseEnergy');
     const decEN = document.getElementById('decreaseEnergy');
-
     function changeHP(delta) {
         hpInput.value = parseInt(hpInput.value) + delta;
         updateHealthEnergyUI();
@@ -1536,18 +1823,14 @@ function setupHealthEnergyHandlers() {
     hpInput.oninput = updateHealthEnergyUI;
     enInput.oninput = updateHealthEnergyUI;
 }
-
 // --- Update Health/Energy on relevant changes ---
 function updateAllHealthEnergy() {
     updateHealthEnergyUI();
 }
-
 // --- Attach listeners for creature ability dropdowns and health/energy ---
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.creature-ability-dropdown').forEach(dropdown => {
         dropdown.addEventListener('change', () => {
-            // Debug log to confirm event fires and value is correct
-            console.log(`Ability dropdown changed: ${dropdown.id}, value: ${dropdown.value}`);
             updateCreatureAbilityDropdowns();
             updateAllHealthEnergy();
             updateDefensesUI();
@@ -1568,11 +1851,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCreatureAbilityDropdowns();
     updateAllHealthEnergy();
     updateDefensesUI();
-
     // --- Defense skill button listeners ---
     setupDefenseSkillButtons();
 });
-
 // --- Defense Skill State ---
 const defenseSkillState = {
     "Might": 0,
@@ -1582,7 +1863,6 @@ const defenseSkillState = {
     "Mental Fortitude": 0,
     "Resolve": 0
 };
-
 // --- Skill Point Calculation ---
 function getSkillPointTotal() {
     // Should be 2 + 3 * level (including first level)
@@ -1601,7 +1881,6 @@ function getSkillPointsRemaining() {
     // Defensive: never negative, always at least 0
     return Math.max(0, getSkillPointTotal() - getSkillPointsSpent());
 }
-
 // --- Defense Calculation Helpers ---
 function getAbilityValue(id) {
     const el = document.getElementById(id);
@@ -1631,7 +1910,7 @@ function getSkillBonus(skillObj) {
     return (max === -Infinity ? 0 : max) + skillValue;
 }
 function getSkillPointsForDefense(defense) {
-    // Fix: use the correct parameter name
+    // Fix: use the correct parameter name 
     return defenseSkillState[defense] || 0;
 }
 function getBaseDefenseValue(defense) {
@@ -1675,7 +1954,6 @@ function updateDefensesUI() {
         skillPointsElem.style.color = getSkillPointsRemaining() < 0 ? "red" : "";
     }
 }
-
 // --- Defense Skill Button Handlers ---
 function setupDefenseSkillButtons() {
     document.querySelectorAll('.defense-plus').forEach(btn => {
@@ -1699,7 +1977,6 @@ function setupDefenseSkillButtons() {
         };
     });
 }
-
 // --- Skills List Update ---
 function formatSkillBonusDisplay(skillName) {
     const skillObj = skills.find(s => s.name === skillName);
@@ -1708,7 +1985,6 @@ function formatSkillBonusDisplay(skillName) {
     const sign = bonus >= 0 ? "+" : "";
     return ` (${sign}${bonus})`;
 }
-
 function updateSkillsList() {
     const ul = document.getElementById("skillsList");
     if (!ul) {
@@ -1736,7 +2012,6 @@ function updateSkillsList() {
             }
         };
         minusBtn.disabled = skillValue <= 0;
-
         const valueSpan = document.createElement("span");
         valueSpan.textContent = ` ${skillValue} `;
         valueSpan.style.fontWeight = "bold";
@@ -1755,7 +2030,6 @@ function updateSkillsList() {
             }
         };
         plusBtn.disabled = skillValue >= 3 || getSkillPointsRemaining() <= 0;
-
         // Tooltip with skill description if available
         const skillObj = skills.find(s => s.name === skill);
         if (skillObj && skillObj.description) {
@@ -1765,7 +2039,6 @@ function updateSkillsList() {
         li.appendChild(minusBtn);
         li.appendChild(valueSpan);
         li.appendChild(plusBtn);
-
         const btn = document.createElement("button");
         btn.textContent = "✕";
         btn.className = "small-button red-button";
@@ -1780,4 +2053,52 @@ function updateSkillsList() {
         li.appendChild(btn);
         ul.appendChild(li);
     });
+    // Add skill points remaining display at the bottom of the skill box
+    let skillPointsDisplay = document.getElementById("skillPointsBoxDisplay");
+    if (!skillPointsDisplay) {
+        skillPointsDisplay = document.createElement("div");
+        skillPointsDisplay.id = "skillPointsBoxDisplay";
+        skillPointsDisplay.style.marginTop = "8px";
+        skillPointsDisplay.style.fontWeight = "bold";
+        ul.parentElement.appendChild(skillPointsDisplay);
+    }
+    const points = getSkillPointsRemaining();
+    skillPointsDisplay.textContent = `Skill Points Remaining: ${points}`;
+    skillPointsDisplay.style.color = points < 0 ? "red" : "";
 }
+document.addEventListener('DOMContentLoaded', function() {
+    // Condition Immunity logic
+    const conditionImmunityList = document.getElementById('conditionImmunityList');
+    const conditionImmunityDropdown = document.getElementById('conditionImmunityDropdown');
+    const addConditionImmunityBtn = document.getElementById('addConditionImmunityBtn');
+    // Use global conditionImmunities array
+    function updateConditionImmunityList() {
+        conditionImmunityList.innerHTML = '';
+        conditionImmunities.slice().sort().forEach((cond, idx) => {
+            const li = document.createElement('li');
+            li.textContent = cond;
+            const btn = document.createElement('button');
+            btn.textContent = '✕';
+            btn.className = 'small-button red-button';
+            btn.onclick = () => {
+                conditionImmunities.splice(idx, 1);
+                updateConditionImmunityList();
+                updateSummary();
+            };
+            li.appendChild(btn);
+            conditionImmunityList.appendChild(li);
+        });
+        updateSummary();
+    }
+    if (addConditionImmunityBtn && conditionImmunityDropdown) {
+        addConditionImmunityBtn.onclick = () => {
+            const val = conditionImmunityDropdown.value;
+            if (val && !conditionImmunities.includes(val)) {
+                conditionImmunities.push(val);
+                updateConditionImmunityList();
+                updateSummary();
+            }
+        };
+    }
+    updateConditionImmunityList();
+});

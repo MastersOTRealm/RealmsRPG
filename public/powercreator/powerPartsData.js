@@ -221,7 +221,7 @@ const powerPartsData = [
     },
     {
         name: "Enrich Plantlife",
-        description: "4 EN: Enrich all plantlife within the range of this power from you. The crops recover from any temporary ailment or illness, harvest from these crops if any is doubled for the next 30 days.",
+        description: "4 EN: Enrich all plantlife within the range of this power from you. The crops recover from any temporary ailment or illness, edible harvest from these crops if any is doubled for the next 30 days, although the currency value remains that of a normal harvest.",
         baseBP: 1,
         baseEnergy: 4,
         opt1Cost: 4,
@@ -855,7 +855,7 @@ const powerPartsData = [
     },
     {
         name: "Inner Illusion",
-        description: "5 EN: Inner illusions make part of the world seem different in some way (e.g., creating the appearance of a chest, person, animal, tree, etc.) to a targeted individual. You may add other power parts to this power at 50% their energy cost to be part of the illusion, targeting mental fortitude instead of the normal defense.",
+        description: "5 EN: Inner illusions make part of the world seem different in some way (e.g., creating the appearance of a chest, person, animal, tree, etc.) to a targeted individual. You may add other power parts to this power at 50% their energy cost to be part of the illusion, targeting mental fortitude instead of the normal defense. Any dmaage added is applied as psychic after applying resistances, vulnerabilities, and reductions. If a creature has reason to suspect it is an illusion, they may roll Discernment against your potency to learn it is an illusion.",
         baseBP: 1,
         baseEnergy: 5,
         opt1Cost: 1,
@@ -1605,15 +1605,12 @@ const powerPartsData = [
     },
     {
         name: "Long-Linger Damage",
-        description: "6 EN: Choose a damage type. Each round, the creature takes 1d4 damage of that type for 10 rounds. Targets Fortitude for all damage types except Psychic, which targets Mental Fortitude.",
+        description: "2.5 EN: Choose a damage type. Each round, the creature takes 1d2 damage of that type for at the beginning of each turn for the duration. Targets Fortitude for all damage types except Psychic, which targets Mental Fortitude. This part cannot have a duration of less than 2 rounds.",
         baseBP: 1,
-        baseEnergy: 6,
-        opt1Cost: 4,
-        opt1Description: "+4 EN for each additional +1d4 damage per round.",
+        baseEnergy: 2.5,
+        opt1Cost: 2.5,
+        opt1Description: "+2.5 EN for each additional +1d2.",
         BPIncreaseOpt1: 0,
-        opt2Cost: 2.5,
-        opt2Description: "+2.5 EN for every 2 additional rounds.",
-        BPIncreaseOpt2: 0,
         type: "base",
         category: "Offense"
     },
@@ -1891,7 +1888,7 @@ const powerPartsData = [
     },
     {
         name: "Create Food",
-        description: "5 EN: Create enough rations for 1 creature to avoid malnutrition. The rations are bland but look how you'd like them to. The food spoils if uneated in 24 hours but remains in exsistance.",
+        description: "5 EN: Create enough rations for 1 creature to avoid malnutrition. The rations are bland but look how you'd like them to. The food spoils if uneated in 24 hours but remains in exsistance. This food has no currency value.",
         baseBP: 0,
         baseEnergy: 5,
         opt1Cost: 4,

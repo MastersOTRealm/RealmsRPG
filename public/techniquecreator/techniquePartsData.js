@@ -1,28 +1,6 @@
 const techniquePartsData = [
     // General Techniques
     {
-        name: "Add Weapon",
-        description: "Make a weapon part of your technique. Pay Energy equal to 1/2 the Building Point cost of the weapon. (Only pay cost once for one thrown projectile even if throwing more than one in technique.) (Only pay cost once for the weapon shooting projectile, not the projectile being shot.)",
-        baseBP: 0,
-        baseEnergy: 0.5,
-        opt1Cost: 0.5,
-        opt1Description: "+0.5 EN for each additional BP of weapon cost.",
-        BPIncreaseOpt1: 0,
-        type: "base",
-        category: "General"
-    },
-    {
-        name: "Precision/Power Hit",
-        description: "Increase damage die roll of melee or ranged physical attack by 1d2.",
-        baseBP: 1,
-        baseEnergy: 1.5,
-        opt1Cost: 1.5,
-        opt1Description: "+1.5 EN for each additional 1d2.",
-        BPIncreaseOpt1: 0,
-        type: "base",
-        category: "General"
-    },
-    {
         name: "True Damage",
         description: "Add 1 damage to any technique.",
         baseBP: 1,
