@@ -14,6 +14,15 @@
 </head>
 <body>
     <header id="header"></header>
+    <!-- Collapsible Details Box -->
+    <div id="creatureDetailsBox">
+        <h3>Creature Details</h3>
+        <p>Total Feat Points: <span id="detailsFeatPoints">0</span></p>
+        <p>Total Building Points: <span id="detailsBP">0</span></p>
+        <p>Skill Points: <span id="detailsSkillPoints">0</span></p>
+        <p>Currency: <span id="detailsCurrency">0</span></p>
+        <div class="toggle-arrow" id="creatureDetailsToggle">&lt;</div>
+    </div>
     <main>
         <div id="creatureCreatorContainer">
             <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -462,12 +471,6 @@
                     <strong>Movement:</strong> <span id="summaryMovement"></span>
                 </div>
                 <div>
-                    <strong>Total Feat Points:</strong> <span id="summaryFeatPoints">0</span>
-                </div>
-                <div>
-                    <strong>Total Building Points:</strong> <span id="summaryBP">0</span>
-                </div>
-                <div>
                     <strong>Innate Powers:</strong> <span id="summaryInnatePowers">0</span> |
                     <strong>Innate Energy:</strong> <span id="summaryInnateEnergy">0</span>
                 </div>
@@ -477,17 +480,16 @@
                     <span id="summaryProfValue"></span>
                 </div>
                 <div>
-                    <strong>Skill Points:</strong> <span id="summarySkillPoints">0</span>
-                </div>
-                <div>
                     <strong>Skills:</strong> <span id="summarySkills"></span>
                 </div>
                 <div>
                     <strong>Languages:</strong> <span id="summaryLanguages"></span>
                 </div>
-                <div>
-                    <strong>Currency:</strong> <span id="summaryCurrency">0</span>
-                </div>
+            </section>
+            <!-- Creature Description Box -->
+            <section id="creatureDescriptionSection" class="summary-section" style="margin-top:0;">
+                <h3>Description</h3>
+                <textarea id="creatureDescription" rows="4" style="width:100%;max-width:100%;min-width:200px;resize:vertical;" placeholder="Enter a description for your creature..."></textarea>
             </section>
         </div>
     </main>

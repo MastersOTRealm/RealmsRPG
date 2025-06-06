@@ -360,3 +360,32 @@ exports.deleteTechniqueFromLibrary = onCall(async (data, context) => {
         throw new HttpsError('internal', 'Error deleting technique');
     }
 });
+
+exports.saveCreatureToLibrary = onCall(async (data, context) => {
+    const { creatureName, creatureData } = data;
+    const uid = context.auth?.uid;
+
+    if (!uid) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    if (!(typeof creatureName === "string") || creatureName.length === 0) {
+        throw new HttpsError("invalid-argument", "The function must be called with a valid 'creatureName'.");
+    }
+    if (!creatureData || typeof creatureData !== "object") {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'creatureData' object.");
+    }
+
+    try {
+        const db = getFirestore();
+        const docRef = await db.collection('users').doc(uid).collection('creatureLibrary').add({
+            name: creatureName,
+            ...creatureData,
+            timestamp: new Date()
+        });
+        logger.info('Creature document written with ID: ', docRef.id);
+        return { message: 'Creature saved to library', docId: docRef.id };
+    } catch (error) {
+        logger.error('Error saving creature document: ', error);
+        throw new HttpsError('internal', 'Error saving creature to library');
+    }
+});

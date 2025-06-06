@@ -1,9 +1,10 @@
 import creatureFeatsData from './creatureFeatsData.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import skills from '../scripts/skillsData.js';
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 
 // --- Firebase Initialization (v11 compat, global) ---
 let firebaseApp, firebaseAuth, firebaseDb, currentUser;
@@ -467,6 +468,12 @@ function updateSummary() {
             (Array.isArray(item.damage) ? true : true)
         )
         .map(item => {
+            // Energy: show as integer if possible
+            const energy = item.totalEnergy !== undefined ? item.totalEnergy : (item.energy !== undefined ? item.energy : "-");
+            // Action type
+            let action = item.actionType ? capitalize(item.actionType) : '-';
+            if (item.reactionChecked) action += " Reaction";
+            else if (action !== '-') action += " Action";
             // Range: "Melee" if 0, otherwise number value
             let rangeStr = "Melee";
             if (item.weapon && item.weapon.range !== undefined && item.weapon.range !== null && item.weapon.range !== "") {
@@ -512,20 +519,13 @@ function updateSummary() {
                 }).join(", ");
                 if (propsStr) propsStr = " " + propsStr;
             }
-            // Energy cost
-            const energy = item.totalEnergy !== undefined ? item.totalEnergy : (item.energy !== undefined ? item.energy : "-");
-            // Action type
-            let action = item.actionType ? capitalize(item.actionType) : '-';
-            if (item.reactionChecked) action += " Reaction";
-            else if (action !== '-') action += " Action";
             // Description
             const desc = item.description ? ` ${item.description}` : "";
-            // Format: "TechniqueName: Range range attack. +X to hit. YdZ damage. [properties] (Energy: N, Action: X). Description"
-            // If no damage, omit damage wording
-            let attackStr = `${item.name}: ${rangeStr} range attack. +${attackBonus} to hit.`;
+            // Format: "TechniqueName: 15 EN, Basic Action. Melee range attack. +4 to hit. 1d4 damagetype damage. [properties] Description"
+            let attackStr = `${item.name}: ${energy} EN, ${action}. ${rangeStr} range attack. +${attackBonus} to hit.`;
             if (dmgStr) attackStr += ` ${dmgStr} damage.`;
             else attackStr += " ";
-            attackStr += `${propsStr} (Energy: ${energy}, Action: ${action}).${desc}`;
+            attackStr += `${propsStr}${desc}`;
             return attackStr.trim();
         });
     // --- Powers summary ---
@@ -1643,12 +1643,13 @@ function renderFeats() {
                 feat.points = selected.cost;
             } else {
                 feat.name = "";
-                feat.points = 1;
+                               feat.points = 1;
             }
             renderFeats();
             updateSummary();
         };
 
+       
         row.appendChild(select);
         // Show feat name, points, and description if selected
         if (feat.name) {
@@ -2102,3 +2103,344 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     updateConditionImmunityList();
 });
+
+// --- Save Creature to Library Functionality ---
+
+// Utility: Get IDs from array of objects (for powers/techniques/armaments)
+function extractIds(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(obj => obj && obj.id ? obj.id : null).filter(Boolean);
+}
+
+// Gather all creature data for saving
+async function getCreatureSaveData() {
+    // Abilities
+    const abilities = {
+        strength: getAbilityValue('creatureAbilityStrength'),
+        vitality: getAbilityValue('creatureAbilityVitality'),
+        agility: getAbilityValue('creatureAbilityAgility'),
+        acuity: getAbilityValue('creatureAbilityAcuity'),
+        intelligence: getAbilityValue('creatureAbilityIntelligence'),
+        charisma: getAbilityValue('creatureAbilityCharisma')
+    };
+    // Defenses
+    const defenses = {
+        might: getBaseDefenseValue("Might") + (defenseSkillState["Might"] || 0),
+        fortitude: getBaseDefenseValue("Fortitude") + (defenseSkillState["Fortitude"] || 0),
+        reflex: getBaseDefenseValue("Reflex") + (defenseSkillState["Reflex"] || 0),
+        discernment: getBaseDefenseValue("Discernment") + (defenseSkillState["Discernment"] || 0),
+        mentalFortitude: getBaseDefenseValue("Mental Fortitude") + (defenseSkillState["Mental Fortitude"] || 0),
+        resolve: getBaseDefenseValue("Resolve") + (defenseSkillState["Resolve"] || 0)
+    };
+    // Skills and skill values (with calculated bonus)
+    const skillsArr = creatureSkills.slice().map(skillName => {
+        const skillObj = skills.find(s => s.name === skillName);
+        const bonus = getSkillBonus(skillObj);
+        return { name: skillName, bonus };
+    });
+    // Feats: save as array of { name, description }
+    const featsArr = feats.map(f => {
+        const featObj = typeof f === "string" ? { name: f } : f;
+        const found = creatureFeatsData.find(cf => cf.name === featObj.name);
+        return {
+            name: featObj.name,
+            description: found ? found.description : ""
+        };
+    });
+    // Immunities: combine damage and condition immunities
+    const allImmunities = [...immunities, ...(Array.isArray(conditionImmunities) ? conditionImmunities : [])];
+    // Movement: flatten to array of strings
+    const movementArr = movement.map(m => m.type || m);
+    // Senses: array of strings
+    const sensesArr = senses.slice();
+    // Powers, Techniques, Armaments: store only IDs (references)
+    const powerIds = extractIds(powersTechniques.filter(x => x.type === "power"));
+    const techniqueIds = extractIds(powersTechniques.filter(x => x.type === "technique"));
+    const armamentIds = extractIds(armaments);
+    // Health/Energy
+    const hitPoints = parseInt(document.getElementById('hitPointsInput')?.value) || 0;
+    const energy = parseInt(document.getElementById('energyInput')?.value) || 0;
+    // Archetype (Martial/Power)
+    const archetype = document.getElementById("creatureTypeDropdown")?.value || "";
+    // Level, Type, Name
+    const level = parseInt(document.getElementById("creatureLevel")?.value) || 1;
+    const type = document.getElementById("creatureType")?.value || "";
+    const name = document.getElementById("creatureName")?.value || "";
+    // Languages
+    const languagesArr = creatureLanguages.slice();
+    // Description
+    const description = document.getElementById("creatureDescription")?.value || "";
+
+    // Compose the minimal data object
+    return {
+        name,
+        level,
+        type,
+        archetype,
+        resistances: resistances.slice(),
+        weaknesses: weaknesses.slice(),
+        immunities: allImmunities.slice(),
+        senses: sensesArr,
+        movement: movementArr,
+        hitPoints,
+        energy,
+        languages: languagesArr,
+        skills: skillsArr,
+        abilities,
+        defenses,
+        feats: featsArr,
+        powers: powerIds,
+        techniques: techniqueIds,
+        armaments: armamentIds,
+        description // <-- include description
+    };
+}
+
+// Save Creature to Library (Firestore direct, like technique creator)
+async function saveCreatureToLibrary() {
+    await authReadyPromise;
+    if (!currentUser || !firebaseDb) {
+        alert("You must be logged in to save creatures.");
+        return;
+    }
+    const creatureName = document.getElementById("creatureName")?.value?.trim();
+    if (!creatureName) {
+        alert("Please enter a name for your creature.");
+        return;
+    }
+    const creatureData = await getCreatureSaveData();
+    try {
+        const creaturesRef = collection(firebaseDb, 'users', currentUser.uid, 'creatureLibrary');
+        const q = query(creaturesRef, where('name', '==', creatureName));
+        const querySnapshot = await getDocs(q);
+        let docRef;
+        if (!querySnapshot.empty) {
+            // Update existing creature
+            docRef = doc(firebaseDb, 'users', currentUser.uid, 'creatureLibrary', querySnapshot.docs[0].id);
+        } else {
+            // Create new creature
+            docRef = doc(creaturesRef);
+        }
+        await setDoc(docRef, {
+            name: creatureName,
+            ...creatureData,
+            timestamp: new Date()
+        });
+        alert("Creature saved to your library!");
+    } catch (error) {
+        console.error("Error saving creature:", error.message, error.stack);
+        alert("Error saving creature: " + error.message);
+    }
+}
+
+// Load all saved creatures for the user (like loadSavedPowers)
+async function loadSavedCreatures() {
+    await authReadyPromise;
+    if (!currentUser || !firebaseDb) return [];
+    try {
+        const querySnapshot = await getDocs(collection(firebaseDb, 'users', currentUser.uid, 'creatureLibrary'));
+        const creatures = [];
+        querySnapshot.forEach(docSnap => {
+            creatures.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        return creatures;
+    } catch (error) {
+        alert("Error fetching saved creatures: " + (error.message || error));
+        return [];
+    }
+}
+
+// Display saved creatures in a modal (like displaySavedPowers)
+function displaySavedCreatures(creatures) {
+    const creatureList = document.getElementById('savedCreaturesList');
+    creatureList.innerHTML = '';
+    if (!creatures.length) {
+        creatureList.innerHTML = '<div>No saved creatures found.</div>';
+        return;
+    }
+    creatures.forEach(creature => {
+        const div = document.createElement('div');
+        div.className = 'creature-item';
+        div.innerHTML = `
+            <span>${creature.name} (Level: ${creature.level || '-'})</span>
+            <button class="small-button blue-button select-creature-btn" data-id="${creature.id}">Load</button>
+        `;
+        creatureList.appendChild(div);
+    });
+}
+
+// Open the load creature modal
+function openCreatureModal() {
+    if (!currentUser) {
+        alert('Please log in to access saved creatures.');
+        return;
+    }
+    const modal = document.getElementById('loadCreatureModal');
+    modal.style.display = 'block';
+    loadSavedCreatures().then(displaySavedCreatures);
+}
+
+// Close the load creature modal
+function closeCreatureModal() {
+    document.getElementById('loadCreatureModal').style.display = 'none';
+}
+
+// Load a creature into the UI (implement as needed for your UI)
+async function loadCreatureById(creatureId) {
+    await authReadyPromise;
+    if (!currentUser || !firebaseDb) return;
+    try {
+        const docSnap = await getDocs(query(
+            collection(firebaseDb, 'users', currentUser.uid, 'creatureLibrary'),
+            where('__name__', '==', creatureId)
+        ));
+        if (!docSnap.empty) {
+            const creature = docSnap.docs[0].data();
+            loadCreature(creature);
+        }
+    } catch (error) {
+        alert("Error loading creature: " + (error.message || error));
+    }
+}
+
+// Populate the UI with creature data (implement as needed)
+function loadCreature(creature) {
+    // Example: set name, level, type, etc.
+    document.getElementById("creatureName").value = creature.name || "";
+    document.getElementById("creatureLevel").value = creature.level || 1;
+    document.getElementById("creatureType").value = creature.type || "";
+    document.getElementById("creatureTypeDropdown").value = creature.archetype || "Martial";
+    // ...populate other fields as needed...
+    // Set description if present
+    if (document.getElementById("creatureDescription")) {
+        document.getElementById("creatureDescription").value = creature.description || "";
+    }
+    alert("Creature loaded! (You must implement full UI population logic.)");
+    updateSummary();
+}
+
+// --- Add Save/Load Creature Buttons and Modal to UI if not present ---
+function addSaveLoadCreatureUI() {
+    const container = document.getElementById("creatureCreatorContainer");
+    if (!container) return;
+    // Save button
+    if (!document.getElementById("saveCreatureButton")) {
+        const btn = document.createElement("button");
+        btn.id = "saveCreatureButton";
+        btn.className = "medium-button blue-button";
+        btn.textContent = "Save Creature";
+        btn.style.margin = "16px 0";
+        btn.onclick = saveCreatureToLibrary;
+        container.insertBefore(btn, container.firstChild);
+    }
+    // Load button
+    if (!document.getElementById("loadCreatureButton")) {
+        const btn = document.createElement("button");
+        btn.id = "loadCreatureButton";
+        btn.className = "medium-button blue-button";
+        btn.textContent = "Load Creature";
+        btn.style.margin = "16px 8px";
+        btn.onclick = openCreatureModal;
+        container.insertBefore(btn, container.firstChild.nextSibling);
+    }
+    // Modal
+    if (!document.getElementById("loadCreatureModal")) {
+        const modal = document.createElement("div");
+        modal.id = "loadCreatureModal";
+        modal.className = "modal";
+        modal.style.display = "none";
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close-button" id="closeCreatureModalBtn">&times;</span>
+                <h3>Load Creature</h3>
+                <div id="savedCreaturesList"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById("closeCreatureModalBtn").onclick = closeCreatureModal;
+        // Event delegation for selecting a creature
+        modal.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('select-creature-btn')) {
+                const creatureId = e.target.dataset.id;
+                await loadCreatureById(creatureId);
+                closeCreatureModal();
+            }
+        });
+    }
+}
+
+// --- Initialize Save/Load Creature UI on DOMContentLoaded ---
+document.addEventListener('DOMContentLoaded', () => {
+    addSaveLoadCreatureUI();
+});
+
+// --- Collapsible Details Box Logic ---
+function updateCreatureDetailsBox() {
+    // Feat Points
+    const level = document.getElementById("creatureLevel")?.value || 1;
+    const baseFeat = getBaseFeatPoints(level);
+    const spentFeat = getSpentFeatPoints();
+    const detailsFeat = document.getElementById("detailsFeatPoints");
+    if (detailsFeat) {
+        detailsFeat.textContent = `${(baseFeat - spentFeat).toFixed(1).replace(/\.0$/, "")} / ${baseFeat}`;
+        detailsFeat.style.color = (baseFeat - spentFeat) < 0 ? "red" : "";
+    }
+    // BP
+    const bpTotal = (() => {
+        const highestNonVit = getHighestNonVitalityAbility();
+        if (level <= 1) return 9 + highestNonVit;
+        return 9 + highestNonVit + (level - 1) * (1 + highestNonVit);
+    })();
+    const bpSpent = (() => {
+        let spent = 0;
+        spent += powersTechniques.reduce((sum, item) => {
+            if (item.type === "power") return sum + (parseFloat(item.totalBP) || 0);
+            if (item.type === "technique") return sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0);
+            return sum;
+        }, 0);
+        spent += armaments.reduce((sum, item) => sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0), 0);
+        return spent;
+    })();
+    const detailsBP = document.getElementById("detailsBP");
+    if (detailsBP) {
+        detailsBP.textContent = `${bpTotal - bpSpent} / ${bpTotal}`;
+        detailsBP.style.color = (bpTotal - bpSpent) < 0 ? "red" : "";
+    }
+    // Skill Points
+    const skillTotal = getSkillPointTotal();
+    const skillSpent = getSkillPointsSpent();
+    const detailsSkill = document.getElementById("detailsSkillPoints");
+    if (detailsSkill) {
+        detailsSkill.textContent = `${skillTotal - skillSpent} / ${skillTotal}`;
+        detailsSkill.style.color = (skillTotal - skillSpent) < 0 ? "red" : "";
+    }
+    // Currency
+    const baseCurrency = getCreatureCurrency(level);
+    const spentCurrency = getArmamentsTotalGP();
+    const detailsCurrency = document.getElementById("detailsCurrency");
+    if (detailsCurrency) {
+        detailsCurrency.textContent = `${baseCurrency - spentCurrency} / ${baseCurrency}`;
+        detailsCurrency.style.color = (baseCurrency - spentCurrency) < 0 ? "red" : "";
+    }
+}
+
+// Toggle open/close for details box
+function setupCreatureDetailsBoxToggle() {
+    const box = document.getElementById("creatureDetailsBox");
+    const arrow = document.getElementById("creatureDetailsToggle");
+    if (!box || !arrow) return;
+    arrow.onclick = function(e) {
+        e.stopPropagation();
+        box.classList.toggle("collapsed");
+        arrow.textContent = box.classList.contains("collapsed") ? ">" : "<";
+    };
+    // Ensure arrow is always on top and clickable
+    arrow.style.zIndex = "1002";
+}
+
+// Call updateCreatureDetailsBox whenever summary updates
+const origUpdateSummary = updateSummary;
+updateSummary = function() {
+    origUpdateSummary.apply(this, arguments);
+    updateCreatureDetailsBox();
+};

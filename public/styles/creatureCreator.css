@@ -176,6 +176,9 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             font-size: 16px;
+            min-height: 180px; /* Increased minimum height for more content */
+            max-height: none;  /* Allow auto-expansion for more details */
+            overflow: visible; /* Let content expand naturally */
         }
 
         .summary-section h3 {
@@ -494,6 +497,59 @@
 
         #addArmamentBtn:hover {
             background-color: #0056b3;
+        }
+
+        #creatureDetailsBox {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 170px;
+            padding: 12px;
+            background-color: #e6f7ff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            font-size: 14px;
+            transition: left 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s, background 0.3s;
+            /* Remove transform for better collapse effect */
+        }
+        #creatureDetailsBox h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        #creatureDetailsBox p {
+            margin: 5px 0;
+        }
+        #creatureDetailsBox .toggle-arrow {
+            position: absolute;
+            top: 50%;
+            right: -20px;
+            width: 20px;
+            height: 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transform: translateY(-50%);
+            z-index: 1001;
+            font-size: 18px;
+            user-select: none;
+            box-shadow: 0 0 4px rgba(0,0,0,0.12);
+        }
+        #creatureDetailsBox.collapsed {
+            left: -150px;
+            width: 0;
+            min-width: 0;
+            padding: 0;
+            background: transparent;
+            box-shadow: none;
+            overflow: visible;
+        }
+        #creatureDetailsBox.collapsed > *:not(.toggle-arrow) {
+            display: none !important;
         }
 
         @media (max-width: 1200px) {
