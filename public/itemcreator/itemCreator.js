@@ -11,10 +11,22 @@ let appCheckInitialized = false;
     const itemParts = itemPartsData;
 
     const selectedItemParts = [];
+    window.selectedItemParts = selectedItemParts; // Expose for HTML logic
     let range = 0; // Internal default value
     let handedness = "One-Handed"; // Default handedness
 
+    // --- Damage Reduction State ---
+    let damageReduction = 0;
+    window.getDamageReduction = () => damageReduction;
+
+    // Find Damage Reduction part from itemPartsData
+    const damageReductionPart = itemParts.find(
+        p => p.type === "Armor" && p.name === "Damage Reduction"
+    );
+
     function addWeaponPart() {
+        // Only allow if armament type is Weapon
+        if (window.selectedArmamentType && window.selectedArmamentType() !== 'Weapon') return;
         const part = itemParts.find(part => part.type === 'Weapon');
         if (part) {
             selectedItemParts.push({ part, opt1Level: 0, opt2Level: 0 });
@@ -24,6 +36,7 @@ let appCheckInitialized = false;
     }
 
     function addShieldPart() {
+        if (window.selectedArmamentType && window.selectedArmamentType() !== 'Shield') return;
         const part = itemParts.find(part => part.type === 'Shield');
         if (part) {
             selectedItemParts.push({ part, opt1Level: 0, opt2Level: 0 });
@@ -33,6 +46,7 @@ let appCheckInitialized = false;
     }
 
     function addArmorPart() {
+        if (window.selectedArmamentType && window.selectedArmamentType() !== 'Armor') return;
         const part = itemParts.find(part => part.type === 'Armor');
         if (part) {
             selectedItemParts.push({ part, opt1Level: 0, opt2Level: 0 });
@@ -70,11 +84,73 @@ let appCheckInitialized = false;
         `;
     }
 
+    // Helper: Names of requirement parts and agility reduction
+    const requirementPartNames = [
+        "Strength Requirement",
+        "Agility Requirement",
+        "(RM) Vitality Requirement",
+        "Acuity Requirement",
+        "(RM) Intelligence Requirement",
+        "(RM) Charisma Requirement",
+        "(RM) Agility Requirement"
+    ];
+    const agilityReductionName = "Agility Reduction";
+
+    // Helper: Remove requirement and agility reduction parts from selectedItemParts
+    function removeRequirementAndAgilityParts(keepAgilityReductionForArmor = false) {
+        for (let i = selectedItemParts.length - 1; i >= 0; i--) {
+            const part = selectedItemParts[i].part;
+            if (
+                requirementPartNames.includes(part.name) ||
+                (!keepAgilityReductionForArmor && part.name === agilityReductionName)
+            ) {
+                selectedItemParts.splice(i, 1);
+            }
+        }
+    }
+
+    // Helper: Remove all item parts
+    function clearAllItemParts() {
+        selectedItemParts.length = 0;
+        renderItemParts();
+        updateTotalCosts();
+    }
+
+    // Helper: Remove all ability requirements (if window.setAbilityRequirements exists)
+    function clearAllAbilityRequirements() {
+        if (typeof window.setAbilityRequirements === "function") {
+            window.setAbilityRequirements([]);
+        }
+    }
+
+    // Listen for armament type changes and clear all parts/requirements
+    function setupArmamentTypeWatcher() {
+        let lastType = window.selectedArmamentType ? window.selectedArmamentType() : null;
+        setInterval(() => {
+            const currentType = window.selectedArmamentType ? window.selectedArmamentType() : null;
+            if (currentType !== lastType) {
+                lastType = currentType;
+                clearAllItemParts();
+                clearAllAbilityRequirements();
+            }
+        }, 200);
+    }
+
     function updateSelectedPart(index, selectedValue) {
         const selectedPart = itemParts[selectedValue];
         selectedItemParts[index].part = selectedPart;
         selectedItemParts[index].opt1Level = 0;
         selectedItemParts[index].opt2Level = 0;
+
+        // Remove requirement/agility parts if switching armament type
+        if (window.selectedArmamentType) {
+            const type = window.selectedArmamentType();
+            if (type === "Armor") {
+                removeRequirementAndAgilityParts(true);
+            } else {
+                removeRequirementAndAgilityParts(false);
+            }
+        }
 
         renderItemParts();
         updateTotalCosts();
@@ -120,6 +196,56 @@ let appCheckInitialized = false;
         updateTotalCosts();
     }
 
+    // --- calculateCosts function for splitting logic ---
+    function calculateCosts(dieNotation) {
+        // Parse die notation (e.g., "3d6" -> amount = 3, size = 6)
+        const match = dieNotation.match(/^(\d+)d(\d+)$/);
+        if (!match) {
+            return { error: "Invalid die notation. Use format like '3d6'." };
+        }
+        const amount = parseInt(match[1]);
+        const size = parseInt(match[2]);
+        const validDieSizes = [2, 4, 6, 8, 10, 12];
+        if (!validDieSizes.includes(size)) {
+            return { error: "Die size must be one of: 2, 4, 6, 8, 10, 12." };
+        }
+
+        // Base calculations
+        const totalValue = amount * size;
+        let ip = totalValue / 2;
+        let gp = totalValue / 2;
+        let bp = (totalValue - 1) / 4;
+
+        // Calculate minimum dice needed for totalValue
+        let remainingValue = totalValue;
+        let minDiceCount = 0;
+        const dieSizes = [12, 10, 8, 6, 4, 2]; // Descending order for greedy approach
+        for (let dieSize of dieSizes) {
+            const diceNeeded = Math.floor(remainingValue / dieSize);
+            minDiceCount += diceNeeded;
+            remainingValue -= diceNeeded * dieSize;
+        }
+        if (remainingValue !== 0) {
+            return { error: "Cannot represent total value with valid die sizes." };
+        }
+
+        // Calculate splits
+        const splits = amount - minDiceCount;
+        if (splits > 0) {
+            ip += splits;
+            gp += splits;
+            bp += splits * 0.5;
+        }
+
+        // Round to 2 decimal places for consistency
+        return {
+            itemPoints: Number(ip.toFixed(2)),
+            goldPoints: Number(gp.toFixed(2)),
+            buildingPoints: Number(bp.toFixed(2)),
+            splits: splits
+        };
+    }
+
     function calculateDamageIPCost() {
         let totalDamageIP = 0;
         let totalDamageBP = 0;
@@ -130,10 +256,14 @@ let appCheckInitialized = false;
         const damageType1 = document.getElementById('damageType1').value;
 
         if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 !== "none") {
-            const damageValue1 = dieAmount1 * dieSize1;
-            totalDamageIP += damageValue1 / 2;
-            totalDamageBP += damageValue1 / 4 - 1;
-            totalDamageGP += damageValue1 / 2;
+            const result = calculateCosts(`${dieAmount1}d${dieSize1}`);
+            if (!result.error) {
+                totalDamageIP += result.itemPoints;
+                totalDamageBP += result.buildingPoints;
+                totalDamageGP += result.goldPoints;
+            } else {
+                console.warn(`Damage 1 calculation error: ${result.error}`);
+            }
         }
 
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
@@ -141,11 +271,18 @@ let appCheckInitialized = false;
         const damageType2 = document.getElementById('damageType2')?.value;
 
         if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 !== "none") {
-            const damageValue2 = dieAmount2 * dieSize2;
-            totalDamageIP += damageValue2 / 2;
-            totalDamageBP += damageValue2 / 4 - 1;
-            totalDamageGP += damageValue2 / 2;
+            const result = calculateCosts(`${dieAmount2}d${dieSize2}`);
+            if (!result.error) {
+                totalDamageIP += result.itemPoints;
+                totalDamageBP += result.buildingPoints;
+                totalDamageGP += result.goldPoints;
+            } else {
+                console.warn(`Damage 2 calculation error: ${result.error}`);
+            }
         }
+
+        // Floor BP at 0 to prevent negative values
+        totalDamageBP = Math.max(0, totalDamageBP);
 
         return { totalDamageIP, totalDamageBP, totalDamageGP };
     }
@@ -153,7 +290,11 @@ let appCheckInitialized = false;
     function calculateGoldCost(totalGP, totalIP) {
         let goldCost = 0;
         let rarity = 'Common';
-        
+
+        // Clamp totalIP and totalGP to at least 0
+        const clampedIP = Math.max(0, totalIP);
+        const clampedGP = Math.max(0, totalGP);
+
         const rarityBrackets = [
             { name: 'Common', low: 25, ipLow: 0, ipHigh: 4 },
             { name: 'Uncommon', low: 100, ipLow: 4.01, ipHigh: 6 },
@@ -163,16 +304,19 @@ let appCheckInitialized = false;
             { name: 'Mythic', low: 50000, ipLow: 14.01, ipHigh: 16 },
             { name: 'Ascended', low: 100000, ipLow: 16.01, ipHigh: Infinity }
         ];
-        
+
         for (let i = 0; i < rarityBrackets.length; i++) {
             const bracket = rarityBrackets[i];
-            if (totalIP >= bracket.ipLow && totalIP <= bracket.ipHigh) {
+            if (clampedIP >= bracket.ipLow && clampedIP <= bracket.ipHigh) {
                 rarity = bracket.name;
-                goldCost = bracket.low * (1 + 0.125 * totalGP);
+                goldCost = bracket.low * (1 + 0.125 * clampedGP);
                 break;
             }
         }
-        
+
+        // Ensure goldCost is never less than the bracket minimum
+        goldCost = Math.max(goldCost, rarityBrackets.find(b => b.name === rarity).low);
+
         return { goldCost, rarity };
     }
 
@@ -182,9 +326,49 @@ let appCheckInitialized = false;
         let totalGP = 0;
         let hasArmorPart = false;
         let hasWeaponPart = false;
-    
+
+        // --- Damage Reduction for Armor ---
+        if (
+            window.selectedArmamentType &&
+            window.selectedArmamentType() === "Armor" &&
+            damageReductionPart &&
+            typeof damageReduction === "number" &&
+            damageReduction > 0
+        ) {
+            // Base cost for 1, opt1 for each additional
+            sumBaseIP += damageReductionPart.baseItemPoint + (damageReduction - 1) * (damageReductionPart.opt1Cost || 0);
+            totalBP += damageReductionPart.baseBP + (damageReduction - 1) * (damageReductionPart.BPIncreaseOpt1 || 0);
+            totalGP += damageReductionPart.baseGoldPoint + (damageReduction - 1) * (damageReductionPart.GPIncreaseOpt1 || 0);
+        }
+        // --- end Damage Reduction ---
+
+        // --- Shield flat bonus ---
+        if (window.selectedArmamentType && window.selectedArmamentType() === "Shield") {
+            sumBaseIP += 1;
+            totalGP += 2.5;
+        }
+        // --- end Shield flat bonus ---
+
+        // --- Armor flat bonus ---
+        if (window.selectedArmamentType && window.selectedArmamentType() === "Armor") {
+            sumBaseIP += 2;
+        }
+        // --- end Armor flat bonus ---
+
         selectedItemParts.forEach((partData) => {
             const part = partData.part;
+            // Remove ability requirement options from part cost calculation
+            if (
+                part.name === "Strength Requirement" ||
+                part.name === "Agility Requirement" ||
+                part.name === "(RM) Vitality Requirement" ||
+                part.name === "Acuity Requirement" ||
+                part.name === "(RM) Intelligence Requirement" ||
+                part.name === "(RM) Charisma Requirement"
+            ) {
+                // Skip, handled by global ability requirements
+                return;
+            }
             let partIP = part.baseItemPoint;
             let partBP = part.baseBP;
             let partGP = part.baseGoldPoint;
@@ -205,7 +389,71 @@ let appCheckInitialized = false;
                 hasWeaponPart = true;
             }
         });
-    
+
+        // --- Ability Requirements ---
+        const abilityRequirements = window.getAbilityRequirements ? window.getAbilityRequirements() : [];
+        abilityRequirements.forEach(req => {
+            let part = null;
+            let value = parseInt(req.value, 10);
+            if (value > 0) {
+                const armamentType = window.selectedArmamentType ? window.selectedArmamentType() : 'Weapon';
+                if (armamentType === "Weapon" || armamentType === "Shield") {
+                    if (req.type === "Strength") {
+                        part = itemParts.find(p => p.name === "Strength Requirement" && p.type === "Weapon");
+                    } else if (req.type === "Agility") {
+                        part = itemParts.find(p => p.name === "Agility Requirement" && p.type === "Weapon");
+                    } else if (req.type === "Acuity") {
+                        part = itemParts.find(p => p.name === "Acuity Requirement" && p.type === "Weapon");
+                    } else if (req.type === "Vitality") {
+                        part = itemParts.find(p => p.name === "(RM) Vitality Requirement" && p.type === "Weapon");
+                    } else if (req.type === "Intelligence") {
+                        part = itemParts.find(p => p.name === "(RM) Intelligence Requirement" && p.type === "Weapon");
+                    } else if (req.type === "Charisma") {
+                        part = itemParts.find(p => p.name === "(RM) Charisma Requirement" && p.type === "Weapon");
+                    }
+                } else if (armamentType === "Armor") {
+                    if (req.type === "Strength") {
+                        part = itemParts.find(p => p.name === "Strength Requirement" && p.type === "Armor");
+                    } else if (req.type === "Agility") {
+                        part = itemParts.find(p => p.name === "(RM) Agility Requirement" && p.type === "Armor");
+                    } else if (req.type === "Vitality") {
+                        part = itemParts.find(p => p.name === "(RM) Vitality Requirement" && p.type === "Armor");
+                    } else if (req.type === "Intelligence") {
+                        part = null;
+                    } else if (req.type === "Charisma") {
+                        part = null;
+                    }
+                }
+                if (part) {
+                    const gpAdd = part.baseGoldPoint + (typeof part.GPIncreaseOpt1 === "number" ? part.GPIncreaseOpt1 : 0) * (value - 1);
+                    // Debug log:
+                    console.log(`Adding GP for ${req.type} (value=${value}): ${gpAdd}`);
+                    totalGP += gpAdd;
+                    sumBaseIP += part.baseItemPoint + (typeof part.opt1Cost === "number" ? part.opt1Cost : 0) * (value - 1);
+                    totalBP += part.baseBP + (typeof part.BPIncreaseOpt1 === "number" ? part.BPIncreaseOpt1 : 0) * (value - 1);
+                } else {
+                    console.warn(`Part not found for ${req.type} in ${armamentType}`);
+                }
+            }
+        });
+        // --- end Ability Requirements ---
+
+        // --- Agility Reduction for Armor ---
+        if (window.selectedArmamentType && window.selectedArmamentType() === "Armor" && typeof window.agilityReduction === "number" && window.agilityReduction > 0) {
+            const agilityReductionPart = itemParts.find(p => p.name === "Agility Reduction" && p.type === "Armor");
+            if (agilityReductionPart) {
+                const gpAdd = agilityReductionPart.baseGoldPoint + ((window.agilityReduction - 1) * (typeof agilityReductionPart.GPIncreaseOpt1 === "number" ? agilityReductionPart.GPIncreaseOpt1 : 0));
+                // Debug log:
+                console.log(`Adding GP for Agility Reduction (${window.agilityReduction}): ${gpAdd}`);
+                totalGP += gpAdd;
+                sumBaseIP += agilityReductionPart.baseItemPoint + ((window.agilityReduction - 1) * (typeof agilityReductionPart.opt1Cost === "number" ? agilityReductionPart.opt1Cost : 0));
+                totalBP += agilityReductionPart.baseBP + ((window.agilityReduction - 1) * (typeof agilityReductionPart.BPIncreaseOpt1 === "number" ? agilityReductionPart.BPIncreaseOpt1 : 0));
+            } else {
+                console.warn("Agility Reduction part not found");
+            }
+        }
+        // --- end Agility Reduction ---
+
         // Apply range cost before any increases or decreases
         if (range > 0) {
             const rangeCost = 2 + (range - 1) * 1;
@@ -223,42 +471,48 @@ let appCheckInitialized = false;
             totalGP += 1;
         }
 
-        // Apply armor part cost
-        if (hasArmorPart) {
-            sumBaseIP += 2;
-        }
-
         // Calculate damage IP cost
         const { totalDamageIP, totalDamageBP, totalDamageGP } = calculateDamageIPCost();
         sumBaseIP += totalDamageIP;
         totalBP += totalDamageBP;
         totalGP += totalDamageGP;
-    
+
+        // Debug log before gold cost calculation:
+        console.log(`Before calculateGoldCost: totalGP=${totalGP}, sumBaseIP=${sumBaseIP}`);
+
         // Calculate gold cost and rarity
         const { goldCost, rarity } = calculateGoldCost(totalGP, sumBaseIP);
-    
+
+        // Debug log after gold cost calculation:
+        console.log(`After calculateGoldCost: goldCost=${goldCost}, rarity=${rarity}`);
+
         // Final IP calculation
         const finalIP = sumBaseIP;
-    
+
         const totalIPElement = document.getElementById("totalIP");
         const totalBPElement = document.getElementById("totalBP");
         const totalGPElement = document.getElementById("totalGP");
         const totalRarityElement = document.getElementById("totalRarity");
-    
+
         if (totalIPElement) totalIPElement.textContent = finalIP.toFixed(2);
-        if (totalBPElement) totalBPElement.textContent = totalBP;
+        if (totalBPElement) totalBPElement.textContent = totalBP.toFixed(2);
         if (totalGPElement) totalGPElement.textContent = goldCost.toFixed(2);
         if (totalRarityElement) totalRarityElement.textContent = rarity;
-    
+
         updateItemSummary(finalIP, rarity);
     }
 
     function updateItemSummary(totalIP, rarity) {
         const itemName = document.getElementById('itemName').value;
         const summaryIP = document.getElementById('totalIP')?.textContent;
-        const summaryBP = document.getElementById('totalBP')?.textContent;
+        let summaryBP = document.getElementById('totalBP')?.textContent;
         const summaryGP = document.getElementById('totalGP')?.textContent;
         const summaryRange = range === 0 ? 'Melee' : `${range * 8} Spaces`;
+
+        // Clamp BP to 0 for weapons
+        if (window.selectedArmamentType && window.selectedArmamentType() === "Weapon") {
+            summaryBP = Math.max(0, parseFloat(summaryBP || "0")).toFixed(2);
+        }
 
         if (document.getElementById('summaryIP')) document.getElementById('summaryIP').textContent = summaryIP;
         if (document.getElementById('summaryBP')) document.getElementById('summaryBP').textContent = summaryBP;
@@ -273,11 +527,23 @@ let appCheckInitialized = false;
         const damageType2 = document.getElementById('damageType2')?.value;
 
         let damageText = '';
+        let splits1 = 0, splits2 = 0;
         if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 !== 'none') {
-            damageText += `${dieAmount1}d${dieSize1} ${damageType1}`;
+            const result = calculateCosts(`${dieAmount1}d${dieSize1}`);
+            if (!result.error) {
+                damageText += `${dieAmount1}d${dieSize1} ${damageType1}`;
+                splits1 = result.splits;
+                if (splits1 > 0) damageText += ` (${splits1} split${splits1 > 1 ? 's' : ''})`;
+            }
         }
         if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 !== 'none') {
-            damageText += `, ${dieAmount2}d${dieSize2} ${damageType2}`;
+            const result = calculateCosts(`${dieAmount2}d${dieSize2}`);
+            if (!result.error) {
+                damageText += damageText ? ', ' : '';
+                damageText += `${dieAmount2}d${dieSize2} ${damageType2}`;
+                splits2 = result.splits;
+                if (splits2 > 0) damageText += ` (${splits2} split${splits2 > 1 ? 's' : ''})`;
+            }
         }
         if (document.getElementById('summaryDamage')) {
             document.getElementById('summaryDamage').textContent = damageText;
@@ -288,6 +554,12 @@ let appCheckInitialized = false;
         const summaryPartsContainer = document.getElementById('summaryParts');
         if (summaryPartsContainer) {
             summaryPartsContainer.innerHTML = '';
+            // Show Damage Reduction if > 0
+            if (window.selectedArmamentType && window.selectedArmamentType() === "Armor" && typeof damageReduction === "number" && damageReduction > 0) {
+                const drDiv = document.createElement('div');
+                drDiv.innerHTML = `<h4>${damageReduction} Damage Reduction</h4>`;
+                summaryPartsContainer.appendChild(drDiv);
+            }
             selectedItemParts.forEach((partData, partIndex) => {
                 const part = partData.part;
                 const partElement = document.createElement('div');
@@ -302,10 +574,25 @@ let appCheckInitialized = false;
                 `;
                 summaryPartsContainer.appendChild(partElement);
             });
+
+            // Add ability requirements to summary
+            const abilityRequirements = window.getAbilityRequirements ? window.getAbilityRequirements() : [];
+            if (abilityRequirements.length > 0) {
+                const reqDiv = document.createElement('div');
+                reqDiv.innerHTML = `<h4>Ability Requirements</h4>` +
+                    abilityRequirements.map(r => `<p>${r.type}: ${r.value}</p>`).join('');
+                summaryPartsContainer.appendChild(reqDiv);
+            }
         }
 
         // Update rarity based on total IP and gold cost
         if (document.getElementById('summaryRarity')) document.getElementById('summaryRarity').textContent = rarity;
+
+        // Update item type in summary
+        const summaryType = document.getElementById('summaryType');
+        if (summaryType && window.selectedArmamentType) {
+            summaryType.textContent = window.selectedArmamentType();
+        }
     }
 
     function toggleTotalCosts() {
@@ -350,6 +637,7 @@ let appCheckInitialized = false;
             opt1Level: partData.opt1Level,
             opt2Level: partData.opt2Level
         }));
+        const abilityRequirements = window.getAbilityRequirements ? window.getAbilityRequirements() : [];
 
         try {
             const idToken = await currentUser.getIdToken(true);
@@ -376,6 +664,7 @@ let appCheckInitialized = false;
                 rarity,
                 damage,
                 itemParts,
+                abilityRequirements,
                 timestamp: new Date()
             });
 
@@ -478,6 +767,64 @@ let appCheckInitialized = false;
                 }
             });
         }
+
+        // --- Damage Reduction UI logic ---
+        const damageReductionContainer = document.getElementById('damageReductionContainer');
+        const damageReductionValue = document.getElementById('damageReductionValue');
+        const damageReductionIncrease = document.getElementById('damageReductionIncrease');
+        const damageReductionDecrease = document.getElementById('damageReductionDecrease');
+        const damageReductionCostSummary = document.getElementById('damageReductionCostSummary');
+
+        function updateDamageReductionDisplay() {
+            if (damageReductionValue)
+                damageReductionValue.textContent = damageReduction > 0 ? damageReduction : "None";
+            if (damageReductionCostSummary && damageReductionPart) {
+                if (damageReduction > 0) {
+                    const ip = damageReductionPart.baseItemPoint + (damageReduction - 1) * (damageReductionPart.opt1Cost || 0);
+                    const bp = damageReductionPart.baseBP + (damageReduction - 1) * (damageReductionPart.BPIncreaseOpt1 || 0);
+                    const gp = damageReductionPart.baseGoldPoint + (damageReduction - 1) * (damageReductionPart.GPIncreaseOpt1 || 0);
+                    damageReductionCostSummary.textContent = `IP: ${ip}, BP: ${bp}, GP: ${gp}`;
+                } else {
+                    damageReductionCostSummary.textContent = "";
+                }
+            }
+        }
+
+        if (damageReductionIncrease) {
+            damageReductionIncrease.addEventListener('click', () => {
+                damageReduction = Math.min(20, damageReduction + 1);
+                updateDamageReductionDisplay();
+                updateTotalCosts();
+            });
+        }
+        if (damageReductionDecrease) {
+            damageReductionDecrease.addEventListener('click', () => {
+                damageReduction = Math.max(0, damageReduction - 1);
+                updateDamageReductionDisplay();
+                updateTotalCosts();
+            });
+        }
+        updateDamageReductionDisplay();
+
+        // Show/hide Damage Reduction control based on armament type
+        const armamentTypeSelect = document.getElementById('armamentType');
+        function updateDamageReductionVisibility() {
+            if (damageReductionContainer) {
+                damageReductionContainer.style.display = (window.selectedArmamentType && window.selectedArmamentType() === "Armor") ? "" : "none";
+            }
+        }
+        if (armamentTypeSelect) {
+            armamentTypeSelect.addEventListener('change', () => {
+                updateDamageReductionVisibility();
+                // Reset to 0 when switching to Armor, hide when not Armor
+                if (window.selectedArmamentType && window.selectedArmamentType() === "Armor") {
+                    damageReduction = 0;
+                    updateDamageReductionDisplay();
+                    updateTotalCosts();
+                }
+            });
+            updateDamageReductionVisibility();
+        }
     });
 
     function addDamageRow() {
@@ -504,6 +851,14 @@ let appCheckInitialized = false;
             </h4>
         `;
         document.getElementById('addDamageRowButton').style.display = 'none';
+
+        // Attach event listeners for new elements
+        const dieAmount2 = document.getElementById('dieAmount2');
+        const dieSize2 = document.getElementById('dieSize2');
+        const damageType2 = document.getElementById('damageType2');
+        if (dieAmount2) dieAmount2.addEventListener('input', updateTotalCosts);
+        if (dieSize2) dieSize2.addEventListener('change', updateTotalCosts);
+        if (damageType2) damageType2.addEventListener('change', updateTotalCosts);
     }
 
     function removeDamageRow() {
@@ -515,13 +870,20 @@ let appCheckInitialized = false;
     function renderItemParts() {
         const itemPartsContainer = document.getElementById("itemPartsContainer");
         itemPartsContainer.innerHTML = "";
-    
+
         selectedItemParts.forEach((partData, partIndex) => {
             const itemPartSection = document.createElement("div");
             itemPartSection.id = `itemPart-${partIndex}`;
             itemPartSection.classList.add("item-part-section");
 
-            let filteredParts = itemParts.filter(part => part.type === partData.part.type);
+            // Filter out requirement parts, agility reduction, damage reduction, "Sure Hit" for Weapon, and "Shield" for Shield
+            let filteredParts = itemParts.filter(part => {
+                if (requirementPartNames.includes(part.name)) return false;
+                if (partData.part.type === "Armor" && (part.name === agilityReductionName || part.name === "Damage Reduction")) return false;
+                if (partData.part.type === "Weapon" && part.name === "Sure Hit") return false;
+                if (partData.part.type === "Shield" && part.name === "Shield") return false;
+                return part.type === partData.part.type;
+            });
 
             filteredParts.sort((a, b) => a.name.localeCompare(b.name));
 

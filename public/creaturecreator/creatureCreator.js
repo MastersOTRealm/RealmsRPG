@@ -464,17 +464,17 @@ function updateSummary() {
         .filter(item =>
             item.type === "technique" &&
             item.weapon &&
-            // Show techniques even if they have no damage
             (Array.isArray(item.damage) ? true : true)
         )
         .map(item => {
-            // Energy: show as integer if possible
             const energy = item.totalEnergy !== undefined ? item.totalEnergy : (item.energy !== undefined ? item.energy : "-");
-            // Action type
+            // Action type (with "Action" appended)
             let action = item.actionType ? capitalize(item.actionType) : '-';
+            if (action === "Long3") action = "Long Action (3)";
+            else if (action === "Long4") action = "Long Action (4)";
             if (item.reactionChecked) action += " Reaction";
             else if (action !== '-') action += " Action";
-            // Range: "Melee" if 0, otherwise number value
+            // Range
             let rangeStr = "Melee";
             if (item.weapon && item.weapon.range !== undefined && item.weapon.range !== null && item.weapon.range !== "") {
                 if (typeof item.weapon.range === "number" && item.weapon.range > 0) {
@@ -485,20 +485,27 @@ function updateSummary() {
                     rangeStr = "Melee";
                 }
             }
-            // Attack bonus: strength + martial proficiency
+            // Attack bonus
             const strength = getAbilityValue('creatureAbilityStrength');
             const levelValArm = document.getElementById("creatureLevel")?.value || 1;
             const martialProf = getProficiency(levelValArm);
             const attackBonus = strength + martialProf;
-            // Damage: use first valid damage entry, or blank if none
+            // Damage: show as "1d4 piercing damage"
             let dmgStr = "";
             if (Array.isArray(item.damage)) {
                 const dmg = item.damage.find(d => d && d.amount && d.size && d.amount !== '0' && d.size !== '0');
                 if (dmg) {
-                    dmgStr = `${dmg.amount}d${dmg.size}`;
+                    // Try to get damage type from weapon if not present
+                    let dmgType = dmg.type;
+                    if ((!dmgType || dmgType === "none") && item.weapon && Array.isArray(item.weapon.damage) && item.weapon.damage.length > 0) {
+                        const weaponDmg = item.weapon.damage.find(d => d && d.type && d.type !== "none");
+                        if (weaponDmg) dmgType = weaponDmg.type;
+                    }
+                    if (!dmgType || dmgType === "none") dmgType = "";
+                    dmgStr = `${dmg.amount}d${dmg.size}${dmgType ? " " + dmgType : ""} damage`;
                 }
             }
-            // Properties: list all itemParts, sorted alphabetically, with options
+            // Properties
             let propsStr = "";
             if (item.weapon && Array.isArray(item.weapon.itemParts) && item.weapon.itemParts.length > 0) {
                 const sortedParts = [...item.weapon.itemParts].sort((a, b) => {
@@ -519,11 +526,9 @@ function updateSummary() {
                 }).join(", ");
                 if (propsStr) propsStr = " " + propsStr;
             }
-            // Description
             const desc = item.description ? ` ${item.description}` : "";
-            // Format: "TechniqueName: 15 EN, Basic Action. Melee range attack. +4 to hit. 1d4 damagetype damage. [properties] Description"
             let attackStr = `${item.name}: ${energy} EN, ${action}. ${rangeStr} range attack. +${attackBonus} to hit.`;
-            if (dmgStr) attackStr += ` ${dmgStr} damage.`;
+            if (dmgStr) attackStr += ` ${dmgStr}.`;
             else attackStr += " ";
             attackStr += `${propsStr}${desc}`;
             return attackStr.trim();
@@ -532,33 +537,30 @@ function updateSummary() {
     const powerSummaries = powersTechniques
         .filter(item => item.type === "power")
         .map(item => {
-            // Name
             const name = item.name || "";
-            // Energy: round up, show as "EN"
             let energy = 0;
             if (item.totalEnergy !== undefined && !isNaN(item.totalEnergy)) {
                 energy = Math.ceil(Number(item.totalEnergy));
             } else if (item.energy !== undefined && !isNaN(item.energy)) {
                 energy = Math.ceil(Number(item.energy));
             }
-            // Action: if missing or '-', show "Basic Action"
+            // Action: if missing or '-', show "Basic Action", always append "Action"
             let action = (item.action && item.action !== "-") ? item.action : (item.actionType && item.actionType !== "-") ? capitalize(item.actionType) : "Basic Action";
-            if (!action || action === "-") action = "Basic Action";
+            if (action === "Long3") action = "Long Action (3)";
+            else if (action === "Long4") action = "Long Action (4)";
+            if (!/Action\b/.test(action)) action += " Action";
             // Range: show as "X spaces Range"
             let range = 1;
             if (item.range !== undefined && item.range !== null && item.range !== "") {
                 if (!isNaN(item.range)) {
                     range = Number(item.range);
                 } else if (typeof item.range === "string" && item.range.trim() !== "") {
-                    // Try to parse as number, fallback to string
                     const parsed = parseInt(item.range, 10);
                     if (!isNaN(parsed)) range = parsed;
                 }
             }
             let rangeStr = `${range} ${range === 1 ? "space" : "spaces"} Range`;
-            // Description
             const desc = item.description ? `Description: ${item.description}` : "";
-            // Compose summary
             return `${name}: ${energy} EN, ${action}, ${rangeStr}. ${desc}`.replace(/\s+\./g, '.').replace(/\s+$/, '');
         });
     // Remove previous attacks/techniques/powers summary if present
@@ -568,6 +570,7 @@ function updateSummary() {
     if (prevTechDiv) prevTechDiv.remove();
     let prevPowerDiv = document.getElementById("summaryPowers");
     if (prevPowerDiv) prevPowerDiv.remove();
+
     // Insert armament attacks if any
     if (armamentAttacks.length > 0 && summaryElem) {
         const attackDiv = document.createElement("div");
@@ -580,28 +583,32 @@ function updateSummary() {
             summaryElem.appendChild(attackDiv);
         }
     }
+
+    // Insert techniques and powers directly after attacks (inside the summary box)
+    // Find the attacks div (just inserted or existing)
+    let afterElem = document.getElementById("summaryAttacks") || document.getElementById("summaryMovement");
+
     // Insert techniques if any
     if (techniqueSummaries.length > 0 && summaryElem) {
         const techDiv = document.createElement("div");
         techDiv.id = "summaryTechniques";
         techDiv.innerHTML = `<strong>Techniques:</strong> <span>${techniqueSummaries.join("<br>")}</span>`;
-        // Insert after attacks if present, else after movement
-        let afterElem = document.getElementById("summaryAttacks") || document.getElementById("summaryMovement");
         if (afterElem && afterElem.parentElement) {
-            afterElem.parentElement.insertAdjacentElement("afterend", techDiv);
+            afterElem.insertAdjacentElement("afterend", techDiv);
+            afterElem = techDiv;
         } else {
             summaryElem.appendChild(techDiv);
+            afterElem = techDiv;
         }
     }
+
     // Insert powers if any
     if (powerSummaries.length > 0 && summaryElem) {
         const powerDiv = document.createElement("div");
         powerDiv.id = "summaryPowers";
         powerDiv.innerHTML = `<strong>Powers:</strong> <span>${powerSummaries.join("<br>")}</span>`;
-        // Insert after techniques if present, else after attacks or movement
-        let afterElem = document.getElementById("summaryTechniques") || document.getElementById("summaryAttacks") || document.getElementById("summaryMovement");
         if (afterElem && afterElem.parentElement) {
-            afterElem.parentElement.insertAdjacentElement("afterend", powerDiv);
+            afterElem.insertAdjacentElement("afterend", powerDiv);
         } else {
             summaryElem.appendChild(powerDiv);
         }

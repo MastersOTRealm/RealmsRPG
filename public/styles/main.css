@@ -5,19 +5,12 @@ body {
     background: #f4f4f4;
     color: #333;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    padding-bottom: 90px; /* Must be >= footer height */
 }
 
 body, html {
     height: 100%;
     margin: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
 }
 
 header, footer {
@@ -44,7 +37,8 @@ footer {
 
 main {
     padding-top: 0px; /* Adjust based on header height */
-    padding-bottom: 90px; /* Adjust based on footer height */
+    margin-top: 5rem; /* Adjust for fixed header */
+    margin-bottom: 0; /* Remove margin-bottom, use body padding-bottom instead */
 }
 
 .header-row {
@@ -183,11 +177,6 @@ nav ul li:hover .dropdown-content {
 
 .feature p {
     font-size: 1.2rem;
-}
-
-main {
-    margin-top: 5rem; /* Adjust for fixed header */
-    margin-bottom: 4rem; /* Adjust for fixed footer */
 }
 
 .login-page {
