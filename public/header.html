@@ -1,39 +1,62 @@
-<header>
-  <div class="header-row">
-    <div class="logo">
-      <a href="/index.html"><img src="/images/logo.png" alt="Realms Logo"></a>
+<header class="main-header">
+  <div class="header-container">
+    <div class="header-logo">
+      <a href="/index.html">
+        <img src="https://figma-alpha-api.s3.us-west-2.amazonaws.com/images/cf8daa8c-82a9-4b1e-b7bd-53b2ef3bfc91" alt="Realms Logo" class="logo-image">
+      </a>
     </div>
-    <div id="loginStatus" class="login-status">
-      <a href="/login.html" class="login-status-text">Login</a>
-    </div>
-  </div>
-  <div class="header-row">
-    <nav>
-      <ul>
-        <li><a href="/characters.html">Characters</a></li>
-        <li><a href="/library.html">Library</a></li>
-        <li><a href="/codex.html">Codex</a></li>
-        <li><a href="/rules.html">Rules</a></li>
-        <li class="dropdown">
-          <a href="javascript:void(0)">Creators</a>
-          <div class="dropdown-content">
-            <a href="/powercreator/powerCreator.html">Powers</a>
-            <a href="/techniquecreator/techniqueCreator.html">Techniques</a>
-            <a href="/itemcreator/itemCreator.html">Armaments</a>
-          </div>
-        </li>
-        <li class="dropdown">
-          <a href="javascript:void(0)">Realm Master’s Tools</a>
-          <div class="dropdown-content">
-            <a href="/realm-master-tools/encounter-tracker.html">Encounter Tracker</a>
-            <a href="/creaturecreator/creatureCreator.html">Creature Creator</a>
-          </div>
-        </li>
-        <li><a href="/campaigns.html">Campaigns</a></li>
-      </ul>
+    
+    <nav class="header-nav">
+      <a href="/library.html" class="nav-link">Library</a>
+      <a href="/characters.html" class="nav-link">Characters</a>
+      <a href="/codex.html" class="nav-link">Codex</a>
+      <a href="/rules.html" class="nav-link">Rules</a>
+      
+      <div class="nav-dropdown">
+        <a href="javascript:void(0)" class="nav-link dropdown-trigger">Creators</a>
+        <div class="dropdown-menu">
+          <a href="/powercreator/powerCreator.html" class="dropdown-item">Powers</a>
+          <a href="/techniquecreator/techniqueCreator.html" class="dropdown-item">Techniques</a>
+          <a href="/itemcreator/itemCreator.html" class="dropdown-item">Armaments</a>
+        </div>
+      </div>
+      
+      <div class="nav-dropdown">
+        <a href="javascript:void(0)" class="nav-link dropdown-trigger">RM Tools</a>
+        <div class="dropdown-menu">
+          <a href="/realm-master-tools/encounter-tracker.html" class="dropdown-item">Encounter Tracker</a>
+          <a href="/creaturecreator/creatureCreator.html" class="dropdown-item">Creature Creator</a>
+        </div>
+      </div>
+      
+      <a href="/campaigns.html" class="nav-link">Campaigns</a>
+      <a href="#" class="nav-link">About Us</a>
     </nav>
+    
+    <div class="header-account">
+      <div id="loginStatus" class="account-section">
+        <a href="/login.html" class="account-link">
+          <span class="account-text">My Account</span>
+          <img src="https://figma-alpha-api.s3.us-west-2.amazonaws.com/images/724aa348-2465-434c-a5c2-b3f29780711a" alt="Profile Icon" class="profile-icon">
+        </a>
+      </div>
+    </div>
   </div>
 </header>
+
+<style>
+/* Ensure header spans full width on all pages */
+.main-header {
+    width: 100vw !important;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    flex-shrink: 0; /* Prevent header from shrinking in flex layout */
+}
+</style>
+
 <script type="module">
   import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
 
