@@ -33,7 +33,7 @@ const powerPartsData = [
         baseBP: 1,
         baseEnergy: 2,
         opt1Cost: 1,
-        opt1Description: "For each additional 1d2 of damage.",
+        opt1Description: "+1 EN: For each additional 1d2 of damage.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Area of Effect"
@@ -67,7 +67,7 @@ const powerPartsData = [
     },
     {
         name: "Target One in an Area of Effect",
-        description: "-25% EN: When you first use this power and at the beginning of the turn the power was used, you can choose one creature within its area of effect to target with the power. The power can only target and affect creatures in this way. You don't need to see a target to make it the target of the power.",
+        description: "-25% EN: When you first use this power and at the beginning of the turn the power was used, you can choose one creature within its area of effect to target with the power. The power can only target and affect creatures in this way. You don't need to see a target to make it the target of the power. Can only be applied to powers with Area's of Effect greater than one space",
         baseBP: 1,
         baseEnergy: -0.25,
         type: "decrease",
@@ -257,7 +257,7 @@ const powerPartsData = [
     },
     {
         name: "Speak with the Dead",
-        description: "2 BP, 4 EN: You may touch a corpse and cause it to answer one question it might have answered in life, with no obligation to speak honestly. The answers may be cryptic or repetitive. Once five questions have been asked, or after 10 minutes, the corpse returns to its inanimate state.",
+        description: "2 BP, 4 EN: Cause a corpse to answer one question it might have answered in life, with no obligation to speak honestly. The answers may be cryptic or repetitive. Once five questions have been asked, or after 10 minutes, the corpse returns to its inanimate state.",
         baseBP: 2,
         baseEnergy: 4,
         opt1Cost: 2,
@@ -304,7 +304,7 @@ const powerPartsData = [
     },
     {
         name: "Raise Undead",
-        description: "Raise an Undead Servant: By touching a mostly intact corpse, you can raise an undead creature. The creature becomes a mindless summon under your control, with no memory or personality from its past life. It lasts until a full recovery or until killed. Use the same stat block as the creature had in life but replace its intelligence with -2. It gains resistance to necrotic damage and a weakness to spiritual damage. (See Summoning Rules in the Core Rulebook). You can decide the level of the creature raised when using this power, paying the corresponding energy cost.",
+        description: "Raise an Undead Servant: While in range of a mostly intact corpse, you can raise an undead creature. The creature becomes a mindless summon under your control, with no memory or personality from its past life. It lasts until a full recovery or until killed. Use the same stat block as the creature had in life but replace its intelligence with -2. It gains resistance to necrotic damage and a weakness to spiritual damage. (See Summoning Rules in the Core Rulebook). You can decide the level of the creature raised when using this power, paying the corresponding energy cost.",
         baseBP: 0,
         baseEnergy: 0,
         opt1Cost: 9,
@@ -334,7 +334,7 @@ const powerPartsData = [
     },
     {
         name: "Resurrection",
-        description: "4 BP, 75 EN: Touch a part of a dead target and return it to life with maximum Hit Points and any missing body parts restored, as long as the target died within the last ten years. This power part takes 1 hour to use.",
+        description: "4 BP, 75 EN: While in range of part of a dead target and return it to life with maximum Hit Points and any missing body parts restored, as long as the target died within the last ten years. This power part takes 1 hour to use.",
         baseBP: 4,
         baseEnergy: 75,
         opt1Cost: 15,
@@ -403,12 +403,12 @@ const powerPartsData = [
         category: "Adaptation"
     },
     {
-        name: "Blur",
-        description: "3 EN: Increase target’s Movement Speed (MS) by 1.",
+        name: "Speed Increase",
+        description: "3 EN: Increase target’s Speed by 1.",
         baseBP: 1,
         baseEnergy: 3,
         opt1Cost: 2.5,
-        opt1Description: "+2.5 EN per each additional +1 MS, to a maximum of +5 from this part.",
+        opt1Description: "+2.5 EN per each additional +1, to a maximum of +10 from this part.",
         BPIncreaseOpt1: 0,
         type: "Base",
         category: "Adaptation"
@@ -420,7 +420,7 @@ const powerPartsData = [
         baseEnergy: 6,
         opt1Cost: 6,
         opt1Description: "+1 BP, +6 EN for each additional feat, up to a maximum of 3 feats gained from this part.",
-        BPIncreaseOpt1: 0,
+        BPIncreaseOpt1: 1,
         type: "base",
         category: "Adaptation"
     },
@@ -989,7 +989,7 @@ const powerPartsData = [
     },
     {
         name: "Dream",
-        description: "2 BP, 22 EN: You choose a creature you are familiar with in the same realm. You or a willing creature you touch enters a trance state to serve as a dream messenger. While in this trance, the messenger becomes unconscious and it's movment speed becomes 0. If the target is asleep, the messenger manifests in the target's dreams, allowing for conversation for the duration of the power as long as the target remains asleep. The messenger can also shape the dream environment, creating landscapes, objects, and various images. The messenger can exit the trance at any moment, which ends the power. The target will recall the dream in detail upon waking. If the target is awake when the power is used, the messenger becomes aware of this and can either terminate the trance (and thus the power) or wait for the target to fall asleep, at which point the messenger enters the target's dreams. You can choose to make the messenger appear terrifying to the target. If you do, the messenger can deliver a message of no more than ten words targeting resolve using your power bonus. On a failed save, the target suffers no restorative benefits from its recovery and takes 1d6 psychic damage upon waking.",
+        description: "2 BP, 22 EN: You choose a creature you are familiar with in the same realm. You or a willing creature enters a trance state to serve as a dream messenger. While in this trance, the messenger becomes unconscious and it's movment speed becomes 0. If the target is asleep, the messenger manifests in the target's dreams, allowing for conversation for the duration of the power as long as the target remains asleep. The messenger can also shape the dream environment, creating landscapes, objects, and various images. The messenger can exit the trance at any moment, which ends the power. The target will recall the dream in detail upon waking. If the target is awake when the power is used, the messenger becomes aware of this and can either terminate the trance (and thus the power) or wait for the target to fall asleep, at which point the messenger enters the target's dreams. You can choose to make the messenger appear terrifying to the target. If you do, the messenger can deliver a message of no more than ten words targeting resolve using your power bonus. On a failed save, the target suffers no restorative benefits from its recovery and takes 1d6 psychic damage upon waking.",
         baseBP: 2,
         baseEnergy: 22,
         opt1Cost: 2.5,
@@ -1051,12 +1051,12 @@ const powerPartsData = [
     },
     {
         name: "Take-Over",
-        description: "7 EN: You gain control over 1 of the target creature’s action points (AP) and may, as a reaction at the start of that creature’s turn, spend an equal amount of your own action points to force the creature to take a specific action. When you first affect the creature, you immediately gain knowledge of all possible actions they can take. The action you cause them to take can be any that the creature is capable of performing. Targets Resolve.",
+        description: "8 EN: You gain control over 1 of the target creature’s action points (AP) and may, as a reaction at the start of that creature’s turn, spend an equal amount of your own action points to force the creature to take a specific action. When you first affect the creature, you immediately gain knowledge of all possible actions they can take. The action you cause them to take can be any that the creature is capable of performing. The affected creature can use it's remaining action points first, before you use the taken action points to perform actions. Targets Resolve.",
         baseBP: 1,
-        baseEnergy: 7,
-        opt1Cost: 10,
-        opt1Description: "+10 EN & +1 BP for each extra AP, up to a maximum of 3 AP in total.",
-        BPIncreaseOpt1: 0,
+        baseEnergy: 8,
+        opt1Cost: 11,
+        opt1Description: "+11 EN & +1 BP for each extra AP, up to a maximum of 3 AP in total.",
+        BPIncreaseOpt1: 1,
         type: "base",
         category: "Charm"
     },
@@ -1111,9 +1111,15 @@ const powerPartsData = [
     },
     {
         name: "Curse",
-        description: "4 EN: Target has -2 to the Defense and Skill rolls of one ability of your choice when you use this power. Targets Mental Fortitude, Resolve, or Fortitude.",
+        description: "4 EN: Target has -2 to the Defense and Skill rolls of one ability of your choice when you use this power. Targets Mental Fortitude, Resolve, or Fortitude. Power's can have multiple of this part if each targets a different Ability.",
         baseBP: 1,
         baseEnergy: 4,
+        opt1Cost: 6,
+        opt1Description: "+3 EN for each additional -1.",
+        BPIncreaseOpt1: 0,
+        opt2Cost: 4,
+        opt2Description: "+4 EN to also reduce Defense and Skill Scores of chosen ability.",
+        BPIncreaseOpt2: 0,
         type: "base",
         category: "Charm"
     },
@@ -1244,7 +1250,7 @@ const powerPartsData = [
         category: "Charm"
     },
     {
-        name: "Mark",
+        name: "Mark Creature",
         description: "2.5 EN: Whenever you deal damage to the target creature you may add 1d2 to that damage. Targets resolve.",
         baseBP: 1,
         baseEnergy: 2.5,
@@ -1511,48 +1517,59 @@ const powerPartsData = [
     },
     {
         name: "True Magic Damage",
-        description: "2 EN: Add +1 magic damage to the power. +2 EN for each additional 1 magic damage. Targets evasion by default.",
+        description: "1.5 EN: Add +1 magic damage to the power. Targets evasion by default.",
         baseBP: 1,
-        baseEnergy: 2,
-        opt1Cost: 2,
-        opt1Description: "+2 EN for each additional 1 magic damage.",
+        baseEnergy: 1.5,
+        opt1Cost: 1.5,
+        opt1Description: "+1.5 EN for each additional 1 magic damage.",
+        BPIncreaseOpt1: 0,
+        type: "base",
+        category: "Offense"
+    },
+    {
+        name: "True Light Damage",
+        description: "1.5 EN: Add +1 light damage to the power. Targets fortitude by default.",
+        baseBP: 1,
+        baseEnergy: 1.5,
+        opt1Cost: 1.5,
+        opt1Description: "+1.5 EN for each additional +1 light damage.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Offense"
     },
     {
         name: "True Physical Damage",
-        description: "2 EN: Add one physical damage type to your power (Piercing, Slashing, or Blunt). This automatically adds +1 to the power's damage. +1.5 EN for each additional 1 damage of this type dealt. +2 EN, +1 BP to apply more than one of these damage types to the power (this cost does not increase the damage). Targets evasion.",
+        description: "1.5 EN: Add one physical damage type to your power (Piercing, Slashing, or Blunt). This adds +1 of that type to the power's damage. +1.5 EN for each additional 1 damage of this type dealt. +2 EN, +1 BP to apply more than one of these damage types to the power (this cost does not increase the damage). Targets evasion.",
         baseBP: 1,
-        baseEnergy: 2,
+        baseEnergy: 1.5,
         opt1Cost: 1.5,
-        opt1Description: "+1.5 EN for each additional 1 damage of this type.",
+        opt1Description: "+1.5 EN for each additional +1 damage of this type.",
         BPIncreaseOpt1: 0,
         opt2Cost: 2,
         opt2Description: "+2 EN, +1 BP to apply more than one of these damage types to the power (this cost does not increase the damage).",
-        BPIncreaseOpt2: 0,
+        BPIncreaseOpt2: 1,
         type: "base",
         category: "Offense"
     },
     {
         name: "True Elemental Damage",
-        description: "2 EN: Add one elemental damage type to your power (Fire, Ice, Lightning, or Acid). This automatically adds +1 to the power's damage. +1.5 EN for each additional 1 damage of this type dealt. +2 EN, +1 BP to apply more than one element to the power (this cost does not increase the damage). Targets evasion.",
+        description: "1.5 EN: Add +1 elemental damage type to your power (Fire, Ice, Lightning, or Acid). This automatically adds +1 to the power's damage. +1.5 EN for each additional 1 damage of this type dealt. +2 EN, +1 BP to apply more than one element to the power (this cost does not increase the damage). Targets evasion.",
         baseBP: 1,
-        baseEnergy: 2,
+        baseEnergy: 1.5,
         opt1Cost: 1.5,
         opt1Description: "+1.5 EN for each additional 1 damage of this type.",
         BPIncreaseOpt1: 0,
         opt2Cost: 2,
         opt2Description: "+2 EN, +1 BP to apply more than one element to the power (this cost does not increase the damage).",
-        BPIncreaseOpt2: 0,
+        BPIncreaseOpt2: 1,
         type: "base",
         category: "Offense"
     },
     {
         name: "True Poison or Necrotic Damage",
-        description: "2 EN: +1 Poison or Necrotic damage targeting fortitude. +1.5 EN per each additional +1 damage of that type.",
+        description: "1.5 EN: +1 Poison or Necrotic damage targeting fortitude. +1.5 EN per each additional +1 damage of that type.",
         baseBP: 1,
-        baseEnergy: 2,
+        baseEnergy: 1.5,
         opt1Cost: 1.5,
         opt1Description: "+1.5 EN per each additional +1 damage of that type.",
         BPIncreaseOpt1: 0,
@@ -1561,9 +1578,9 @@ const powerPartsData = [
     },
     {
         name: "True Sonic Damage",
-        description: "3 EN: +1 Sonic damage targeting fortitude. +2 EN per each additional +1 sonic damage.",
+        description: "2 EN: +1 Sonic damage targeting fortitude. +2 EN per each additional +1 sonic damage.",
         baseBP: 1,
-        baseEnergy: 3,
+        baseEnergy: 2,
         opt1Cost: 2,
         opt1Description: "+2 EN per each additional +1 sonic damage.",
         BPIncreaseOpt1: 0,
@@ -1572,9 +1589,9 @@ const powerPartsData = [
     },
     {
         name: "True Spiritual Damage",
-        description: "3 EN: +1 Spiritual damage targeting resolve. +2 EN per each additional +1 spiritual damage.",
+        description: "2 EN: +1 Spiritual damage targeting resolve. +2 EN per each additional +1 spiritual damage.",
         baseBP: 1,
-        baseEnergy: 3,
+        baseEnergy: 2,
         opt1Cost: 2,
         opt1Description: "+2 EN per each additional +1 spiritual damage.",
         BPIncreaseOpt1: 0,
@@ -1583,9 +1600,9 @@ const powerPartsData = [
     },
     {
         name: "True Psychic Damage",
-        description: "4 EN: +1 Psychic damage targeting mental fortitude. +2 EN per each additional +1 psychic damage.",
+        description: "3 EN: +1 Psychic damage targeting mental fortitude. +2 EN per each additional +1 psychic damage.",
         baseBP: 1,
-        baseEnergy: 4,
+        baseEnergy: 3,
         opt1Cost: 2,
         opt1Description: "+2 EN per each additional +1 psychic damage.",
         BPIncreaseOpt1: 0,
@@ -1616,21 +1633,18 @@ const powerPartsData = [
     },
     {
         name: "Siphon",
-        description: "3 EN: Target loses hit points, energy, or both, equal to an amount decided when creating this power. You can decide how many points to drain from each resource (HP/EN) during use. If one resource is insufficient, the siphon automatically draws from the other. At the end of the turn, you regain HP and/or EN equal to what was siphoned, with siphoned energy giving you energy, and health giving you health (up to 10 points gained total). This part cannot have a duration of more than 1 round. Targets Fortitude.",
+        description: "1.5 EN: Choose a damage type, target loses 1d2 hit points, energy, or both as that damage. You decide how much to drain from each resource (HP/EN) after rolling and accounting for reductions, resistances & weaknesses. If one resource is insufficient, the siphon automatically draws from the other. At the end of the turn, you regain HP and/or EN equal to what was siphoned, with siphoned energy giving you energy, and health giving you health (up to 10 points gained total). This part cannot have a duration of more than 1 round. Targets Fortitude. You do not add your Power Attack Bonus to this power's damage, and the damage is reduced by armor no matter the type.",
         baseBP: 1,
         baseEnergy: 3,
         opt1Cost: 1.5,
-        opt1Description: "+1.5 EN for each 2 HP or EN siphoned.",
+        opt1Description: "+1.5 EN for each additional +1d2 HP or EN siphoned.",
         BPIncreaseOpt1: 0,
-        opt2Cost: 2.5,
-        opt2Description: "+2.5 EN +1 BP to increase the max regained Health-Energy point amount by +5. ",
-        BPIncreaseOpt2: 1,
-        type: "base",
-        category: "Offense"
+        type: "N/A",
+        category: "N/A"
     },
     {
         name: "Damage Siphon",
-        description: "4 EN: When you damage a creature, you heal or regain energy equal to half the damage dealt (up to 10 points of HP/EN). This part cannot have a duration of more than one round.",
+        description: "4 EN: When you damage a creature, you heal or regain energy at the end of the turn, equal to half the damage dealt (up to 10 points of HP/EN regained). This part cannot have a duration of more than one round.",
         baseBP: 1,
         baseEnergy: 4,
         opt1Cost: 1,
@@ -1649,7 +1663,7 @@ const powerPartsData = [
     },
     {
         name: "Mend",
-        description: "3 EN: This power repairs a single break or tear in an object you touch, like a broken chain link, two halves of a shattered key, a torn cloak, or a leaking wineskin. As long as the break or tear is no larger than 30 centimeters in any dimension, you mend it seamlessly, leaving no trace of the prior damage. This can physically restore a damaged magic item but cannot reinstate any lost magical properties.",
+        description: "3 EN: This power repairs a single break or tear in an object, like a broken chain link, two halves of a shattered key, a torn cloak, or a leaking wineskin. As long as the break or tear is no larger than 30 centimeters in any dimension, you mend it seamlessly, leaving no trace of the prior damage. This can physically restore a damaged magic item but cannot reinstate any lost magical properties.",
         baseBP: 1,
         baseEnergy: 3,
         type: "base",
@@ -1858,9 +1872,9 @@ const powerPartsData = [
     },
     {
         name: "Breathe",
-        description: "4 EN: Target can breathe normally despite an environmental factor that would prevent it (e.g., underwater, a realm without air, or a waterbreathing-only creature without water). You must choose the environmental factor upon creating the power. This effect lasts for 1 minute.",
+        description: "2 EN: Target can breathe normally despite an environmental factor that would prevent it (e.g., underwater, a realm without air, or a waterbreathing-only creature without water). You must choose the environmental factor upon creating the power.",
         baseBP: 1,
-        baseEnergy: 4,
+        baseEnergy: 2,
         type: "base",
         category: "Utility"
     },
@@ -2144,7 +2158,7 @@ const powerPartsData = [
     },
     {
         name: "Revive",
-        description: "2 BP, 15 EN: Touch and restore a dead target to 1 hit point, as long as it died within the last round and has all vital body parts. You must decide how many rounds when creating the power. Revived targets are at 0 HP and stable.",
+        description: "2 BP, 15 EN: Restore a dead target to 1 hit point, as long as it died within the last round and has all vital body parts. You must decide how many rounds when creating the power. Revived targets are at 0 HP and stable.",
         baseBP: 2,
         baseEnergy: 15,
         opt1Cost: 1.5,
@@ -2155,7 +2169,7 @@ const powerPartsData = [
     },
     {
         name: "Restore to Life",
-        description: "3 BP, 23 EN: Touch and restore a dead target to 1 hit point, as long as it died within the last day and has all vital body parts. +4 EN per each additional day that target has been dead. Target loses all conditions it had before death. The target raised to life gains one level of exhaustion for every day the target was dead to a maximum exhaustion of 5 from this power.",
+        description: "3 BP, 23 EN: Restore a dead target to 1 hit point, as long as it died within the last day and has all vital body parts. +4 EN per each additional day that target has been dead. Target loses all conditions it had before death. The target raised to life gains one level of exhaustion for every day the target was dead to a maximum exhaustion of 5 from this power.",
         baseBP: 3,
         baseEnergy: 23,
         opt1Cost: 4,
@@ -2166,7 +2180,7 @@ const powerPartsData = [
     },
     {
         name: "Form Life",
-        description: "3 BP, 23 EN: Touch a part of a dead target and form a new body of a random species to which you have access, as long as the target died within the last day. They replace all species traits on their character sheet with the new species, including flaws, ancestries, and characteristics chosen at random. Roll 1d4, and on odd results, add a flaw and additional ancestry; otherwise, do not add a flaw. The creature retains all feats, powers, techniques, and knowledge, even if these do not work with their new species/size. This power part takes 1 hour to use.",
+        description: "3 BP, 23 EN: Cause a part of a dead target and form a new body of a random species to which you have access, as long as the target died within the last day. They replace all species traits on their character sheet with the new species, including flaws, ancestries, and characteristics chosen at random. Roll 1d4, and on odd results, add a flaw and additional ancestry; otherwise, do not add a flaw. The creature retains all feats, powers, techniques, and knowledge, even if these do not work with their new species/size. This power part takes 1 hour to use.",
         baseBP: 3,
         baseEnergy: 23,
         opt1Cost: 4,
@@ -2349,11 +2363,21 @@ const powerPartsData = [
     },
     {
         name: "Knockback",
-        description: "4 EN: Knock the target back 1 space (in the opposite direction of the hit). The EN cost increases by 1 EN for each size above medium a creature or object is, or decrease by 1 EN for each size below medium. If casting can move sizes above the target's size, the target is moved an additional 1 space for each size smaller than the maximum size that can be knocked back. Targets Might.",
+        description: "4 EN: Knock the target back 1 space (in the opposite direction of the hit). The amount knocked back decreases by 1 for each size above medium a creature or object is, or increases by 1 for each size below medium. Targets Might. This movement is stopped by objects, walls, and so on.",
         baseBP: 1,
         baseEnergy: 4,
         opt1Cost: 2.5,
         opt1Description: "+2.5 EN for each additional space the target is knocked back.",
+        type: "base",
+        category: "Control"
+    },
+    {
+        name: "Propel",
+        description: "Willing target moves 1 space in any direction (chosen when by user, changeable by target each subsequent turn if the power lasts multiple rounds). This movement is stopped by objects, walls, and so on.",
+        baseBP: 1,
+        baseEnergy: 2,
+        opt1Cost: 1,
+        opt1Description: "+1 EN for each additional space the target is moved.",
         type: "base",
         category: "Control"
     },
@@ -2552,7 +2576,7 @@ const powerPartsData = [
     },
     {
         name: "Negate Gravity",
-        description: "22 EN: Negate gravity for target for the duration. Targets without gravity cannot move using the ground unless they grapple it. If hit, they automatically take 3 spaces of movement knockback, including upward, if not holding onto something. Once moving in a direction, they continue moving in that direction at a pace equal to the number of spaces they moved each round unless they're able to control themselves or stop somehow.",
+        description: "22 EN: Negate gravity for target for the duration. Targets without gravity cannot move using the ground unless they grapple it. If hit, they automatically take 3 spaces of movement knockback, including upward, if not holding onto something. Once moving in a direction, they continue moving in that direction at a pace equal to the number of spaces they moved each round unless they're able to control themselves or stop somehow. Targets Might",
         baseBP: 1,
         baseEnergy: 22,
         type: "base",
@@ -2763,7 +2787,7 @@ const powerPartsData = [
       },
       {
         name: "Ends on Effect/Damage Threshold",
-        description: "0 BP, -25% EN: The power ends immediately upon dealing damage equal to 3/4 its maximum damage capability (if one round) or 1 1/2 of its maximum damage capability (if it lasts more than one round). Alternatively, the power ends when it has inflicted a condition for 3/4 of its duration without the target overcoming it.",
+        description: "0 BP, -25% EN: The power ends immediately upon dealing damage equal to 3/4 its maximum damage capability (if one round) or 1 1/2 of its maximum damage capability (if it lasts more than one round). Alternatively, the power ends when it has inflicted a condition for 3/4 of its duration without the target overcoming it. Can only be added to offensive powers",
         baseBP: 0,
         baseEnergy: -0.25,
         type: "decrease",
@@ -2809,7 +2833,7 @@ const powerPartsData = [
       },
       {
         name: "Deadly Contingency",
-        description: "-50% EN: You may choose to end the power using a quick action on your turn, but if the power is overcome or ended in any other way, you enter the dying condition with -1 Hit Point.",
+        description: "-50% EN: You may choose to end the power using a quick action only on your turn. If the power is overcome or ended in any other way during it's duration, you enter the dying condition with -1 Hit Point. Can only be added to a power with a duration longer of 3 rounds or more.",
         baseBP: 1,
         baseEnergy: -0.5,
         type: "decrease",
@@ -2828,7 +2852,7 @@ const powerPartsData = [
       },
       {
         name: "Immune to Effect on Overcome",
-        description: "0 BP, -25% EN: When a target overcomes any part of this power, that part of the power can no longer target them.",
+        description: "0 BP, -25% EN: When a target overcomes any part of this power, that part of the power can no longer target them. Can only added to offensive powers",
         baseBP: 0,
         baseEnergy: -0.25,
         type: "decrease",
@@ -2866,7 +2890,7 @@ const powerPartsData = [
       },
       {
         name: "Long Rite",
-        description: "-50% EN: You spend 1 hour to use this power and the total EN cost is no more than ¼ of your maximum EN. It causes no damage or healing. Its function is to locate, identify, summon, or traverse something, communicate, or seek/obtain information. If summoning, the creature summoned is at most 12.5% of your level.",
+        description: "-50% EN: You spend 1 hour to use this power. The total EN cost must be no more than ¼ of your maximum EN. It may cause no damage or healing. Its function must be to locate, identify, summon, or traverse something, communicate, or seek/obtain information. If summoning, the creature summoned can be at most 1/4 of your level.",
         baseBP: 1,
         baseEnergy: -0.5,
         type: "decrease",
@@ -2918,7 +2942,7 @@ const powerPartsData = [
       },
       {
         name: "Stipulation",
-        description: "0 BP, -12.5% EN: Part or all of a power affects only specific targets based on creature type, elemental affinity, species, or other traits. Alternatively, the power may only affect creatures under specific conditions (e.g., being grappled, dying, being terminal, etc). As another alternative, this power can only be used under certain conditions such as wheil within darkness.",
+        description: "0 BP, -12.5% EN: Part or all of a power affects only specific targets based on creature type, elemental affinity, species, or other traits. Alternatively, the power may only affect creatures under specific conditions (e.g., being grappled, dying, being terminal, etc). As another alternative, this power can only be used under certain conditions such as while within darkness.",
         baseBP: 0,
         baseEnergy: -0.125,
         opt1Cost: -0.0625,
@@ -2942,7 +2966,7 @@ const powerPartsData = [
     },
     {
         name: "Not Activated until Target Moves",
-        description: "-25% EN: Power's effects do not activate unless the target moves. If they remain still until the power's duration ends, the power has no effect. Only reduce the cost based on parts that deal damage or effects, not additional parts.",
+        description: "-25% EN: Power's effects do not activate unless the target moves. If they remain still until the power's duration ends, the power has no effect. Only reduce the cost based on parts that deal damage or effects, not additional parts. This part can only be added to offensive powers",
         baseBP: 1,
         baseEnergy: -0.25,
         type: "decrease",
@@ -2950,7 +2974,7 @@ const powerPartsData = [
     },
     {
         name: "One Round Adaptation",
-        description: "0 BP, -25% EN: If the power meets these criteria, its cost is reduced by ¼: Lasts only 1 round. Only applies adaptation effects (other than heal or power point regain). Is not over 10 EN in cost (before reductions from feats).",
+        description: "0 BP, -25% EN: If the power meets these criteria, its cost is reduced by ¼: Lasts only 1 round. Only applies adaptation effects (other than Hit Point or Energy regain). Is not over 10 EN in cost.",
         baseBP: 0,
         baseEnergy: -0.25,
         type: "decrease",
@@ -2974,7 +2998,7 @@ const powerPartsData = [
     },
     {
         name: "Murged Potency",
-        description: "0 BP, -12.5% EN: If power targets multiple defenses with lingering effects, you may combine those into one targeted defense that makes sense, causing both effects to end together once overcome. (Such as a wrap of necrotic cords targeting fortitude and might, combining these to just might for overcoming the entire lingering effect, or a charm power that also deals psychic damage targeting resolve alone instead of mental fortitude and resolve).",
+        description: "0 BP, -12.5% EN: If power targets multiple defenses with lingering effects, you may combine those into one targeted defense that makes sense, causing both effects to end together once overcome. (Such as a wrap of necrotic cords targeting fortitude and might, combining these to just might for overcoming the entire lingering effect, or a charm power that also deals psychic damage targeting resolve alone instead of mental fortitude and resolve). Can only be added to offensive powers",
         baseBP: 0,
         baseEnergy: -0.125,
         type: "decrease",
@@ -3039,7 +3063,7 @@ const powerPartsData = [
     },
     {
         name: "Material Shape",
-        description: "14 EN: You touch a specified material made object of Medium size or smaller, or a section of the material no larger than 5 feet in any dimension, and mold it into a shape of your choice. For instance, you might transform a large piece into a weapon, statue, or coffer, or carve a small passage through a 5-foot-thick wall. You could also alter that type of material door or its frame to seal it shut. The shaped object may include up to two hinges and a latch, but intricate mechanical details cannot be created. You must specify the material when you make this power.",
+        description: "14 EN: Cause a specified material made object of Medium size or smaller, or a section of the material no larger than 5 feet in any dimension, and mold it into a shape of your choice. For instance, you might transform a large piece into a weapon, statue, or coffer, or carve a small passage through a 5-foot-thick wall. You could also alter that type of material door or its frame to seal it shut. The shaped object may include up to two hinges and a latch, but intricate mechanical details cannot be created. You must specify the material when you make this power.",
         baseBP: 1,
         baseEnergy: 14,
         type: "base",
@@ -3063,7 +3087,7 @@ const powerPartsData = [
     },
     {
         name: "Transfered Effect",
-        description: "-25% EN: This power's effects do not activate until after an amount of time equal to a fourth of this power's duration (minimum 1 round). If at any point a target effected by the power deals melee damage to another creature before the power activates, the power transfers to that new creature and the one fourth timer restarts. If the power has a duration longer than 1 round, the power can transfer to a new target each round. When the duration of the power is met, the power activates.",
+        description: "-25% EN: This power's effects do not activate until after an amount of time equal to a fourth of this power's duration (minimum 1 round). If at any point a target effected by the power deals melee af to another creature before the power activates, the power transfers to that new creature and the one fourth timer restarts. If the power has a duration longer than 1 round, the power can transfer to a new target each round. When the duration of the power is met, the power activates. Can only be added to offensive powers.",
         baseBP: 1,
         baseEnergy: -0.25,
         type: "decrease",
@@ -3071,9 +3095,20 @@ const powerPartsData = [
     },
     {
         name: "Target's Possession",
-        description: "-25% EN: This power has this energy reduction only if a significant possession of the target is used by the power. This could be part of a creature's body, a weapon, a piece of armor, etc. but it must be significant to the target.",
+        description: "-25% EN: This power has this energy reduction only if a significant possession of the target is used by the power. This could be part of a creature's body, a weapon, a piece of armor, etc. but it must be significant to the target. Can only be added to offensive powers",
         baseBP: 1,
         baseEnergy: -0.25,
+        type: "decrease",
+        category: "Power Mechanics"
+    },
+    {
+        name: "Requires Skill Roll",
+        description: "-12.5% EN: You use the Ability Roll action as part of the action to use this power, with which you must make a DS-15 skill roll using a skill chosen upon creation of this power. The power fails on a failed roll. The skill roll should thematically match the Power's flavor, be approved by your RM, and cannot be automatically succeeded with any feats, traits, or powers. The roll is effected by action rules as normal including the need to spend AP if the Ability roll action has already been taken, and suffering the multiple aciton penalty.",
+        baseBP: 1,
+        baseEnergy: -0.125,
+        opt1Cost: -0.125,
+        opt1Description: "-12.5% EN: From the power if increasing the skill Roll DS by +5 to a maximum DS of 25.",
+        BPIncreaseOpt1: 0,
         type: "decrease",
         category: "Power Mechanics"
     },

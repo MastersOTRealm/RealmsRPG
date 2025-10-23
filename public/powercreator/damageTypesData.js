@@ -1,8 +1,9 @@
 const damageTypeValues = {
-    magic: { dieBase: 2, dieIncrease: 1.5 },
+    magic: { dieBase: 2, dieIncrease: 1 },
     fire: { dieBase: 2, dieIncrease: 1 },
     ice: { dieBase: 2, dieIncrease: 1 },
     lightning: { dieBase: 2, dieIncrease: 1 },
+    light: { dieBase: 2, dieIncrease: 1 },
     spiritual: { dieBase: 3, dieIncrease: 1.5 },
     sonic: { dieBase: 3, dieIncrease: 1.5 },
     poison: { dieBase: 2, dieIncrease: 1 },

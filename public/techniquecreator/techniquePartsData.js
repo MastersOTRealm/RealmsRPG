@@ -1,5 +1,4 @@
 const techniquePartsData = [
-    // General Techniques
     {
         name: "True Damage",
         description: "Add 1 damage to any technique.",
@@ -13,14 +12,14 @@ const techniquePartsData = [
     },
     {
         name: "Spin",
-        description: "Roll to hit once, attacking all creatures in your melee zone.",
+        description: "Roll to hit once, attacking all creatures within the reach of your melee attack.",
         baseBP: 1,
         baseEnergy: 4,
         type: "base",
         category: "General"
     },
     {
-        name: "Discombobulate",
+        name: "Stun",
         description: "Upon hit, target rolls Fortitude against your Style Potency or gains stunned 1.",
         baseBP: 1,
         baseEnergy: 5,
@@ -43,7 +42,7 @@ const techniquePartsData = [
     },
     {
         name: "Knockback",
-        description: "Upon hit, target rolls Might or Reflexes and on a failure is knocked back 1 space.",
+        description: "Upon hit, target rolls Might or Reflexes against your Style Potency and on a failure is knocked back 1 space.",
         baseBP: 1,
         baseEnergy: 2.5,
         opt1Cost: 2.5,
@@ -70,7 +69,7 @@ const techniquePartsData = [
         category: "General"
     },
     {
-        name: "Crippling Blow",
+        name: "Slow",
         description: "Target hit rolls Fortitude against your Style Potency, on a failure gaining slow 1.",
         baseBP: 1,
         baseEnergy: 1.5,
@@ -84,9 +83,9 @@ const techniquePartsData = [
         name: "Daze",
         description: "Target hit rolls Fortitude against your Style Potency; on a failure, becomes dazed for one round.",
         baseBP: 1,
-        baseEnergy: 2.5,
-        opt1Cost: 2.5,
-        opt1Description: "+2.5 EN for each additional round dazed.",
+        baseEnergy: 2,
+        opt1Cost: 2,
+        opt1Description: "+2 EN for each additional round dazed.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "General"
@@ -100,7 +99,7 @@ const techniquePartsData = [
         category: "General"
     },
     {
-        name: "Disabling Strike",
+        name: "Enemy Strength Reduction",
         description: "Target hit rolls Might against your Style Potency; on a failure, their Strength decreases by 1.",
         baseBP: 1,
         baseEnergy: 2.5,
@@ -120,20 +119,20 @@ const techniquePartsData = [
     },
     {
         name: "Expose",
-        description: "Target hit rolls Reflex against your Martial Ability; upon failure, the next attacking creature gains +2 to their attack roll against it.",
+        description: "Target hit rolls Reflex against your Style Potency; upon failure, the creature becomes Exposed 2.",
         baseBP: 1,
         baseEnergy: 1.5,
         opt1Cost: 1.5,
-        opt1Description: "+1.5 EN to make this last for the next two attacks.",
+        opt1Description: "+1.5 EN to cause the exposed condition to last for the next two attacks.",
         BPIncreaseOpt1: 0,
         opt2Cost: 1.5,
-        opt2Description: "+1.5 EN for each additional +1 to hit.",
+        opt2Description: "+1.5 EN for each additional +1 to the exposed condition.",
         BPIncreaseOpt2: 0,
         type: "base",
         category: "General"
     },
     {
-        name: "Disable",
+        name: "Enemy Attack Reduction",
         description: "Target hit rolls their choice of Might or Fortitude against your Style Potency; upon failure, target has -1 to attack for a round.",
         baseBP: 1,
         baseEnergy: 1.5,
@@ -164,7 +163,7 @@ const techniquePartsData = [
     },
     // Strength
     {
-        name: "Aerial Strike",
+        name: "Upward Thrust",
         description: "Target hit rolls Agility or Might against your Style Potency, adding +2 to the roll for every 200 kg they weigh; upon failure, it is thrust 1 space into the air above its current space.",
         baseBP: 1,
         baseEnergy: 1.5,
@@ -184,7 +183,7 @@ const techniquePartsData = [
     },
     {
         name: "Pin",
-        description: "Attack target’s Might, +1 to your attack for every 200 kg you weigh. Target hit is constrained and prone and may roll Might against your Style Potency to escape. Rolling to escape has a penalty equal to -1 for every 200 kg you weigh.",
+        description: "Attack target’s Might, +1 to your attack for every 200 kg you weigh. Target hit is immobile and may roll Might against your Style Potency to escape. Rolling to escape has a penalty equal to -1 for every 200 kg you weigh.",
         baseBP: 1,
         baseEnergy: 3,
         type: "base",
@@ -192,7 +191,7 @@ const techniquePartsData = [
     },
     {
         name: "Grapple (Technique)",
-        description: "Target hit rolls Might against your Strength attack bonus, becoming grappled on a failure.",
+        description: "You take the grapple action as part of this technique. If this is the only part, this can be done as a quick action.",
         baseBP: 1,
         baseEnergy: 2.5,
         type: "base",
@@ -200,7 +199,7 @@ const techniquePartsData = [
     },
     {
         name: "Crush",
-        description: "Target grappled creature rolls Fortitude against your Strength attack roll; upon failure, the target takes damage equal to your Strength attack bonus multiplied by 2. (Strength + Martial Bonus)*2.",
+        description: "Roll a Strength Attack against target creature grappled by you; upon success, the target takes damage equal to your Strength attack bonus multiplied by 2. (Strength + Martial Bonus)*2. Targets Fortitude",
         baseBP: 1,
         baseEnergy: 2,
         opt1Cost: 2,
@@ -211,15 +210,15 @@ const techniquePartsData = [
     },
     {
         name: "Body Block",
-        description: "Target grappled creature becomes the target of an attack made against you. If the attack would cause the grappled creature to go into negative Hit Points, you take all damage after 0 instead. If the grappled creature is already dead or dying, it instead reduces the damage by its Fortitude Roll bonus.",
+        description: "Make a Strength Attack roll against target creature grappled by you; on success creature becomes the target of an attack made against you. If the attack would cause the grappled creature to go into negative Hit Points, you take all damage after 0 instead. If the grappled creature is already dead or dying, it instead reduces the damage by its Fortitude bonus. If this is the only part, this can be done as a Basic Reaction. Targets Might",
         baseBP: 1,
         baseEnergy: 3,
         type: "base",
         category: "Strength"
     },
     {
-        name: "Constrain",
-        description: "Target grappled creature is constrained while grappled. They may roll Might against your Style Potency to break free of restraint, but still remain grappled if it is broken.",
+        name: "Restrain",
+        description: "Make a Strength Attack roll against target creature grappled by you; on success it gains the Restrained condition while grappled. They may roll Might against your Style Potency to break free of restraint, but still remain grappled if it is broken. Targets Might",
         baseBP: 1,
         baseEnergy: 2,
         type: "base",
@@ -227,7 +226,7 @@ const techniquePartsData = [
     },
     {
         name: "Takedown",
-        description: "Target grappled creature becomes prone. As long as they remain grappled by you, they cannot stand from prone.",
+        description: "Make a Strength Attack roll against target creature grappled by you; on success it becomes prone. As long as they remain grappled by you, they cannot stand from prone. Targets Might",
         baseBP: 1,
         baseEnergy: 3,
         type: "base",
@@ -235,23 +234,32 @@ const techniquePartsData = [
     },
     {
         name: "Throw Creature",
-        description: "Throw target grappled creature as if they were an improvised weapon using 1/2 Acuity on the attack roll and 1/2 Strength for the damage roll. You may throw the creature a distance equal to 1/2 of your Strength or Agility.",
+        description: "Make a Strength Attack roll against target creature grappled by you; on success throw target grappled creature as if they were a thrown weapon with a range of 3 spaces. 1d8 damage is split between the thrown creature and object or creature hit +1 damage for each 100 kg the creature weighs. Creature must weigh under 1/2 of your carrying capacity. Targets Might",
         baseBP: 1,
         baseEnergy: 3,
+        opt1Cost: 3,
+        opt1Description: "+3 EN for each +3 to the thrown range",
+        BPIncreaseOpt1: 0,
+        opt1Cost: 1,
+        opt1Description: "+1 EN for each +1d2 to the thrown damage",
+        BPIncreaseOpt1: 0,
         type: "base",
         category: "Strength"
     },
     {
         name: "Throw Weapon",
-        description: "Throw any weapon even if it doesn’t have the 'Thrown' property, treating it as a thrown weapon, rolling an Acuity attack roll against a target, and dealing damage equal to the weapon’s damage dice adding Strength plus Martial bonus.",
+        description: "Throw any weapon even if it doesn’t have the 'Thrown' property, treating it as a thrown weapon with 3 spaces of range, rolling a Strength attack roll with proficiency against a target, and dealing damage equal to the weapon’s damage as normal.",
         baseBP: 1,
         baseEnergy: 1.5,
+        opt1Description: "+3 EN for each +3 to the thrown range",
+        BPIncreaseOpt1: 0,
+        opt1Cost: 1,
         type: "base",
         category: "Strength"
     },
     {
         name: "Leap",
-        description: "Jump without taking a movement action with this part.",
+        description: "Jump without taking a movement action. If this is the only part, this can be done as a free action.",
         baseBP: 1,
         baseEnergy: 1.5,
         opt1Cost: 1.5,
@@ -261,15 +269,15 @@ const techniquePartsData = [
         category: "Strength"
     },
     {
-        name: "Chaining Technique",
-        description: "Reduce the multiple attack penalty by 1.",
+        name: "Reduce Multiple Action Penalty",
+        description: "Reduce the multiple action penalty this turn by 1. If this is the only part, this can be done as a free action.",
         baseBP: 1,
         baseEnergy: 1,
         opt1Cost: 1,
         opt1Description: "+1 EN for each additional 1 decrease.",
         BPIncreaseOpt1: 0,
         type: "base",
-        category: "Strength"
+        category: "General"
     },
     {
         name: "Demolition",
@@ -285,7 +293,7 @@ const techniquePartsData = [
     // Vitality
     {
         name: "Slam",
-        description: "Target hit rolls Fortitude against your Style Potency, which has +1 for every 200 kg you weigh. Upon failure, target takes damage equal to your Vitality + your Martial Bonus.",
+        description: "Target hit rolls Fortitude against your Style Potency (which has +1 for every 200 kg you weigh). Upon failure, target takes damage equal to your Vitality + your Martial Bonus.",
         baseBP: 1,
         baseEnergy: 4,
         opt1Cost: 4,
@@ -317,7 +325,7 @@ const techniquePartsData = [
         category: "Vitality"
     },
     {
-        name: "Endanger",
+        name: "Make Vulnerable",
         description: "Target hit gains the Vulnerable 1 condition.",
         baseBP: 1,
         baseEnergy: 2.5,
@@ -329,11 +337,11 @@ const techniquePartsData = [
     },
     {
         name: "Brace",
-        description: "Reduce the next damage taken by you by an amount equal to your Fortitude bonus.",
+        description: "Take the Brace action as part of this technique. If this is the only part, this can be done as a free action.",
         baseBP: 1,
         baseEnergy: 2,
         opt1Cost: 2,
-        opt1Description: "+2 EN to double this reduction, +2 EN more to triple it, and so on.",
+        opt1Description: "+2 EN to double the brace reduction, +2 EN more to triple it, and so on.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Vitality"
@@ -348,10 +356,16 @@ const techniquePartsData = [
         category: "Agility"
     },
     {
-        name: "Barrage",
-        description: "Add attack using unarmed prowess to your attack in addition to any attack made as part of the technique (up to 3 additional attacks total, 1 BP and 6 EN for the second added, 1 BP and 9 EN for the third).",
+        name: "Unarmed Hit(s)",
+        description: "Add a single unarmed prowess hit to your attack in addition to any attack made as part of the technique.",
         baseBP: 1,
-        baseEnergy: 4,
+        baseEnergy: 2,
+        opt1Cost: 4,
+        opt1Description: "+4 EN add a second unarmed prowess hit.",
+        BPIncreaseOpt1: 0,
+        opt2Cost: 6,
+        opt2Description: "+6 EN add a third unarmed prowess hit.",
+        BPIncreaseOpt2: 0,
         type: "base",
         category: "Agility"
     },
@@ -380,7 +394,7 @@ const techniquePartsData = [
         baseBP: 1,
         baseEnergy: 2,
         opt1Cost: 3,
-        opt1Description: "5 EN instead to add 1/2 Agility to your attack roll. +3 EN to make this add your full Agility to your attack roll.",
+        opt1Description: "5 EN to instead to add 1/2 Agility to your attack roll. +3 EN to add your full Agility to your attack roll.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Agility"
@@ -395,7 +409,7 @@ const techniquePartsData = [
     },
     {
         name: "Break Sight",
-        description: "Move from one location to another within a target’s melee zone and roll Stealth or Hide against their Vigilance; upon a success, become hidden from that target.",
+        description: "Move from one location to another within a target’s melee zone and roll Stealth or Hide against their Percieve Score; upon a success, you have the hidden condition to that target.",
         baseBP: 1,
         baseEnergy: 2.5,
         type: "base",
@@ -403,7 +417,7 @@ const techniquePartsData = [
     },
     {
         name: "Disengage",
-        description: "Move one space away from a target after it attacks you. If this is the only part of the technique, it can be used as a 1 Action Point Reaction.",
+        description: "Move one space away from a target after it attacks you. If this is the only part of the technique, it can be used as a Quick Reaction.",
         baseBP: 1,
         baseEnergy: 1.5,
         type: "base",
@@ -411,7 +425,7 @@ const techniquePartsData = [
     },
     {
         name: "Catch Ranged Attack",
-        description: "Roll Reflex against a physical ranged attack that passes through or targets a creature in your melee zone. Upon meeting or beating the attack roll, catch the projectile.",
+        description: "Roll Reflex against a physical ranged attack that passes through or targets a creature within one space. Upon meeting or beating the attack roll, catch the projectile and reduce the damage to 0. If this is the only part this can be done as a reaction.",
         baseBP: 1,
         baseEnergy: 2,
         opt1Cost: 2,
@@ -422,22 +436,22 @@ const techniquePartsData = [
     },
     {
         name: "Catch Melee Attack",
-        description: "Roll Reflex against a physical melee attack that passes through or targets a creature in your melee zone. Upon meeting or beating the attack roll, catch the attack. During the same action in which the attack was caught, you have advantage on all physical d20 rolls against the target caught creature. This includes attack rolls.",
+        description: "Roll Reflex against a physical melee attack that passes through or targets a creature within one space. Upon meeting or beating the attack roll, catch the attack. During the same action in which the attack was caught, you have advantage on all physical d20 rolls against the target caught creature. This includes attack rolls. If this is the only part this can be done as a reaction.",
         baseBP: 1,
         baseEnergy: 4,
         type: "base",
         category: "Agility"
     },
     {
-        name: "Elude",
-        description: "You gain the hidden condition from all creatures to which you are obscured without rolling to Stealth or Hide. Alternatively, you may choose to roll to Stealth or Hide. If this is the only technique part, this can be done as a quick action.",
+        name: "Hide",
+        description: "You gain the hidden condition from all creatures to which you are at least moderately obscured from without rolling to Stealth or Hide. Alternatively, you may choose to roll to Stealth or Hide. If this is the only technique part, this can be done as a quick action.",
         baseBP: 1,
         baseEnergy: 3,
         type: "base",
         category: "Agility"
     },
     {
-        name: "Dodge",
+        name: "Evade",
         description: "You take the evade action as part of the technique without spending action points.",
         baseBP: 1,
         baseEnergy: 2,
@@ -460,7 +474,7 @@ const techniquePartsData = [
     },
     {
         name: "Side-Step",
-        description: "When attacked, add +1 to your Evasion and move one space adjacent to your current space that is still within the attack’s range.",
+        description: "When attacked, add +1 to your Evasion and you may move one space adjacent to your current space that is still within the attack’s range. If this is the only part, this can be done as a reaction. This can cause the attack to miss, but doesn't guarantee it.",
         baseBP: 1,
         baseEnergy: 2,
         opt1Cost: 2,
@@ -480,7 +494,7 @@ const techniquePartsData = [
     // Acuity
     {
         name: "Focus Hit",
-        description: "Add +1 to attack for every 2 spaces of movement you spend.",
+        description: "Gain a +1 bonus to your attack roll for every 2 spaces of movement you spend. Spent movement includes any speed gained from your movement action or other feats used this turn. This movement is forfeited and cannot be used to move.",
         baseBP: 1,
         baseEnergy: 3,
         opt1Cost: 3,
@@ -491,7 +505,7 @@ const techniquePartsData = [
     },
     {
         name: "Rush",
-        description: "Add +1 to attack for every 2 spaces moved in the direction of target.",
+        description: "Add +1 to attack roll for every 2 spaces moved in the direction of target.",
         baseBP: 1,
         baseEnergy: 2.5,
         opt1Cost: 2.5,
@@ -514,7 +528,7 @@ const techniquePartsData = [
     // Charisma
     {
         name: "Feint",
-        description: "Roll Act or Deceive against an enemy’s Insight score, gaining +1 to hit on a success.",
+        description: "Roll Act or Deceive against an enemy’s Insight score, gaining +1 to hit for each success.",
         baseBP: 1,
         baseEnergy: 1.5,
         opt1Cost: 1.5,
@@ -525,7 +539,7 @@ const techniquePartsData = [
     },
     {
         name: "Goad",
-        description: "Make a Taunt Roll against a target’s Resolve; upon success, the target becomes set on eliminating you specifically, gaining -5 to attack all creatures other than you.",
+        description: "Make a Taunt Roll against a target’s Resolve; upon success, the target becomes set on eliminating you specifically, gaining -5 to attack all creatures other than you for a round.",
         baseBP: 1,
         baseEnergy: 2,
         opt1Cost: 2,
@@ -536,7 +550,7 @@ const techniquePartsData = [
     },
     {
         name: "Menace",
-        description: "Intimidate a target against their Resolve. If you succeed, you frighten the target. Target may roll Resolve against your Intimidate Score to end the condition.",
+        description: "Intimidate a target against their Resolve. If you succeed, you frighten the target. Target may roll Resolve against your Intimidate Score to end the condition, otherwise it ends in one minute.",
         baseBP: 1,
         baseEnergy: 2.5,
         type: "base",
@@ -544,11 +558,11 @@ const techniquePartsData = [
     },
     {
         name: "Rally",
-        description: "Roll Perform or Charm against a target you can see. The score is equal to 10 - Target’s Resolve bonus. Upon success, the creature gains resilient 1.",
+        description: "Roll Perform or Charm against a target you can see. The score to overcome is equal to 10 - Target’s Resolve bonus. Upon success, the creature gains resilient 1.",
         baseBP: 1,
         baseEnergy: 2.5,
         opt1Cost: 2.5,
-        opt1Description: "+2.5 EN for each level of resilient. Each level of critical increases resilient by +1. +2.5 EN for each additional target rallied.",
+        opt1Description: "+2.5 EN for each level of resilient. Each success increases resilient by +1. +2.5 EN for each additional target rallied.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Charisma"
@@ -566,25 +580,25 @@ const techniquePartsData = [
         name: "Resilience",
         description: "Gain the Resilient 1 condition.",
         baseBP: 1,
-        baseEnergy: 3,
-        opt1Cost: 3,
-        opt1Description: "+3 EN for each level of Resilient.",
+        baseEnergy: 2.5,
+        opt1Cost: 2.5,
+        opt1Description: "+2.5 EN for each level of Resilient.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Defensive"
     },
     {
         name: "Clash",
-        description: "When you are targeted by a physical attack, you may make an attack roll with a melee weapon you are wielding against that attack. If you meet or exceed the enemy attack roll, you may reduce the attack’s damage by your attack’s damage. If this is the only part of this technique, it may be done as a reaction.",
+        description: "When you are targeted by a physical attack and with a melee weapon you are wielding you may reduce the attack’s damage by your attack’s damage. If this is the only part of this technique, it may be done as a quick reaction.",
         baseBP: 1,
-        baseEnergy: 1.5,
+        baseEnergy: 2,
         type: "base",
         category: "Defensive"
     },
     // Offensive
     {
         name: "Infiltrate",
-        description: "This attack ignores one damage resistance of your choice. Choose the type before attacking. (This ignores the effects of resistance but not any base level damage reduction the target has.)",
+        description: "This attack ignores one damage resistance of your choice. Choose the type before attacking. (This ignores the effects of resistance but not damage reduction the target has.)",
         baseBP: 1,
         baseEnergy: 3,
         type: "base",
@@ -598,10 +612,21 @@ const techniquePartsData = [
         type: "base",
         category: "Offensive"
     },
+    {
+        name: "Penetration",
+        description: "This technique ignores up to 3 points of damage reduction from armor.",
+        baseBP: 1,
+        baseEnergy: 1,
+        opt1Cost: 1,
+        opt1Description: "+1 EN For each additional 3 points of damage reduction from armor ignored.",
+        BPIncreaseOpt1: 0,
+        type: "base",
+        category: "Offensive"
+    },
     // Control
     {
         name: "Pinning Weapon",
-        description: "Target hit with a non-ranged (can be thrown) piercing weapon attack becomes rooted.",
+        description: "Target hit with a melee or thrown piercing weapon attack rolls might against your style potency becoming immobile on a failure.",
         baseBP: 1,
         baseEnergy: 2.5,
         opt1Cost: 2.5,
@@ -629,30 +654,33 @@ const techniquePartsData = [
     },
     {
         name: "Spread Shot",
-        description: "Add additional projectile(s) to a physical ranged attack. (4 EN, +1 BP per additional projectile, up to 3 total if shot, 4 per hand if thrown) Each hits an individual target of your choice. Roll to hit for each target. Must pay EN cost for added effects for each projectile, excluding Building Point cost for additional effects on each projectile after the first.",
+        description: "Add additional projectile(s) to a physical ranged attack. Each hits an individual target of your choice. Roll to hit for each target. Must pay EN cost for added effects for each projectile, excluding Building Point cost for additional effects on each projectile after the first.",
         baseBP: 1,
         baseEnergy: 3,
+        opt1Cost: 4,
+        opt1Description: "+4, +1 BP EN for every additional projectile. Up to 3 total if shot, 4 per hand if thrown",
+        BPIncreaseOpt1: 1,
         type: "base",
         category: "Ranged"
     },
     {
         name: "Long Shot",
-        description: "Increase the range of this technique by 2 spaces.",
+        description: "Increase the range of this technique by 2 spaces. Must be used in conjunction with a weapon with the “Range” or “Thrown” part.",
         baseBP: 1,
         baseEnergy: 0.75,
         opt1Cost: 0.75,
-        opt1Description: "+0.75 EN for every 2 additional spaces. Must be used in conjunction with the “Add Weapon” part and a weapon with the “Range” part.",
+        opt1Description: "+0.75 EN for every 2 additional spaces.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Ranged"
     },
     {
         name: "Volley",
-        description: "Send a volley of projectiles that can reach over cover as high as half the range of your attack. A 3-space diameter circle in a location you can see or at a distance you can describe if you can’t see is hit by this attack. This attack targets the Reflexes of all creatures in the attack’s area of effect.",
+        description: "Send a volley of projectiles that can reach over cover as high as half the range of your attack. A 2-space radius circle centered in a location you can see or at a distance you can describe if you can’t see is hit by this attack. This attack targets the Reflexes of all creatures in the attack’s area of effect.",
         baseBP: 1,
         baseEnergy: 2.5,
         opt1Cost: 2.5,
-        opt1Description: "+2.5 EN to increase the ring’s diameter by 1.",
+        opt1Description: "+5 EN to increase the ring’s radius by 1 to a maximum radius of 12 spaces.",
         BPIncreaseOpt1: 0,
         type: "base",
         category: "Ranged"
@@ -674,12 +702,12 @@ const techniquePartsData = [
         category: "Ranged"
     },
     {
-        name: "Quick Draw",
-        description: "Make 1 ranged attack before combat starts (when initiative has already been rolled but before any creature takes their first turn).",
+        name: "First Blood",
+        description: "Make a basic attack before combat starts (when initiative has already been rolled but before any creature takes their first turn). If this is the only part this may be done as a free reaction.",
         baseBP: 1,
         baseEnergy: 6,
         type: "base",
-        category: "Ranged"
+        category: "Offensive"
     },
     {
         name: "Splitting Shot",

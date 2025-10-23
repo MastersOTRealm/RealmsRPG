@@ -150,7 +150,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     function changeDuration(delta) {
         const durationType = document.getElementById('durationType').value;
         const durationValues = {
-            rounds: [1, 2, 3, 4, 5, 6, 7],
+            rounds: [1, 2, 3, 4, 5, 6],
             minutes: [1, 10, 30],
             hours: [1, 6, 12],
             days: [1, 7, 14],
@@ -167,7 +167,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     function changeDurationType() {
         const durationType = document.getElementById('durationType').value;
         const durationValues = {
-            rounds: [1, 2, 3, 4, 5, 6, 7],
+            rounds: [1, 2, 3, 4, 5, 6],
             minutes: [1, 10, 30],
             hours: [1, 6, 12],
             days: [1, 7, 14],
