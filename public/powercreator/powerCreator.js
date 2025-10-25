@@ -15,6 +15,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     let duration = 1;
     let areaEffectLevel = 1; // Initialize areaEffectLevel to 1
     let durationType = 'rounds'; // Default duration type
+    let tpSources = []; // New global array to track TP sources
 
     const areaEffectDescriptions = {
         none: "Area of Effect is one target or one space.",
@@ -47,8 +48,8 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
 
     function generatePartContent(partIndex, part) {
         return `
-            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.baseEnergy}</span></span> <span class="small-text">Building Points: <span id="baseBP-${partIndex}">${part.baseBP}</span></span></h3>
-            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.baseEnergy}</span> Part BP: <span id="totalBP-${partIndex}">${part.baseBP}</span></p>
+            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.baseEnergy}</span></span> <span class="small-text">Training Points: <span id="baseTP-${partIndex}">${part.baseTP}</span></span></h3>
+            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.baseEnergy}</span> Part TP: <span id="totalTP-${partIndex}">${part.baseTP}</span></p>
             <p>${part.description}</p>
             
             ${part.opt1Cost !== undefined || part.opt1Description ? `
@@ -81,7 +82,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
                 </div>` : ''}
             </div>` : ''}
     
-            ${part.altBaseEnergy !== undefined || part.altBP !== undefined ? `
+            ${part.altBaseEnergy !== undefined || part.altTP !== undefined ? `
             <div class="option-box">
                 <h4>Alternate Base Energy: ${part.altBaseEnergy}</h4>
                 <button id="altEnergyButton-${partIndex}" class="alt-energy-button" onclick="toggleAltEnergy(${partIndex})">Toggle</button>
@@ -246,7 +247,8 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     function updateTotalCosts() {
         console.log("updateTotalCosts called");
         let sumBaseEnergy = 0;
-        let totalBP = 0;
+        let totalTP = 0;
+        tpSources = []; // Reset the array each time
     
         // Separate power parts by type
         const baseEnergyParts = [];
@@ -283,12 +285,23 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         baseEnergyParts.forEach((partData) => {
             const part = partData.part;
             let partEnergy = partData.useAltCost ? part.altBaseEnergy : part.baseEnergy;
-            let partBP = part.baseBP;
+            let partTP = part.baseTP;
             partEnergy += (part.opt1Cost || 0) * partData.opt1Level;
             partEnergy += (part.opt2Cost || 0) * partData.opt2Level;
             partEnergy += (part.opt3Cost || 0) * partData.opt3Level;
             sumBaseEnergy += partEnergy;
-            totalBP += partBP;
+            totalTP += partTP;
+            if (partTP > 0) {
+                tpSources.push(`${partTP} TP: ${part.name}`);
+            }
+            // Add TP from options
+            const opt1TP = (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
+            const opt2TP = (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
+            const opt3TP = (part.TPIncreaseOpt3 || 0) * partData.opt3Level;
+            totalTP += opt1TP + opt2TP + opt3TP;
+            if (opt1TP > 0) tpSources.push(`${opt1TP} TP: ${part.name} Option 1 (Level ${partData.opt1Level})`);
+            if (opt2TP > 0) tpSources.push(`${opt2TP} TP: ${part.name} Option 2 (Level ${partData.opt2Level})`);
+            if (opt3TP > 0) tpSources.push(`${opt3TP} TP: ${part.name} Option 3 (Level ${partData.opt3Level})`);
         });
     
         console.log("Sum base energy after base parts:", sumBaseEnergy);
@@ -296,8 +309,11 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         // Apply range cost before any increases or decreases
         const rangeCost = (range) * 0.5;
         sumBaseEnergy += rangeCost;
-        if (range > 0) {
-            totalBP += 1;
+        const tpRange = Math.ceil(range / 4);
+        totalTP += tpRange;
+        if (tpRange > 0) {
+            const displayRange = range === 0 ? 1 : range * 3;
+            tpSources.push(`${tpRange} TP: Range ${displayRange}`);
         }
     
         console.log("Sum base energy after range cost:", sumBaseEnergy);
@@ -305,19 +321,26 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         // Calculate damage energy cost
         sumBaseEnergy += calculateDamageEnergyCost();
     
-        // Increase BP if damage type has dice, size, and type selected
+        // Increase TP if damage type has dice, size, and type selected
+        // Increase TP based on damage dice total value (dieAmount * dieSize / 6, rounded up)
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
         const damageType1 = document.getElementById('damageType1').value;
         if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 !== "none") {
-            totalBP += 1;
+            const totalValue1 = dieAmount1 * dieSize1;
+            const tp1 = Math.ceil(totalValue1 / 6);
+            totalTP += tp1;
+            tpSources.push(`${tp1} TP: ${dieAmount1}d${dieSize1} ${damageType1} damage`);
         }
-    
+
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
         const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
         const damageType2 = document.getElementById('damageType2')?.value;
         if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 !== "none") {
-            totalBP += 1;
+            const totalValue2 = dieAmount2 * dieSize2;
+            const tp2 = Math.ceil(totalValue2 / 6);
+            totalTP += tp2;
+            tpSources.push(`${tp2} TP: ${dieAmount2}d${dieSize2} ${damageType2} damage`);
         }
     
         console.log("Sum base energy after damage cost:", sumBaseEnergy);
@@ -403,7 +426,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         console.log("Final energy:", finalEnergy);
     
         document.getElementById("totalEnergy").textContent = finalEnergy.toFixed(2);
-        document.getElementById("totalBP").textContent = totalBP;
+        document.getElementById("totalTP").textContent = totalTP;
     
         updatePowerSummary();
     }
@@ -508,7 +531,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     function updatePowerSummary() {
         const powerName = document.getElementById('powerName').value;
         const summaryEnergy = document.getElementById('totalEnergy').textContent;
-        const summaryBP = document.getElementById('totalBP').textContent;
+        const summaryTP = document.getElementById('totalTP').textContent;
         const summaryRange = range === 0 ? 1 : range * 3;
         const summaryDuration = duration;
         const actionType = document.getElementById('actionType').value;
@@ -520,7 +543,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked;
 
         document.getElementById('summaryEnergy').textContent = summaryEnergy;
-        document.getElementById('summaryBP').textContent = summaryBP;
+        document.getElementById('summaryTP').textContent = summaryTP;
         document.getElementById('summaryRange').textContent = `${summaryRange} ${summaryRange > 1 ? 'Spaces' : 'Space'}`;
         document.getElementById('summaryDuration').textContent = `${summaryDuration} ${summaryDuration > 1 ? 'Rounds' : 'Round'}`;
         document.getElementById('summaryActionType').textContent = actionTypeText;
@@ -555,7 +578,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             partElement.innerHTML = `
                 <h4>${part.name}</h4>
                 <p>Energy: ${part.baseEnergy}</p>
-                <p>Building Points: ${part.baseBP}</p>
+                <p>Training Points: ${part.baseTP}</p>
                 <p>${part.description}</p>
                 ${part.opt1Description ? `<p>Option 1: ${part.opt1Description} (Level: ${partData.opt1Level})</p>` : ''}
                 ${part.opt2Description ? `<p>Option 2: ${part.opt2Description} (Level: ${partData.opt2Level})</p>` : ''}
@@ -564,6 +587,10 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             `;
             summaryPartsContainer.appendChild(partElement);
         });
+
+        // New: Update the summary proficiencies
+        const summaryProficiencies = document.getElementById('summaryProficiencies');
+        summaryProficiencies.innerHTML = tpSources.map(source => `<p>${source}</p>`).join('');
     }
 
     function capitalize(str) {
@@ -760,7 +787,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         const powerName = document.getElementById('powerName').value || '';
         const powerDescription = document.getElementById('powerDescription').value || '';
         const totalEnergy = document.getElementById('totalEnergy').textContent || '0';
-        const totalBP = document.getElementById('totalBP').textContent || '0';
+        const totalTP = document.getElementById('totalTP').textContent || '0';
         const range = document.getElementById('rangeValue').textContent || '1';
         const areaEffect = document.getElementById('areaEffect').value || 'none';
         const areaEffectLevel = document.getElementById('areaEffectLevelValue').textContent || '1';
@@ -806,7 +833,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
                 name: powerName,
                 description: powerDescription,
                 totalEnergy,
-                totalBP,
+                totalTP,
                 range,
                 areaEffect,
                 areaEffectLevel,
@@ -864,7 +891,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         document.getElementById('powerName').value = power.name;
         document.getElementById('powerDescription').value = power.description;
         document.getElementById('totalEnergy').textContent = power.totalEnergy;
-        document.getElementById('totalBP').textContent = power.totalBP;
+        document.getElementById('totalTP').textContent = power.totalTP;
         document.getElementById('rangeValue').textContent = power.range;
         document.getElementById('areaEffect').value = power.areaEffect;
         document.getElementById('areaEffectLevelValue').textContent = power.areaEffectLevel;

@@ -9,7 +9,7 @@ let firebaseApp = null;
 let firebaseAuth = null;
 let firebaseDb = null;
 let firebaseFunctions = null;
-let selectedWeapon = { name: "Unarmed Prowess", bp: 0, id: null };
+let selectedWeapon = { name: "Unarmed Prowess", tp: 0, id: null };
 let weaponLibrary = [];
 
 (() => {
@@ -38,8 +38,8 @@ let weaponLibrary = [];
 
     function generatePartContent(partIndex, part) {
         return `
-            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.baseEnergy}</span></span> <span class="small-text">Building Points: <span id="baseBP-${partIndex}">${part.baseBP}</span></span></h3>
-            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.baseEnergy}</span> Part BP: <span id="totalBP-${partIndex}">${part.baseBP}</span></p>
+            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.baseEnergy}</span></span> <span class="small-text">Training Points: <span id="baseTP-${partIndex}">${part.baseTP}</span></span></h3>
+            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.baseEnergy}</span> Part TP: <span id="totalTP-${partIndex}">${part.baseTP}</span></p>
             <p>${part.description}</p>
             
             ${part.opt1Cost !== undefined || part.opt1Description ? `
@@ -72,7 +72,7 @@ let weaponLibrary = [];
                 </div>` : ''}
             </div>` : ''}
     
-            ${part.altBaseEnergy !== undefined || part.altBP !== undefined ? `
+            ${part.altBaseEnergy !== undefined || part.altTP !== undefined ? `
             <div class="option-box">
                 <h4>Alternate Base Energy: ${part.altBaseEnergy}</h4>
                 <button id="altEnergyButton-${partIndex}" class="alt-energy-button" onclick="toggleAltEnergy(${partIndex})">Toggle</button>
@@ -154,7 +154,7 @@ let weaponLibrary = [];
 
     function updateTotalCosts() {
         let sumBaseEnergy = 0;
-        let totalBP = 0;
+        let totalTP = 0;
 
         // Only base, increase, decrease parts (no linger, duration, etc)
         const baseEnergyParts = [];
@@ -176,34 +176,38 @@ let weaponLibrary = [];
         baseEnergyParts.forEach((partData) => {
             const part = partData.part;
             let partEnergy = partData.useAltCost ? part.altBaseEnergy : part.baseEnergy;
-            let partBP = part.baseBP;
+            let partTP = part.baseTP;
             partEnergy += (part.opt1Cost || 0) * partData.opt1Level;
             partEnergy += (part.opt2Cost || 0) * partData.opt2Level;
             partEnergy += (part.opt3Cost || 0) * partData.opt3Level;
             sumBaseEnergy += partEnergy;
-            totalBP += partBP;
+            totalTP += partTP;
+            // Add TP from options
+            totalTP += (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
+            totalTP += (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
+            totalTP += (part.TPIncreaseOpt3 || 0) * partData.opt3Level;
         });
 
         // --- Add weapon energy cost if weapon is selected ---
-        if (selectedWeapon && selectedWeapon.name !== "Unarmed Prowess" && selectedWeapon.bp > 0) {
-            sumBaseEnergy += 0.5 * selectedWeapon.bp;
+        if (selectedWeapon && selectedWeapon.name !== "Unarmed Prowess" && selectedWeapon.tp > 0) {
+            sumBaseEnergy += 0.5 * selectedWeapon.tp;
         }
         // ----------------------------------------------------
 
         // Calculate damage energy cost
         sumBaseEnergy += calculateDamageEnergyCost();
 
-        // Increase BP if damage dice are present
+        // Increase TP if damage dice are present
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
         if (!isNaN(dieAmount1) && !isNaN(dieSize1)) {
-            totalBP += 1;
+            totalTP += 1;
         }
 
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
         const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
         if (!isNaN(dieAmount2) && !isNaN(dieSize2)) {
-            totalBP += 1;
+            totalTP += 1;
         }
 
         // Step 2: Apply increase parts
@@ -254,7 +258,7 @@ let weaponLibrary = [];
         const finalEnergy = decreasedEnergy;
 
         document.getElementById("totalEnergy").textContent = finalEnergy.toFixed(2);
-        document.getElementById("totalBP").textContent = totalBP;
+        document.getElementById("totalTP").textContent = totalTP;
 
         updateTechniqueSummary();
     }
@@ -262,13 +266,13 @@ let weaponLibrary = [];
     function updateTechniqueSummary() {
         const techniqueName = document.getElementById('techniqueName').value;
         const summaryEnergy = document.getElementById('totalEnergy').textContent;
-        const summaryBP = document.getElementById('totalBP').textContent;
+        const summaryTP = document.getElementById('totalTP').textContent;
         const actionType = document.getElementById('actionType').value;
         const reactionChecked = document.getElementById('reactionCheckbox').checked;
         const actionTypeText = reactionChecked ? `${capitalize(actionType)} Reaction` : `${capitalize(actionType)} Action`;
 
         document.getElementById('summaryEnergy').textContent = summaryEnergy;
-        document.getElementById('summaryBP').textContent = summaryBP;
+        document.getElementById('summaryTP').textContent = summaryTP;
         document.getElementById('summaryActionType').textContent = actionTypeText;
 
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
@@ -295,7 +299,7 @@ let weaponLibrary = [];
             partElement.innerHTML = `
                 <h4>${part.name}</h4>
                 <p>Energy: ${part.baseEnergy}</p>
-                <p>Building Points: ${part.baseBP}</p>
+                <p>Training Points: ${part.baseTP}</p>
                 <p>${part.description}</p>
                 ${part.opt1Description ? `<p>Option 1: ${part.opt1Description} (Level: ${partData.opt1Level})</p>` : ''}
                 ${part.opt2Description ? `<p>Option 2: ${part.opt2Description} (Level: ${partData.opt2Level})</p>` : ''}
@@ -511,7 +515,7 @@ let weaponLibrary = [];
         const infoDiv = document.getElementById('selectedWeaponInfo');
         if (!infoDiv) return;
         if (selectedWeapon && selectedWeapon.name !== "Unarmed Prowess") {
-            infoDiv.innerHTML = `<b>${selectedWeapon.name}</b> (BP: ${selectedWeapon.bp})`;
+            infoDiv.innerHTML = `<b>${selectedWeapon.name}</b> (TP: ${selectedWeapon.tp})`;
         } else {
             infoDiv.innerHTML = `Unarmed Prowess (no additional cost)`;
         }
@@ -527,11 +531,11 @@ let weaponLibrary = [];
             weaponLibrary = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (data && (data.itemParts?.some(p => p.type === "Weapon") || data.totalBP)) {
+                if (data && (data.itemParts?.some(p => p.type === "Weapon") || data.totalTP)) {
                     weaponLibrary.push({
                         id: docSnap.id,
                         name: data.name,
-                        totalBP: data.totalBP || 0
+                        totalTP: data.totalTP || 0
                     });
                 }
             });
@@ -577,7 +581,7 @@ let weaponLibrary = [];
         list.innerHTML = '';
         weaponLibrary.forEach(weapon => {
             const li = document.createElement('li');
-            li.innerHTML = `<b>${weapon.name}</b> (BP: ${weapon.totalBP}) <button onclick="selectWeaponFromLibrary('${weapon.id}')">Select</button>`;
+            li.innerHTML = `<b>${weapon.name}</b> (TP: ${weapon.totalTP}) <button onclick="selectWeaponFromLibrary('${weapon.id}')">Select</button>`;
             list.appendChild(li);
         });
     }
@@ -587,11 +591,11 @@ let weaponLibrary = [];
         const select = document.getElementById('techniqueWeaponSelect');
         const value = select.value;
         if (value === "unarmed") {
-            selectedWeapon = { name: "Unarmed Prowess", bp: 0, id: null };
+            selectedWeapon = { name: "Unarmed Prowess", tp: 0, id: null };
         } else {
             const weapon = weaponLibrary.find(w => w.id === value);
             if (weapon) {
-                selectedWeapon = { name: weapon.name, bp: Number(weapon.totalBP) || 0, id: weapon.id };
+                selectedWeapon = { name: weapon.name, tp: Number(weapon.totalTP) || 0, id: weapon.id };
             }
         }
         updateWeaponBoxUI();
@@ -607,9 +611,9 @@ let weaponLibrary = [];
         }
         const techniqueDescription = document.getElementById('techniqueDescription').value || '';
         const totalEnergy = document.getElementById('totalEnergy').textContent || '0';
-        const totalBP = document.getElementById('totalBP').textContent || '0';
-        if (!totalEnergy || !totalBP) {
-            alert('Energy and BP values are required');
+        const totalTP = document.getElementById('totalTP').textContent || '0';
+        if (!totalEnergy || !totalTP) {
+            alert('Energy and TP values are required');
             return;
         }
         const actionType = document.getElementById('actionType').value || 'basic';
@@ -626,8 +630,8 @@ let weaponLibrary = [];
             useAltCost: partData.useAltCost
         }));
         const weaponToSave = selectedWeapon && selectedWeapon.name
-            ? { name: selectedWeapon.name, bp: selectedWeapon.bp, id: selectedWeapon.id }
-            : { name: "Unarmed Prowess", bp: 0, id: null };
+            ? { name: selectedWeapon.name, tp: selectedWeapon.tp, id: selectedWeapon.id }
+            : { name: "Unarmed Prowess", tp: 0, id: null };
 
         try {
             if (!firebaseAuth.currentUser) {
@@ -651,7 +655,7 @@ let weaponLibrary = [];
                 name: techniqueName,
                 description: techniqueDescription,
                 totalEnergy: Number(totalEnergy),
-                totalBP: Number(totalBP),
+                totalTP: Number(totalTP),
                 actionType,
                 reactionChecked,
                 damage,
@@ -708,7 +712,7 @@ let weaponLibrary = [];
         document.getElementById('techniqueName').value = technique.name;
         document.getElementById('techniqueDescription').value = technique.description;
         document.getElementById('totalEnergy').textContent = technique.totalEnergy;
-        document.getElementById('totalBP').textContent = technique.totalBP;
+        document.getElementById('totalTP').textContent = technique.totalTP;
         document.getElementById('actionType').value = technique.actionType;
         document.getElementById('reactionCheckbox').checked = technique.reactionChecked;
 
@@ -742,13 +746,13 @@ let weaponLibrary = [];
         if (technique.weapon && technique.weapon.name) {
             selectedWeapon = {
                 name: technique.weapon.name,
-                bp: Number(technique.weapon.bp) || 0,
+                tp: Number(technique.weapon.tp) || 0,
                 id: technique.weapon.id || null
             };
             const select = document.getElementById('techniqueWeaponSelect');
             if (select) select.value = technique.weapon.id || "unarmed";
         } else {
-            selectedWeapon = { name: "Unarmed Prowess", bp: 0, id: null };
+            selectedWeapon = { name: "Unarmed Prowess", tp: 0, id: null };
             const select = document.getElementById('techniqueWeaponSelect');
             if (select) select.value = "unarmed";
         }
@@ -787,7 +791,7 @@ let weaponLibrary = [];
     window.selectWeaponFromLibrary = function(id) {
         const weapon = weaponLibrary.find(w => w.id === id);
         if (weapon) {
-            selectedWeapon = { name: weapon.name, bp: Number(weapon.totalBP) || 0, id: weapon.id };
+            selectedWeapon = { name: weapon.name, tp: Number(weapon.totalTP) || 0, id: weapon.id };
             const select = document.getElementById('techniqueWeaponSelect');
             if (select) select.value = id;
             updateWeaponBoxUI();

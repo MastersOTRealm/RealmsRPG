@@ -86,7 +86,7 @@ async function showSavedPowers(db, userId) {
             const details = document.createElement('div');
             details.classList.add('details');
             details.innerHTML = `
-                <p><strong>Building Points:</strong> ${power.totalBP}</p>
+                <p><strong>Training Points:</strong> ${power.totalTP}</p>
                 ${power.focusChecked ? '<p><strong>Requires Focus</strong></p>' : ''}
                 ${power.sustainValue > 0 ? `<p><strong>Sustain:</strong> ${power.sustainValue} Action Points</p>` : ''}
             `;
@@ -146,9 +146,9 @@ async function showSavedItems(db, userId) {
     const table = document.createElement('table');
     table.classList.add('powers-table');
 
-    // Top row: name, rarity, gold cost, building point cost, range, damage
+    // Top row: name, rarity, gold cost, Training Point cost, range, damage
     const headers = [
-        'Name', 'Rarity', 'Gold Cost', 'Building Points', 'Range', 'Damage'
+        'Name', 'Rarity', 'Gold Cost', 'Training Points', 'Range', 'Damage'
     ];
     const headerRow = document.createElement('tr');
     headers.forEach(headerText => {
@@ -164,7 +164,7 @@ async function showSavedItems(db, userId) {
             const item = docSnapshot.data();
             const rowGroup = document.createElement('tbody');
 
-            // Top row: name, rarity, gold cost, building points, range, damage
+            // Top row: name, rarity, gold cost, Training Points, range, damage
             const row = document.createElement('tr');
             row.classList.add('power-row');
             row.addEventListener('click', () => toggleExpand(row));
@@ -184,10 +184,10 @@ async function showSavedItems(db, userId) {
             gpCell.textContent = item.totalGP !== undefined ? item.totalGP : '';
             row.appendChild(gpCell);
 
-            // Building Points
-            const bpCell = document.createElement('td');
-            bpCell.textContent = item.totalBP !== undefined ? item.totalBP : '';
-            row.appendChild(bpCell);
+            // Training Points
+            const tpCell = document.createElement('td');
+            tpCell.textContent = item.totalTP !== undefined ? item.totalTP : '';
+            row.appendChild(tpCell);
 
             // Range
             const rangeCell = document.createElement('td');
@@ -301,7 +301,7 @@ async function showSavedTechniques(db, userId) {
     const table = document.createElement('table');
     table.classList.add('powers-table');
 
-    const headers = ['Name', 'Energy', 'BP', 'Action', 'Weapon', 'Damage'];
+    const headers = ['Name', 'Energy', 'TP', 'Action', 'Weapon', 'Damage'];
     const headerRow = document.createElement('tr');
     headers.forEach(headerText => {
         const th = document.createElement('th');
@@ -330,10 +330,10 @@ async function showSavedTechniques(db, userId) {
             energyCell.textContent = technique.totalEnergy;
             row.appendChild(energyCell);
 
-            // BP
-            const bpCell = document.createElement('td');
-            bpCell.textContent = technique.totalBP;
-            row.appendChild(bpCell);
+            // TP
+            const tpCell = document.createElement('td');
+            tpCell.textContent = technique.totalTP;
+            row.appendChild(tpCell);
 
             // Action
             const actionCell = document.createElement('td');

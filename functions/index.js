@@ -63,7 +63,7 @@ exports.updateUserEmail = onCall(async (data, context) => {
 });
 
 exports.savePowerToLibrary = onCall(async (data, context) => {
-    const { powerName, powerDescription, totalEnergy, totalBP, range, areaEffect, areaEffectLevel, duration, durationType, actionType, reactionChecked, focusChecked, sustainValue, noHarmChecked, endsOnceChecked, damage, powerParts } = data;
+    const { powerName, powerDescription, totalEnergy, totalTP, range, areaEffect, areaEffectLevel, duration, durationType, actionType, reactionChecked, focusChecked, sustainValue, noHarmChecked, endsOnceChecked, damage, powerParts } = data;
     const uid = context.auth.uid;
 
     if (!uid) {
@@ -80,7 +80,7 @@ exports.savePowerToLibrary = onCall(async (data, context) => {
             name: powerName,
             description: powerDescription,
             totalEnergy,
-            totalBP,
+            totalTP,
             range,
             areaEffect,
             areaEffectLevel,
@@ -106,7 +106,7 @@ exports.savePowerToLibrary = onCall(async (data, context) => {
 
 exports.savePowerToLibrary = onRequest((req, res) => {
     cors(req, res, async () => {
-        const { powerName, powerDescription, totalEnergy, totalBP, range, areaEffect, areaEffectLevel, duration, durationType, actionType, reactionChecked, focusChecked, sustainValue, noHarmChecked, endsOnceChecked, damage, powerParts } = req.body;
+        const { powerName, powerDescription, totalEnergy, totalTP, range, areaEffect, areaEffectLevel, duration, durationType, actionType, reactionChecked, focusChecked, sustainValue, noHarmChecked, endsOnceChecked, damage, powerParts } = req.body;
         
         // Verify the ID token from the Authorization header
         const idToken = req.headers.authorization?.split('Bearer ')[1];
@@ -129,7 +129,7 @@ exports.savePowerToLibrary = onRequest((req, res) => {
                 name: powerName,
                 description: powerDescription,
                 totalEnergy,
-                totalBP,
+                totalTP,
                 range,
                 areaEffect,
                 areaEffectLevel,
@@ -182,7 +182,7 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
     const {
         itemName,
         itemDescription,
-        totalBP,
+        totalTP,
         totalIP,
         totalGP,
         range,
@@ -199,8 +199,8 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
     }
 
     // Validate types for required fields
-    if (typeof totalBP === "undefined" || typeof totalIP === "undefined" || typeof totalGP === "undefined") {
-        logger.error('Missing totalBP, totalIP, or totalGP', { totalBP, totalIP, totalGP });
+    if (typeof totalTP === "undefined" || typeof totalIP === "undefined" || typeof totalGP === "undefined") {
+        logger.error('Missing totalTP, totalIP, or totalGP', { totalTP, totalIP, totalGP });
         throw new HttpsError("invalid-argument", "Missing required item cost fields.");
     }
     if (!Array.isArray(damage)) {
@@ -217,7 +217,7 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
         const docRef = await db.collection('users').doc(uid).collection('itemLibrary').add({
             name: itemName,
             description: itemDescription || "",
-            totalBP: Number(totalBP),
+            totalTP: Number(totalTP),
             totalIP: Number(totalIP),
             totalGP: Number(totalGP),
             range: range || "",
@@ -238,7 +238,7 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
 // --- Technique Library Functions (copies of power library functions, adapted) ---
 
 exports.saveTechniqueToLibrary = onCall(async (data, context) => {
-    const { techniqueName, techniqueDescription, totalEnergy, totalBP, actionType, reactionChecked, damage, techniqueParts, weapon } = data;
+    const { techniqueName, techniqueDescription, totalEnergy, totalTP, actionType, reactionChecked, damage, techniqueParts, weapon } = data;
     const uid = context.auth.uid;
 
     if (!uid) {
@@ -252,8 +252,8 @@ exports.saveTechniqueToLibrary = onCall(async (data, context) => {
     if (typeof totalEnergy === "undefined" || totalEnergy === null || totalEnergy === "") {
         throw new HttpsError("invalid-argument", "Missing required 'totalEnergy'.");
     }
-    if (typeof totalBP === "undefined" || totalBP === null || totalBP === "") {
-        throw new HttpsError("invalid-argument", "Missing required 'totalBP'.");
+    if (typeof totalTP === "undefined" || totalTP === null || totalTP === "") {
+        throw new HttpsError("invalid-argument", "Missing required 'totalTP'.");
     }
     if (!Array.isArray(damage)) {
         throw new HttpsError("invalid-argument", "Missing or invalid 'damage' array.");
@@ -268,12 +268,12 @@ exports.saveTechniqueToLibrary = onCall(async (data, context) => {
             name: techniqueName,
             description: techniqueDescription || "",
             totalEnergy,
-            totalBP,
+            totalTP,
             actionType,
             reactionChecked,
             damage,
             techniqueParts,
-            weapon: weapon || { name: "Unarmed Prowess", bp: 0, id: null },
+            weapon: weapon || { name: "Unarmed Prowess", tp: 0, id: null },
             timestamp: new Date()
         });
         logger.info('Technique document written with ID: ', docRef.id);
@@ -286,7 +286,7 @@ exports.saveTechniqueToLibrary = onCall(async (data, context) => {
 
 exports.saveTechniqueToLibrary = onRequest((req, res) => {
     cors(req, res, async () => {
-        const { techniqueName, techniqueDescription, totalEnergy, totalBP, actionType, reactionChecked, damage, techniqueParts, weapon } = req.body;
+        const { techniqueName, techniqueDescription, totalEnergy, totalTP, actionType, reactionChecked, damage, techniqueParts, weapon } = req.body;
         
         // Verify the ID token from the Authorization header
         const idToken = req.headers.authorization?.split('Bearer ')[1];
@@ -308,8 +308,8 @@ exports.saveTechniqueToLibrary = onRequest((req, res) => {
                 res.status(400).json({ error: "Missing required 'totalEnergy'." });
                 return;
             }
-            if (typeof totalBP === "undefined" || totalBP === null || totalBP === "") {
-                res.status(400).json({ error: "Missing required 'totalBP'." });
+            if (typeof totalTP === "undefined" || totalTP === null || totalTP === "") {
+                res.status(400).json({ error: "Missing required 'totalTP'." });
                 return;
             }
             if (!Array.isArray(damage)) {
@@ -326,12 +326,12 @@ exports.saveTechniqueToLibrary = onRequest((req, res) => {
                 name: techniqueName,
                 description: techniqueDescription || "",
                 totalEnergy,
-                totalBP,
+                totalTP,
                 actionType,
                 reactionChecked,
                 damage,
                 techniqueParts,
-                weapon: weapon || { name: "Unarmed Prowess", bp: 0, id: null },
+                weapon: weapon || { name: "Unarmed Prowess", tp: 0, id: null },
                 timestamp: new Date()
             });
             logger.info('Technique document written with ID: ', docRef.id);

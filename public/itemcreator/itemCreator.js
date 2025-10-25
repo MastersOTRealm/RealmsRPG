@@ -57,8 +57,8 @@ let appCheckInitialized = false;
 
     function generatePartContent(partIndex, part) {
         return `
-            <h3>${part.name} <span class="small-text">Item Points: <span id="baseIP-${partIndex}">${part.baseItemPoint}</span></span> <span class="small-text">Building Points: <span id="baseBP-${partIndex}">${part.baseBP}</span></span> <span class="small-text">Gold Points: <span id="baseGP-${partIndex}">${part.baseGoldPoint}</span></span></h3>
-            <p>Part IP: <span id="totalIP-${partIndex}">${part.baseItemPoint}</span> Part BP: <span id="totalBP-${partIndex}">${part.baseBP}</span> Part GP: <span id="totalGP-${partIndex}">${part.baseGoldPoint}</span></p>
+            <h3>${part.name} <span class="small-text">Item Points: <span id="baseIP-${partIndex}">${part.baseItemPoint}</span></span> <span class="small-text">Training Points: <span id="baseTP-${partIndex}">${part.baseTP}</span></span> <span class="small-text">Gold Points: <span id="baseGP-${partIndex}">${part.baseGoldPoint}</span></span></h3>
+            <p>Part IP: <span id="totalIP-${partIndex}">${part.baseItemPoint}</span> Part TP: <span id="totalTP-${partIndex}">${part.baseTP}</span> Part GP: <span id="totalGP-${partIndex}">${part.baseGoldPoint}</span></p>
             <p>${part.description}</p>
             
             ${part.opt1Cost !== undefined || part.opt1Description ? `
@@ -214,7 +214,7 @@ let appCheckInitialized = false;
         const totalValue = amount * size;
         let ip = totalValue / 2;
         let gp = totalValue / 2;
-        let bp = (totalValue - 1) / 4;
+        let tp = (totalValue - 2) / 2;
 
         // Calculate minimum dice needed for totalValue
         let remainingValue = totalValue;
@@ -234,21 +234,21 @@ let appCheckInitialized = false;
         if (splits > 0) {
             ip += splits;
             gp += splits;
-            bp += splits * 0.5;
+            tp += splits;
         }
 
         // Round to 2 decimal places for consistency
         return {
             itemPoints: Number(ip.toFixed(2)),
             goldPoints: Number(gp.toFixed(2)),
-            buildingPoints: Number(bp.toFixed(2)),
+            trainingPoints: Number(tp.toFixed(2)),
             splits: splits
         };
     }
 
     function calculateDamageIPCost() {
         let totalDamageIP = 0;
-        let totalDamageBP = 0;
+        let totalDamageTP = 0;
         let totalDamageGP = 0;
 
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
@@ -259,7 +259,7 @@ let appCheckInitialized = false;
             const result = calculateCosts(`${dieAmount1}d${dieSize1}`);
             if (!result.error) {
                 totalDamageIP += result.itemPoints;
-                totalDamageBP += result.buildingPoints;
+                totalDamageTP += result.trainingPoints;
                 totalDamageGP += result.goldPoints;
             } else {
                 console.warn(`Damage 1 calculation error: ${result.error}`);
@@ -274,17 +274,17 @@ let appCheckInitialized = false;
             const result = calculateCosts(`${dieAmount2}d${dieSize2}`);
             if (!result.error) {
                 totalDamageIP += result.itemPoints;
-                totalDamageBP += result.buildingPoints;
+                totalDamageTP += result.trainingPoints;
                 totalDamageGP += result.goldPoints;
             } else {
                 console.warn(`Damage 2 calculation error: ${result.error}`);
             }
         }
 
-        // Floor BP at 0 to prevent negative values
-        totalDamageBP = Math.max(0, totalDamageBP);
+        // Floor TP at 0 to prevent negative values
+        totalDamageTP = Math.max(0, totalDamageTP);
 
-        return { totalDamageIP, totalDamageBP, totalDamageGP };
+        return { totalDamageIP, totalDamageTP, totalDamageGP };
     }
 
     function calculateGoldCost(totalGP, totalIP) {
@@ -322,7 +322,7 @@ let appCheckInitialized = false;
 
     function updateTotalCosts() {
         let sumBaseIP = 0;
-        let totalBP = 0;
+        let totalTP = 0;
         let totalGP = 0;
         let hasArmorPart = false;
         let hasWeaponPart = false;
@@ -337,7 +337,7 @@ let appCheckInitialized = false;
         ) {
             // Base cost for 1, opt1 for each additional
             sumBaseIP += damageReductionPart.baseItemPoint + (damageReduction - 1) * (damageReductionPart.opt1Cost || 0);
-            totalBP += damageReductionPart.baseBP + (damageReduction - 1) * (damageReductionPart.BPIncreaseOpt1 || 0);
+            totalTP += damageReductionPart.baseTP + (damageReduction - 1) * (damageReductionPart.TPIncreaseOpt1 || 0);
             totalGP += damageReductionPart.baseGoldPoint + (damageReduction - 1) * (damageReductionPart.GPIncreaseOpt1 || 0);
         }
         // --- end Damage Reduction ---
@@ -370,16 +370,16 @@ let appCheckInitialized = false;
                 return;
             }
             let partIP = part.baseItemPoint;
-            let partBP = part.baseBP;
+            let partTP = part.baseTP;
             let partGP = part.baseGoldPoint;
             partIP += (part.opt1Cost || 0) * partData.opt1Level;
             partIP += (part.opt2Cost || 0) * partData.opt2Level;
-            partBP += (part.BPIncreaseOpt1 || 0) * partData.opt1Level;
-            partBP += (part.BPIncreaseOpt2 || 0) * partData.opt2Level;
+            partTP += (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
+            partTP += (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
             partGP += (part.GPIncreaseOpt1 || 0) * partData.opt1Level;
             partGP += (part.GPIncreaseOpt2 || 0) * partData.opt2Level;
             sumBaseIP += partIP;
-            totalBP += partBP;
+            totalTP += partTP;
             totalGP += partGP;
 
             if (part.type === 'Armor') {
@@ -430,7 +430,7 @@ let appCheckInitialized = false;
                     console.log(`Adding GP for ${req.type} (value=${value}): ${gpAdd}`);
                     totalGP += gpAdd;
                     sumBaseIP += part.baseItemPoint + (typeof part.opt1Cost === "number" ? part.opt1Cost : 0) * (value - 1);
-                    totalBP += part.baseBP + (typeof part.BPIncreaseOpt1 === "number" ? part.BPIncreaseOpt1 : 0) * (value - 1);
+                    totalTP += part.baseTP + (typeof part.TPIncreaseOpt1 === "number" ? part.TPIncreaseOpt1 : 0) * (value - 1);
                 } else {
                     console.warn(`Part not found for ${req.type} in ${armamentType}`);
                 }
@@ -447,7 +447,7 @@ let appCheckInitialized = false;
                 console.log(`Adding GP for Agility Reduction (${window.agilityReduction}): ${gpAdd}`);
                 totalGP += gpAdd;
                 sumBaseIP += agilityReductionPart.baseItemPoint + ((window.agilityReduction - 1) * (typeof agilityReductionPart.opt1Cost === "number" ? agilityReductionPart.opt1Cost : 0));
-                totalBP += agilityReductionPart.baseBP + ((window.agilityReduction - 1) * (typeof agilityReductionPart.BPIncreaseOpt1 === "number" ? agilityReductionPart.BPIncreaseOpt1 : 0));
+                totalTP += agilityReductionPart.baseTP + ((window.agilityReduction - 1) * (typeof agilityReductionPart.TPIncreaseOpt1 === "number" ? agilityReductionPart.TPIncreaseOpt1 : 0));
             } else {
                 console.warn("Agility Reduction part not found");
             }
@@ -457,24 +457,24 @@ let appCheckInitialized = false;
         // Apply range cost before any increases or decreases
         if (range > 0) {
             const rangeCost = 2 + (range - 1) * 1;
-            const rangeBP = 0.5 + (range - 1) * 0.25;
+            const rangeTP = 1 + (range - 1) * 1;
             const rangeGP = 1 + (range - 1) * 1;
             sumBaseIP += rangeCost;
-            totalBP += rangeBP;
+            totalTP += rangeTP;
             totalGP += rangeGP;
         }
 
         // Apply handedness cost
         if (handedness === "Two-Handed") {
             sumBaseIP -= 2;
-            totalBP += 0.5;
+            totalTP += 1;
             totalGP += 1;
         }
 
         // Calculate damage IP cost
-        const { totalDamageIP, totalDamageBP, totalDamageGP } = calculateDamageIPCost();
+        const { totalDamageIP, totalDamageTP, totalDamageGP } = calculateDamageIPCost();
         sumBaseIP += totalDamageIP;
-        totalBP += totalDamageBP;
+        totalTP += totalDamageTP;
         totalGP += totalDamageGP;
 
         // Debug log before gold cost calculation:
@@ -490,12 +490,12 @@ let appCheckInitialized = false;
         const finalIP = sumBaseIP;
 
         const totalIPElement = document.getElementById("totalIP");
-        const totalBPElement = document.getElementById("totalBP");
+        const totalTPElement = document.getElementById("totalTP");
         const totalGPElement = document.getElementById("totalGP");
         const totalRarityElement = document.getElementById("totalRarity");
 
         if (totalIPElement) totalIPElement.textContent = finalIP.toFixed(2);
-        if (totalBPElement) totalBPElement.textContent = totalBP.toFixed(2);
+        if (totalTPElement) totalTPElement.textContent = totalTP.toFixed(2);
         if (totalGPElement) totalGPElement.textContent = goldCost.toFixed(2);
         if (totalRarityElement) totalRarityElement.textContent = rarity;
 
@@ -505,17 +505,17 @@ let appCheckInitialized = false;
     function updateItemSummary(totalIP, rarity) {
         const itemName = document.getElementById('itemName').value;
         const summaryIP = document.getElementById('totalIP')?.textContent;
-        let summaryBP = document.getElementById('totalBP')?.textContent;
+        let summaryTP = document.getElementById('totalTP')?.textContent;
         const summaryGP = document.getElementById('totalGP')?.textContent;
         const summaryRange = range === 0 ? 'Melee' : `${range * 8} Spaces`;
 
-        // Clamp BP to 0 for weapons
+        // Clamp TP to 0 for weapons
         if (window.selectedArmamentType && window.selectedArmamentType() === "Weapon") {
-            summaryBP = Math.max(0, parseFloat(summaryBP || "0")).toFixed(2);
+            summaryTP = Math.max(0, parseFloat(summaryTP || "0")).toFixed(2);
         }
 
         if (document.getElementById('summaryIP')) document.getElementById('summaryIP').textContent = summaryIP;
-        if (document.getElementById('summaryBP')) document.getElementById('summaryBP').textContent = summaryBP;
+        if (document.getElementById('summaryTP')) document.getElementById('summaryTP').textContent = summaryTP;
         if (document.getElementById('summaryGP')) document.getElementById('summaryGP').textContent = summaryGP;
         if (document.getElementById('summaryRange')) document.getElementById('summaryRange').textContent = summaryRange;
 
@@ -566,7 +566,7 @@ let appCheckInitialized = false;
                 partElement.innerHTML = `
                     <h4>${part.name}</h4>
                     <p>Item Points: ${part.baseItemPoint}</p>
-                    <p>Building Points: ${part.baseBP}</p>
+                    <p>Training Points: ${part.baseTP}</p>
                     <p>Gold Points: ${part.baseGoldPoint}</p>
                     <p>${part.description}</p>
                     ${part.opt1Description ? `<p>Option 1: ${part.opt1Description} (Level: ${partData.opt1Level})</p>` : ''}
@@ -614,7 +614,7 @@ let appCheckInitialized = false;
 
         const itemName = document.getElementById('itemName').value || '';
         const itemDescription = document.getElementById('itemDescription').value || '';
-        const totalBP = document.getElementById('totalBP').textContent || '0';
+        const totalTP = document.getElementById('totalTP').textContent || '0';
         const totalIP = document.getElementById('totalIP').textContent || '0';
         const totalGP = document.getElementById('totalGP').textContent || '0';
         const range = document.getElementById('rangeValue').textContent || 'Melee';
@@ -656,7 +656,7 @@ let appCheckInitialized = false;
             await setDoc(docRef, {
                 name: itemName,
                 description: itemDescription,
-                totalBP: Number(totalBP),
+                totalTP: Number(totalTP),
                 totalIP: Number(totalIP),
                 totalGP: Number(totalGP),
                 range,
@@ -781,9 +781,9 @@ let appCheckInitialized = false;
             if (damageReductionCostSummary && damageReductionPart) {
                 if (damageReduction > 0) {
                     const ip = damageReductionPart.baseItemPoint + (damageReduction - 1) * (damageReductionPart.opt1Cost || 0);
-                    const bp = damageReductionPart.baseBP + (damageReduction - 1) * (damageReductionPart.BPIncreaseOpt1 || 0);
+                    const tp = damageReductionPart.baseTP + (damageReduction - 1) * (damageReductionPart.TPIncreaseOpt1 || 0);
                     const gp = damageReductionPart.baseGoldPoint + (damageReduction - 1) * (damageReductionPart.GPIncreaseOpt1 || 0);
-                    damageReductionCostSummary.textContent = `IP: ${ip}, BP: ${bp}, GP: ${gp}`;
+                    damageReductionCostSummary.textContent = `IP: ${ip}, TP: ${tp}, GP: ${gp}`;
                 } else {
                     damageReductionCostSummary.textContent = "";
                 }
