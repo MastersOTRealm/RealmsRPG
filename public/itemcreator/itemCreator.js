@@ -12,6 +12,7 @@ let appCheckInitialized = false;
 
     const selectedItemParts = [];
     window.selectedItemParts = selectedItemParts; // Expose for HTML logic
+    let tpSources = []; // Array to track TP sources
     let range = 0; // Internal default value
     let handedness = "One-Handed"; // Default handedness
 
@@ -65,7 +66,7 @@ let appCheckInitialized = false;
             <div class="option-container">
                 ${part.opt1Cost !== undefined || part.opt1Description ? `
                 <div class="option-box">
-                    <h4>Item Points: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}</h4>
+                    <h4>Item Points: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}     Training Points: ${part.TPIncreaseOpt1 >= 0 ? '+' : ''}${part.TPIncreaseOpt1}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', -1)">-</button>
                     <span>Level: <span id="opt1Level-${partIndex}">${selectedItemParts[partIndex].opt1Level}</span></span>
@@ -74,7 +75,7 @@ let appCheckInitialized = false;
                 
                 ${part.opt2Cost !== undefined || part.opt2Description ? `
                 <div class="option-box">
-                    <h4>Item Points: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}</h4>
+                    <h4>Item Points: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}     Training Points: ${part.TPIncreaseOpt2 >= 0 ? '+' : ''}${part.TPIncreaseOpt2}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', -1)">-</button>
                     <span>Level: <span id="opt2Level-${partIndex}">${selectedItemParts[partIndex].opt2Level}</span></span>
@@ -250,6 +251,7 @@ let appCheckInitialized = false;
         let totalDamageIP = 0;
         let totalDamageTP = 0;
         let totalDamageGP = 0;
+        let damageSources = [];
 
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
@@ -261,6 +263,7 @@ let appCheckInitialized = false;
                 totalDamageIP += result.itemPoints;
                 totalDamageTP += result.trainingPoints;
                 totalDamageGP += result.goldPoints;
+                damageSources.push(`${result.trainingPoints} TP: ${dieAmount1}d${dieSize1} ${damageType1.charAt(0).toUpperCase() + damageType1.slice(1)} Damage`);
             } else {
                 console.warn(`Damage 1 calculation error: ${result.error}`);
             }
@@ -276,6 +279,7 @@ let appCheckInitialized = false;
                 totalDamageIP += result.itemPoints;
                 totalDamageTP += result.trainingPoints;
                 totalDamageGP += result.goldPoints;
+                damageSources.push(`${result.trainingPoints} TP: ${dieAmount2}d${dieSize2} ${damageType2.charAt(0).toUpperCase() + damageType2.slice(1)} Damage`);
             } else {
                 console.warn(`Damage 2 calculation error: ${result.error}`);
             }
@@ -284,7 +288,7 @@ let appCheckInitialized = false;
         // Floor TP at 0 to prevent negative values
         totalDamageTP = Math.max(0, totalDamageTP);
 
-        return { totalDamageIP, totalDamageTP, totalDamageGP };
+        return { totalDamageIP, totalDamageTP, totalDamageGP, damageSources };
     }
 
     function calculateGoldCost(totalGP, totalIP) {
@@ -326,6 +330,7 @@ let appCheckInitialized = false;
         let totalGP = 0;
         let hasArmorPart = false;
         let hasWeaponPart = false;
+        tpSources = []; // Reset the array each time
 
         // --- Damage Reduction for Armor ---
         if (
@@ -337,8 +342,10 @@ let appCheckInitialized = false;
         ) {
             // Base cost for 1, opt1 for each additional
             sumBaseIP += damageReductionPart.baseItemPoint + (damageReduction - 1) * (damageReductionPart.opt1Cost || 0);
-            totalTP += damageReductionPart.baseTP + (damageReduction - 1) * (damageReductionPart.TPIncreaseOpt1 || 0);
+            const drTP = damageReductionPart.baseTP + (damageReduction - 1) * (damageReductionPart.TPIncreaseOpt1 || 0);
+            totalTP += drTP;
             totalGP += damageReductionPart.baseGoldPoint + (damageReduction - 1) * (damageReductionPart.GPIncreaseOpt1 || 0);
+            tpSources.push(`${drTP} TP: Damage Reduction ${damageReduction}`);
         }
         // --- end Damage Reduction ---
 
@@ -381,6 +388,14 @@ let appCheckInitialized = false;
             sumBaseIP += partIP;
             totalTP += partTP;
             totalGP += partGP;
+            const opt1TP = (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
+            const opt2TP = (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
+            if (partTP > 0 || opt1TP > 0 || opt2TP > 0) {
+                let partSource = `${partTP} TP: ${part.name}`;
+                if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${opt1TP} TP)`;
+                if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.opt2Level}: ${opt2TP} TP)`;
+                tpSources.push(partSource);
+            }
 
             if (part.type === 'Armor') {
                 hasArmorPart = true;
@@ -430,7 +445,9 @@ let appCheckInitialized = false;
                     console.log(`Adding GP for ${req.type} (value=${value}): ${gpAdd}`);
                     totalGP += gpAdd;
                     sumBaseIP += part.baseItemPoint + (typeof part.opt1Cost === "number" ? part.opt1Cost : 0) * (value - 1);
-                    totalTP += part.baseTP + (typeof part.TPIncreaseOpt1 === "number" ? part.TPIncreaseOpt1 : 0) * (value - 1);
+                    const reqTP = part.baseTP + (typeof part.TPIncreaseOpt1 === "number" ? part.TPIncreaseOpt1 : 0) * (value - 1);
+                    totalTP += reqTP;
+                    tpSources.push(`${reqTP} TP: ${req.type} Requirement ${value}`);
                 } else {
                     console.warn(`Part not found for ${req.type} in ${armamentType}`);
                 }
@@ -447,7 +464,9 @@ let appCheckInitialized = false;
                 console.log(`Adding GP for Agility Reduction (${window.agilityReduction}): ${gpAdd}`);
                 totalGP += gpAdd;
                 sumBaseIP += agilityReductionPart.baseItemPoint + ((window.agilityReduction - 1) * (typeof agilityReductionPart.opt1Cost === "number" ? agilityReductionPart.opt1Cost : 0));
-                totalTP += agilityReductionPart.baseTP + ((window.agilityReduction - 1) * (typeof agilityReductionPart.TPIncreaseOpt1 === "number" ? agilityReductionPart.TPIncreaseOpt1 : 0));
+                const agTP = agilityReductionPart.baseTP + ((window.agilityReduction - 1) * (typeof agilityReductionPart.TPIncreaseOpt1 === "number" ? agilityReductionPart.TPIncreaseOpt1 : 0));
+                totalTP += agTP;
+                tpSources.push(`${agTP} TP: Agility Reduction ${window.agilityReduction}`);
             } else {
                 console.warn("Agility Reduction part not found");
             }
@@ -462,6 +481,7 @@ let appCheckInitialized = false;
             sumBaseIP += rangeCost;
             totalTP += rangeTP;
             totalGP += rangeGP;
+            tpSources.push(`${rangeTP} TP: Range ${range * 8} Spaces`);
         }
 
         // Apply handedness cost
@@ -469,13 +489,15 @@ let appCheckInitialized = false;
             sumBaseIP -= 2;
             totalTP += 1;
             totalGP += 1;
+            tpSources.push(`1 TP: Two-Handed`);
         }
 
         // Calculate damage IP cost
-        const { totalDamageIP, totalDamageTP, totalDamageGP } = calculateDamageIPCost();
+        const { totalDamageIP, totalDamageTP, totalDamageGP, damageSources } = calculateDamageIPCost();
         sumBaseIP += totalDamageIP;
         totalTP += totalDamageTP;
         totalGP += totalDamageGP;
+        tpSources.push(...damageSources);
 
         // Debug log before gold cost calculation:
         console.log(`Before calculateGoldCost: totalGP=${totalGP}, sumBaseIP=${sumBaseIP}`);
@@ -583,6 +605,12 @@ let appCheckInitialized = false;
                     abilityRequirements.map(r => `<p>${r.type}: ${r.value}</p>`).join('');
                 summaryPartsContainer.appendChild(reqDiv);
             }
+        }
+
+        // Update the summary proficiencies
+        const summaryProficiencies = document.getElementById('summaryProficiencies');
+        if (summaryProficiencies) {
+            summaryProficiencies.innerHTML = tpSources.map(source => `<p>${source}</p>`).join('');
         }
 
         // Update rarity based on total IP and gold cost

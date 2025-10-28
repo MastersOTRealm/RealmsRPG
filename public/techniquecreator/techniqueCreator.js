@@ -16,6 +16,7 @@ let weaponLibrary = [];
     const techniqueParts = techniquePartsData;
 
     const selectedTechniqueParts = [];
+    let tpSources = []; // New global array to track TP sources
 
     const actionTypeDescriptions = {
         basic: "Basic Action",
@@ -46,7 +47,7 @@ let weaponLibrary = [];
             <div class="option-container">
                 ${part.opt1Cost !== undefined || part.opt1Description ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}</h4>
+                    <h4>Energy: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}     Training Points: ${part.TPIncreaseOpt1 >= 0 ? '+' : ''}${part.TPIncreaseOpt1}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', -1)">-</button>
                     <span>Level: <span id="opt1Level-${partIndex}">${selectedTechniqueParts[partIndex].opt1Level}</span></span>
@@ -55,7 +56,7 @@ let weaponLibrary = [];
                 
                 ${part.opt2Cost !== undefined || part.opt2Description ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}</h4>
+                    <h4>Energy: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}     Training Points: ${part.TPIncreaseOpt2 >= 0 ? '+' : ''}${part.TPIncreaseOpt2}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', -1)">-</button>
                     <span>Level: <span id="opt2Level-${partIndex}">${selectedTechniqueParts[partIndex].opt2Level}</span></span>
@@ -64,7 +65,7 @@ let weaponLibrary = [];
     
                 ${part.opt3Cost !== undefined || part.opt3Description ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt3Cost >= 0 ? '+' : ''}${part.opt3Cost}</h4>
+                    <h4>Energy: ${part.opt3Cost >= 0 ? '+' : ''}${part.opt3Cost}     Training Points: ${part.TPIncreaseOpt3 >= 0 ? '+' : ''}${part.TPIncreaseOpt3}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', -1)">-</button>
                     <span>Level: <span id="opt3Level-${partIndex}">${selectedTechniqueParts[partIndex].opt3Level}</span></span>
@@ -155,6 +156,7 @@ let weaponLibrary = [];
     function updateTotalCosts() {
         let sumBaseEnergy = 0;
         let totalTP = 0;
+        tpSources = []; // Reset the array each time
 
         // Only base, increase, decrease parts (no linger, duration, etc)
         const baseEnergyParts = [];
@@ -183,31 +185,65 @@ let weaponLibrary = [];
             sumBaseEnergy += partEnergy;
             totalTP += partTP;
             // Add TP from options
-            totalTP += (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
-            totalTP += (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
-            totalTP += (part.TPIncreaseOpt3 || 0) * partData.opt3Level;
+            const opt1TP = (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
+            const opt2TP = (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
+            const opt3TP = (part.TPIncreaseOpt3 || 0) * partData.opt3Level;
+            totalTP += opt1TP + opt2TP + opt3TP;
+            if (partTP > 0 || opt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
+                let partSource = `${partTP} TP: ${part.name}`;
+                if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${opt1TP} TP)`;
+                if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.opt2Level}: ${opt2TP} TP)`;
+                if (opt3TP > 0) partSource += ` (Option 3 Level ${partData.opt3Level}: ${opt3TP} TP)`;
+                tpSources.push(partSource);
+            }
         });
 
         // --- Add weapon energy cost if weapon is selected ---
         if (selectedWeapon && selectedWeapon.name !== "Unarmed Prowess" && selectedWeapon.tp > 0) {
-            sumBaseEnergy += 0.5 * selectedWeapon.tp;
+            sumBaseEnergy += 0.25 * selectedWeapon.tp;
         }
         // ----------------------------------------------------
 
         // Calculate damage energy cost
         sumBaseEnergy += calculateDamageEnergyCost();
 
-        // Increase TP if damage dice are present
+        // Increase TP based on damage dice total value (dieAmount * dieSize / 6, rounded up)
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
         if (!isNaN(dieAmount1) && !isNaN(dieSize1)) {
-            totalTP += 1;
+            const totalValue1 = dieAmount1 * dieSize1;
+            const tp1 = Math.ceil(totalValue1 / 6);
+            totalTP += tp1;
+            let display1 = '';
+            if (tp1 === 1) {
+                display1 = `1d6`;
+            } else if (tp1 % 2 === 0) {
+                const y = tp1 / 2;
+                display1 = `${y}d12`;
+            } else {
+                const x = (tp1 - 1) / 2;
+                display1 = `${x}d12 & 1d6`;
+            }
+            tpSources.push(`${tp1} TP: ${display1}`);
         }
 
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
         const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
         if (!isNaN(dieAmount2) && !isNaN(dieSize2)) {
-            totalTP += 1;
+            const totalValue2 = dieAmount2 * dieSize2;
+            const tp2 = Math.ceil(totalValue2 / 6);
+            totalTP += tp2;
+            let display2 = '';
+            if (tp2 === 1) {
+                display2 = `1d6`;
+            } else if (tp2 % 2 === 0) {
+                const y = tp2 / 2;
+                display2 = `${y}d12`;
+            } else {
+                const x = (tp2 - 1) / 2;
+                display2 = `${x}d12 & 1d6`;
+            }
+            tpSources.push(`${tp2} TP: ${display2}`);
         }
 
         // Step 2: Apply increase parts
@@ -319,6 +355,10 @@ let weaponLibrary = [];
             summaryTop.insertBefore(weaponSummary, summaryTop.querySelector('p'));
         }
         weaponSummary.innerHTML = `Weapon: <span>${selectedWeapon ? selectedWeapon.name : "Unarmed Prowess"}</span>`;
+
+        // Update the summary proficiencies
+        const summaryProficiencies = document.getElementById('summaryProficiencies');
+        summaryProficiencies.innerHTML = tpSources.map(source => `<p>${source}</p>`).join('');
     }
 
     function capitalize(str) {
