@@ -56,7 +56,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             <div class="option-container">
                 ${part.opt1Cost !== undefined || part.opt1Description ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}</h4>
+                    <h4>Energy: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}     Training Points: ${part.TPIncreaseOpt1 >= 0 ? '+' : ''}${part.TPIncreaseOpt1}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', -1)">-</button>
                     <span>Level: <span id="opt1Level-${partIndex}">${selectedPowerParts[partIndex].opt1Level}</span></span>
@@ -65,7 +65,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
                 
                 ${part.opt2Cost !== undefined || part.opt2Description ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}</h4>
+                    <h4>Energy: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}     Training Points: ${part.TPIncreaseOpt2 >= 0 ? '+' : ''}${part.TPIncreaseOpt2}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', -1)">-</button>
                     <span>Level: <span id="opt2Level-${partIndex}">${selectedPowerParts[partIndex].opt2Level}</span></span>
@@ -74,7 +74,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     
                 ${part.opt3Cost !== undefined || part.opt3Description ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt3Cost >= 0 ? '+' : ''}${part.opt3Cost}</h4>
+                    <h4>Energy: ${part.opt3Cost >= 0 ? '+' : ''}${part.opt3Cost}     Training Points: ${part.TPIncreaseOpt3 >= 0 ? '+' : ''}${part.TPIncreaseOpt3}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', -1)">-</button>
                     <span>Level: <span id="opt3Level-${partIndex}">${selectedPowerParts[partIndex].opt3Level}</span></span>
@@ -291,17 +291,18 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             partEnergy += (part.opt3Cost || 0) * partData.opt3Level;
             sumBaseEnergy += partEnergy;
             totalTP += partTP;
-            if (partTP > 0) {
-                tpSources.push(`${partTP} TP: ${part.name}`);
-            }
             // Add TP from options
             const opt1TP = (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
             const opt2TP = (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
             const opt3TP = (part.TPIncreaseOpt3 || 0) * partData.opt3Level;
             totalTP += opt1TP + opt2TP + opt3TP;
-            if (opt1TP > 0) tpSources.push(`${opt1TP} TP: ${part.name} Option 1 (Level ${partData.opt1Level})`);
-            if (opt2TP > 0) tpSources.push(`${opt2TP} TP: ${part.name} Option 2 (Level ${partData.opt2Level})`);
-            if (opt3TP > 0) tpSources.push(`${opt3TP} TP: ${part.name} Option 3 (Level ${partData.opt3Level})`);
+            if (partTP > 0 || opt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
+                let partSource = `${partTP} TP: ${part.name}`;
+                if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${opt1TP} TP)`;
+                if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.opt2Level}: ${opt2TP} TP)`;
+                if (opt3TP > 0) partSource += ` (Option 3 Level ${partData.opt3Level}: ${opt3TP} TP)`;
+                tpSources.push(partSource);
+            }
         });
     
         console.log("Sum base energy after base parts:", sumBaseEnergy);
@@ -313,7 +314,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         totalTP += tpRange;
         if (tpRange > 0) {
             const displayRange = range === 0 ? 1 : range * 3;
-            tpSources.push(`${tpRange} TP: Range ${displayRange}`);
+            tpSources.push(`${tpRange} TP: Range ${tpRange * 12}`);
         }
     
         console.log("Sum base energy after range cost:", sumBaseEnergy);
@@ -330,7 +331,17 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             const totalValue1 = dieAmount1 * dieSize1;
             const tp1 = Math.ceil(totalValue1 / 6);
             totalTP += tp1;
-            tpSources.push(`${tp1} TP: ${dieAmount1}d${dieSize1} ${damageType1} damage`);
+            let display1 = '';
+            if (tp1 === 1) {
+                display1 = `1d6 ${damageType1}`;
+            } else if (tp1 % 2 === 0) {
+                const y = tp1 / 2;
+                display1 = `${y}d12 ${damageType1}`;
+            } else {
+                const x = (tp1 - 1) / 2;
+                display1 = `${x}d12 & 1d6 ${damageType1}`;
+            }
+            tpSources.push(`${tp1} TP: ${display1}`);
         }
 
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
@@ -340,7 +351,17 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             const totalValue2 = dieAmount2 * dieSize2;
             const tp2 = Math.ceil(totalValue2 / 6);
             totalTP += tp2;
-            tpSources.push(`${tp2} TP: ${dieAmount2}d${dieSize2} ${damageType2} damage`);
+            let display2 = '';
+            if (tp2 === 1) {
+                display2 = `1d6 ${damageType2}`;
+            } else if (tp2 % 2 === 0) {
+                const y = tp2 / 2;
+                display2 = `${y}d12 ${damageType2}`;
+            } else {
+                const x = (tp2 - 1) / 2;
+                display2 = `${x}d12 & 1d6 ${damageType2}`;
+            }
+            tpSources.push(`${tp2} TP: ${display2}`);
         }
     
         console.log("Sum base energy after damage cost:", sumBaseEnergy);
