@@ -42,6 +42,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   let selectedAbilities = [];
   let selectedTags = [];
   let tagMode = 'all'; // 'all' or 'any'
+  let showArchetype = true;
+  let showCharacter = true;
+
+  let allSkills = [];
+  let filteredSkills = [];
+  let skillSortState = { col: 'name', dir: 1 };
+  let selectedSkillAbilities = [];
+  let selectedBaseSkill = '';
+  let showSubSkills = true;
+  let subSkillsOnly = false;
 
   // -------------------------------------------------
   // Load data
@@ -78,6 +88,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           skill_req_value: typeof f.skill_req_value === 'string' ? f.skill_req_value.split(',').map(v => parseInt(v.trim()) || 0) : [],
           lvl_req: parseInt(f.lvl_req) || 0,
           uses_per_recovery: parseInt(f.uses_per_recovery) || 0,
+          mart_abil_req: f.mart_abil_req || '',
+          char_feat: f.char_feat || false,
         }));
 
         console.log(`✓ Loaded ${allFeats.length} feats successfully`);
@@ -163,6 +175,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (searchTerm && !f.name.toLowerCase().includes(searchTerm) && !f.tags.some(t => t.toLowerCase().includes(searchTerm)) && !(f.description && f.description.toLowerCase().includes(searchTerm))) return false;
       if (f.lvl_req > maxLevel) return false;
 
+      // Feat Type
+      if (!showArchetype && !f.char_feat) return false;
+      if (!showCharacter && f.char_feat) return false;
+
       // Ability Requirements
       for (const req of selectedAbilReqs) {
         const index = f.ability_req.indexOf(req.abil);
@@ -226,12 +242,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div class="feat-body">
           ${f.description ? `<div class="feat-description">${f.description}</div>` : ''}
+          ${f.char_feat ? '<div class="feat-type-chip">Character Feat</div>' : ''}
           <div class="requirements">
             ${f.req_desc ? `<div class="req-field"><label>Requirement Description:</label><span>${f.req_desc}</span></div>` : ''}
             ${f.ability_req.length ? `<div class="req-field"><label>Ability Requirements:</label><span>${f.ability_req.map((a, i) => `${a}${typeof f.abil_req_val[i] === 'number' ? ` ${f.abil_req_val[i]}` : ''}`).join(', ')}</span></div>` : ''}
             ${f.skill_req.length ? `<div class="req-field"><label>Skill Requirements:</label><span>${f.skill_req.map((s, i) => `${s}${typeof f.skill_req_value[i] === 'number' ? ` ${f.skill_req_value[i]}` : ''}`).join(', ')}</span></div>` : ''}
             ${f.feat_cat_req ? `<div class="req-field"><label>Feat Category Requirement:</label><span>${f.feat_cat_req}</span></div>` : ''}
             ${f.pow_abil_req ? `<div class="req-field"><label>Power Ability Requirement:</label><span>${f.pow_abil_req}</span></div>` : ''}
+            ${f.mart_abil_req ? `<div class="req-field"><label>Martial Ability Requirement:</label><span>${f.mart_abil_req}</span></div>` : ''}
             ${f.mart_prof_req ? `<div class="req-field"><label>Martial Proficiency Requirement:</label><span>${f.mart_prof_req}</span></div>` : ''}
             ${f.pow_prof_req ? `<div class="req-field"><label>Power Proficiency Requirement:</label><span>${f.pow_prof_req}</span></div>` : ''}
             ${f.speed_req ? `<div class="req-field"><label>Speed Requirement:</label><span>${f.speed_req}</span></div>` : ''}
@@ -314,6 +332,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyFilters();
   });
 
+  // Feat Type switches
+  document.getElementById('showArchetype').addEventListener('change', (e) => {
+    showArchetype = e.target.checked;
+    applyFilters();
+  });
+  document.getElementById('showCharacter').addEventListener('change', (e) => {
+    showCharacter = e.target.checked;
+    applyFilters();
+  });
+
   // Sorting
   document.querySelectorAll('.feat-headers .sort').forEach(sortBtn => {
     sortBtn.addEventListener('click', (e) => {
@@ -321,6 +349,177 @@ document.addEventListener('DOMContentLoaded', async () => {
       const dir = e.target.dataset.dir === 'asc' ? 1 : -1;
       sortState = { col, dir };
       applyFilters(); // re-filters and sorts
+    });
+  });
+
+  // Tab switching
+  window.openTab = function(event, tabName) {
+    const tabContents = document.querySelectorAll(".tab-content");
+    tabContents.forEach(content => content.classList.remove("active-tab"));
+
+    const tabButtons = document.querySelectorAll(".tab-button");
+    tabButtons.forEach(button => button.classList.remove("active"));
+
+    document.getElementById(tabName).classList.add("active-tab");
+    event.currentTarget.classList.add("active");
+  };
+
+  // Load skills
+  function loadSkills() {
+    console.log('Loading skills...');
+    get(ref(db, 'skills'))
+      .then(snap => {
+        const data = snap.val();
+        if (!data) {
+          document.getElementById('skillList').innerHTML = '<div class="no-results">No skills found in database.</div>';
+          return;
+        }
+        allSkills = Object.values(data).map(s => ({
+          ...s,
+          ability: typeof s.ability === 'string' ? s.ability.split(',').map(a => a.trim()).filter(a => a) : (Array.isArray(s.ability) ? s.ability : []),
+        }));
+        console.log(`✓ Loaded ${allSkills.length} skills successfully`);
+        populateSkillFilters();
+        applySkillFilters();
+      })
+      .catch(err => {
+        console.error('Error loading skills:', err);
+        document.getElementById('skillList').innerHTML = `<div class="no-results">Error loading skills.</div>`;
+      });
+  }
+
+  // Populate skill filters
+  function populateSkillFilters() {
+    const abilities = new Set();
+    const baseSkills = new Set();
+
+    allSkills.forEach(s => {
+      s.ability.forEach(a => abilities.add(a));
+      if (s.base_skill) baseSkills.add(s.base_skill);
+    });
+
+    const addOpts = (sel, vals) => {
+      sel.innerHTML = '<option value="">Choose...</option>' + Array.from(vals).sort().map(v => `<option value="${v}">${v}</option>`).join('');
+    };
+
+    addOpts(document.getElementById('skillAbilitySelect'), abilities);
+    document.getElementById('baseSkillSelect').innerHTML = '<option value="">Any</option>' + Array.from(baseSkills).sort().map(v => `<option value="${v}">${v}</option>`).join('');
+  }
+
+  // Apply skill filters
+  function applySkillFilters() {
+    const searchTerm = document.getElementById('skillSearch').value.toLowerCase();
+
+    filteredSkills = allSkills.filter(s => {
+      if (searchTerm && !s.name.toLowerCase().includes(searchTerm) && !(s.description && s.description.toLowerCase().includes(searchTerm)) && !(s.success_desc && s.success_desc.toLowerCase().includes(searchTerm)) && !(s.failure_desc && s.failure_desc.toLowerCase().includes(searchTerm))) return false;
+
+      if (selectedSkillAbilities.length && !selectedSkillAbilities.some(a => s.ability.includes(a))) return false;
+
+      if (selectedBaseSkill && s.base_skill !== selectedBaseSkill) return false;
+
+      if (!showSubSkills && s.base_skill) return false;
+
+      if (subSkillsOnly && !s.base_skill) return false;
+
+      return true;
+    });
+
+    applySkillSort();
+    renderSkills();
+  }
+
+  function applySkillSort() {
+    const { col, dir } = skillSortState;
+    filteredSkills.sort((a, b) => {
+      let valA = a[col] || '';
+      let valB = b[col] || '';
+      if (col === 'ability') {
+        valA = valA.join(', ');
+        valB = valB.join(', ');
+      }
+      return dir * valA.localeCompare(valB);
+    });
+  }
+
+  // Render skills
+  function renderSkills() {
+    if (!filteredSkills.length) {
+      document.getElementById('skillList').innerHTML = '<div class="no-results">No skills match your filters.</div>';
+      return;
+    }
+
+    document.getElementById('skillList').innerHTML = filteredSkills.map(s => `
+      <div class="skill-card" data-name="${s.name}">
+        <div class="skill-header" onclick="toggleSkillExpand(this)">
+          <div class="col">${s.name}</div>
+          <div class="col">${s.ability.join(', ')}</div>
+          <div class="col">${s.base_skill || ''}</div>
+          <span class="expand-icon">▼</span>
+        </div>
+        <div class="skill-body">
+          ${s.description ? `<div class="skill-description">${s.description}</div>` : ''}
+          ${s.success_desc ? `<div class="skill-success"><strong>Success:</strong> ${s.success_desc}</div>` : ''}
+          ${s.failure_desc ? `<div class="skill-failure"><strong>Failure:</strong> ${s.failure_desc}</div>` : ''}
+          ${s.ds_calc ? `<div class="ds-calc-chip" onclick="toggleDsCalc(this)">Difficulty Score Calculation ▼</div><div class="ds-calc-content">${s.ds_calc}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.toggleSkillExpand = function(header) {
+    header.parentElement.classList.toggle('expanded');
+  };
+
+  window.toggleDsCalc = function(chip) {
+    chip.nextElementSibling.classList.toggle('expanded');
+    chip.textContent = chip.nextElementSibling.classList.contains('expanded') ? 'Difficulty Score Calculation ▲' : 'Difficulty Score Calculation ▼';
+  };
+
+  // Load both on start
+  loadFeats();
+  loadSkills();
+
+  // Skill event listeners
+  document.getElementById('skillSearch').addEventListener('input', applySkillFilters);
+
+  document.getElementById('skillAbilitySelect').addEventListener('change', () => {
+    const val = document.getElementById('skillAbilitySelect').value;
+    if (val && !selectedSkillAbilities.includes(val)) {
+      selectedSkillAbilities.push(val);
+      createChip(val, document.getElementById('skillAbilityChips'), () => {
+        selectedSkillAbilities = selectedSkillAbilities.filter(a => a !== val);
+        applySkillFilters();
+      });
+      document.getElementById('skillAbilitySelect').value = '';
+      applySkillFilters();
+    }
+  });
+
+  document.getElementById('baseSkillSelect').addEventListener('change', () => {
+    selectedBaseSkill = document.getElementById('baseSkillSelect').value;
+    applySkillFilters();
+  });
+
+  document.getElementById('showSubSkills').addEventListener('change', (e) => {
+    showSubSkills = e.target.checked;
+    if (!showSubSkills) document.getElementById('subSkillsOnly').checked = false;
+    applySkillFilters();
+  });
+
+  document.getElementById('subSkillsOnly').addEventListener('change', (e) => {
+    subSkillsOnly = e.target.checked;
+    if (subSkillsOnly) document.getElementById('showSubSkills').checked = true;
+    showSubSkills = true;
+    applySkillFilters();
+  });
+
+  // Skill sorting
+  document.querySelectorAll('.skill-headers .sort').forEach(sortBtn => {
+    sortBtn.addEventListener('click', (e) => {
+      const col = e.target.closest('.col').dataset.col;
+      const dir = e.target.dataset.dir === 'asc' ? 1 : -1;
+      skillSortState = { col, dir };
+      applySkillFilters();
     });
   });
 });

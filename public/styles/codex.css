@@ -250,6 +250,16 @@ select, input {
   font-style: italic;
 }
 
+.feat-type-chip {
+  background: #4caf50;
+  color: white;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 16px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
 .requirements .req-field {
   display: flex;
   margin-bottom: 12px;
@@ -272,6 +282,190 @@ select, input {
   padding: 40px;
   color: var(--gray);
   font-style: italic;
+}
+
+.feat-type-options {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.feat-type-options input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.feat-type-options label {
+  font-size: 0.875rem;
+  color: var(--gray);
+}
+
+/* Tabs styles */
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 0 5px;
+  border-radius: 5px;
+}
+
+.tab-button:hover {
+  background-color: #0056b3;
+}
+
+.tab-button.active,
+.tab-button:focus {
+  background-color: #0056b3;
+  color: #fff;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+}
+
+.tab-content {
+  display: none;
+}
+
+.active-tab {
+  display: block;
+}
+
+/* Skills styles */
+.skill-headers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+  background: var(--card-bg);
+  border-radius: 8px 8px 0 0;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.skill-headers .col {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.skill-headers .col:nth-child(1) {
+  justify-content: flex-start;
+}
+
+.skill-headers .col:nth-child(3) {
+  justify-content: flex-end;
+}
+
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skill-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.skill-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.skill-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+  padding-right: 40px; /* Add space for expand icon */
+  cursor: pointer;
+  align-items: center;
+  position: relative;
+}
+
+.skill-header .col {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-header .col:nth-child(1) {
+  text-align: left;
+}
+
+.skill-header .col:nth-child(2) {
+  text-align: center;
+}
+
+.skill-header .col:nth-child(3) {
+  text-align: right;
+}
+
+.skill-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 16px;
+}
+
+.expanded .skill-body {
+  max-height: 1000px;
+  padding: 16px;
+}
+
+.skill-description, .skill-success, .skill-failure {
+  margin-bottom: 12px;
+}
+
+.ds-calc-chip {
+  background: var(--primary);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.ds-calc-content {
+  display: none;
+  padding: 12px;
+  background: var(--light-gray);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.ds-calc-content.expanded {
+  display: block;
+}
+
+.skill-type-options {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.skill-type-options input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.skill-type-options label {
+  font-size: 0.875rem;
+  color: var(--gray);
 }
 
 @media (max-width: 768px) {
