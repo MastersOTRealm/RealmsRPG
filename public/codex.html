@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codex - Realms</title>
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="/styles/main.css">
+  <link rel="stylesheet" href="/styles/codex.css">
+
+  <!-- Firebase CDN (global firebase object) -->
+  <script defer src="/__/firebase/11.3.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/11.3.0/firebase-database-compat.js"></script>
+  <script defer src="/__/firebase/11.3.0/firebase-app-check-compat.js"></script>
+  <script defer src="/__/firebase/init.js"></script>   <!-- remove ?useEmulator=true in prod -->
+
+  <!-- Your own script (non-module) -->
+  <script type="module" src="/scripts/codex.js"></script>
+</head>
+
+<body>
+  <header id="header"></header>
+
+  <div class="container">
+    <header>
+      <h1>Codex</h1>
+      <p>Browse and filter all available feats</p>
+    </header>
+
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="Search names, tags, descriptions...">
+    </div>
+
+    <div class="filters">
+      <!-- Switch not implemented as low priority -->
+      <div class="filter-group">
+        <label for="reqLevel">Required Level</label>
+        <select id="reqLevel">
+          <option value="">No limit</option>
+        </select>
+      </div>
+      <div class="filter-group multi">
+        <label>Ability Requirement</label>
+        <div class="input-group">
+          <select id="abilReqSelect">
+            <option value="">Choose ability</option>
+          </select>
+          <input type="number" id="abilReqValue" placeholder="Max value" min="0">
+          <button id="addAbilReq">Add</button>
+        </div>
+        <div id="abilReqChips" class="chips"></div>
+      </div>
+      <div class="filter-group multi">
+        <label for="categorySelect">Category</label>
+        <select id="categorySelect">
+          <option value="">Choose category</option>
+        </select>
+        <div id="categoryChips" class="chips"></div>
+      </div>
+      <div class="filter-group multi">
+        <label for="abilitySelect">Ability</label>
+        <select id="abilitySelect">
+          <option value="">Choose ability</option>
+        </select>
+        <div id="abilityChips" class="chips"></div>
+      </div>
+      <div class="filter-group multi" id="tagsFilterGroup">
+        <label for="tagSelect">Tags</label>
+        <div class="tag-controls">
+          <select id="tagSelect">
+            <option value="">Choose tag</option>
+          </select>
+          <div class="switch">
+            <input type="checkbox" id="tagModeSwitch">
+            <label for="tagModeSwitch">Any/All</label>
+          </div>
+        </div>
+        <div id="tagChips" class="chips"></div>
+      </div>
+    </div>
+
+    <div class="feat-headers">
+      <div class="col" data-col="name">
+        NAME
+        <div class="sort-group">
+          <span class="sort asc" data-dir="asc">A-Z</span>
+          <span class="sort desc" data-dir="desc">Z-A</span>
+        </div>
+      </div>
+      <div class="col" data-col="lvl_req">
+        REQ. LEVEL
+        <div class="sort-group">
+          <span class="sort asc" data-dir="asc">0-10</span>
+          <span class="sort desc" data-dir="desc">10-0</span>
+        </div>
+      </div>
+      <div class="col" data-col="category">
+        CATEGORY
+        <div class="sort-group">
+          <span class="sort asc" data-dir="asc">A-Z</span>
+          <span class="sort desc" data-dir="desc">Z-A</span>
+        </div>
+      </div>
+      <div class="col" data-col="ability">
+        ABILITY
+        <div class="sort-group">
+          <span class="sort asc" data-dir="asc">A-Z</span>
+          <span class="sort desc" data-dir="desc">Z-A</span>
+        </div>
+      </div>
+      <div class="col" data-col="recovery_period">
+        RECOVERY
+        <div class="sort-group">
+          <span class="sort asc" data-dir="asc">FULL PART</span>
+          <span class="sort desc" data-dir="desc">PART FULL</span>
+        </div>
+      </div>
+      <div class="col" data-col="uses_per_recovery">
+        USES
+        <div class="sort-group">
+          <span class="sort asc" data-dir="asc">0-10</span>
+          <span class="sort desc" data-dir="desc">10-0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="featList" class="feat-list">
+      <div class="no-results">Loading feats...</div>
+    </div>
+  </div>
+
+  <footer id="footer"></footer>
+
+  <!-- Header/Footer loader -->
+  <script>
+    async function loadHeaderFooter() {
+      const [h, f] = await Promise.all([
+        fetch('/header.html').then(r => r.text()),
+        fetch('/footer.html').then(r => r.text())
+      ]);
+      document.getElementById('header').innerHTML = h;
+      document.getElementById('footer').innerHTML = f;
+    }
+    loadHeaderFooter();
+    
+    // Initialize App Check to suppress warning
+    if (typeof firebase !== 'undefined' && firebase.appCheck) {
+      const appCheck = firebase.appCheck();
+      appCheck.activate('6Ld4CaAqAAAAAMXFsM-yr1eNlQGVitSASCC7SmA', true);
+    }
+  </script>
+</body>
+</html>
