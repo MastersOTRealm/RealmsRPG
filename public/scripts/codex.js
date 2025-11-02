@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let selectedBaseSkill = '';
   let showSubSkills = true;
   let subSkillsOnly = false;
+  let skillsMap = new Map(); // Map for skill name to description
 
   let allSpecies = [];
   let filteredSpecies = [];
@@ -428,6 +429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           ...s,
           ability: typeof s.ability === 'string' ? s.ability.split(',').map(a => a.trim()).filter(a => a) : (Array.isArray(s.ability) ? s.ability : []),
         }));
+        skillsMap = new Map(allSkills.map(s => [s.name, s.description || 'No description'])); // Populate map with name and description
         console.log(`✓ Loaded ${allSkills.length} skills successfully`);
         skillsLoaded = true;
         populateSkillFilters();
@@ -729,6 +731,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             <h3>Characteristics</h3>
             <div class="trait-grid">
               ${s.characteristics.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+            </div>
+          </div>
+          <div class="trait-section">
+            <h3>Skills</h3>
+            <div class="trait-grid">
+              ${s.skills.length ? s.skills.map(skill => {
+                const desc = skillsMap.get(skill) || 'No description';
+                return `<div class="trait-item"><h4>${skill}</h4><p>${desc}</p></div>`;
+              }).join('') : '<div class="trait-item"><h4>No skills listed</h4></div>'}
             </div>
           </div>
           <div class="species-details">
