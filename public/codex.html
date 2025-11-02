@@ -26,6 +26,7 @@
     <div class="tabs">
       <button class="tab-button active" onclick="openTab(event, 'feats')">Feats</button>
       <button class="tab-button" onclick="openTab(event, 'skills')">Skills</button>
+      <button class="tab-button" onclick="openTab(event, 'species')">Species</button>
     </div>
     <div id="feats" class="tab-content active-tab">
       <div class="search-bar">
@@ -193,6 +194,59 @@
 
       <div id="skillList" class="skill-list">
         <div class="no-results">Loading skills...</div>
+      </div>
+    </div>
+    <div id="species" class="tab-content">
+      <div class="search-bar">
+        <input type="text" id="speciesSearch" placeholder="Search names, descriptions...">
+      </div>
+
+      <div class="filters">
+        <div class="filter-group multi">
+          <label>Type</label>
+          <select id="speciesTypeSelect">
+            <option value="">Choose type</option>
+          </select>
+          <div id="speciesTypeChips" class="chips"></div>
+        </div>
+        <div class="filter-group multi">
+          <label>Size</label>
+          <select id="speciesSizeSelect">
+            <option value="">Choose size</option>
+          </select>
+          <div id="speciesSizeChips" class="chips"></div>
+        </div>
+      </div>
+
+      <div class="species-headers">
+        <div class="col" data-col="name">
+          NAME
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="type">
+          TYPE
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="sizes">
+          SIZES
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="description">
+          DESCRIPTION
+        </div>
+      </div>
+
+      <div id="speciesList" class="species-list">
+        <div class="no-results">Loading species...</div>
       </div>
     </div>
   </div>

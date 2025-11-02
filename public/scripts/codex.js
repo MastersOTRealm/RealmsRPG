@@ -4,6 +4,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (window.codexInitialized) return;
+  window.codexInitialized = true;
+
   // Fetch config and initialize Firebase/appCheck
   const response = await fetch('/__/firebase/init.json');
   const firebaseConfig = await response.json();
@@ -53,10 +56,55 @@ document.addEventListener('DOMContentLoaded', async () => {
   let showSubSkills = true;
   let subSkillsOnly = false;
 
+  let allSpecies = [];
+  let filteredSpecies = [];
+  let speciesSortState = { col: 'name', dir: 1 };
+  let selectedTypes = [];
+  let selectedSizes = [];
+  let allTraits = {};
+
+  // Utility functions for species
+  function cmToFtIn(cm) {
+    if (!cm) return 'N/A';
+    const inches = cm / 2.54;
+    const ft = Math.floor(inches / 12);
+    const inc = Math.round(inches % 12);
+    return `${ft}'${inc}"`;
+  }
+
+  function kgToLb(kg) {
+    if (!kg) return 'N/A';
+    return Math.round(kg * 2.20462);
+  }
+
+  let featsLoaded = false;
+  let skillsLoaded = false;
+  let traitsLoaded = false;
+  let speciesLoaded = false;
+
+  // Load traits
+  function loadTraits() {
+    if (traitsLoaded) return;
+    console.log('Loading traits...');
+    get(ref(db, 'traits'))
+      .then(snap => {
+        const data = snap.val();
+        if (data) {
+          allTraits = data;
+          console.log(`✓ Loaded ${Object.keys(allTraits).length} traits`);
+        }
+        traitsLoaded = true;
+      })
+      .catch(err => {
+        console.error('Error loading traits:', err);
+      });
+  }
+
   // -------------------------------------------------
   // Load data
   // -------------------------------------------------
   function loadFeats() {
+    if (featsLoaded) return;
     console.log('Firebase ready. Starting feat load...');
     console.log('Database URL:', firebaseConfig.databaseURL);
 
@@ -93,6 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }));
 
         console.log(`✓ Loaded ${allFeats.length} feats successfully`);
+        featsLoaded = true;
         populateFilters();
         applyFilters();
       })
@@ -366,6 +415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load skills
   function loadSkills() {
+    if (skillsLoaded) return;
     console.log('Loading skills...');
     get(ref(db, 'skills'))
       .then(snap => {
@@ -379,6 +429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           ability: typeof s.ability === 'string' ? s.ability.split(',').map(a => a.trim()).filter(a => a) : (Array.isArray(s.ability) ? s.ability : []),
         }));
         console.log(`✓ Loaded ${allSkills.length} skills successfully`);
+        skillsLoaded = true;
         populateSkillFilters();
         applySkillFilters();
       })
@@ -522,4 +573,222 @@ document.addEventListener('DOMContentLoaded', async () => {
       applySkillFilters();
     });
   });
+
+  // Load species
+  function loadSpecies() {
+    if (speciesLoaded) return;
+    console.log('Loading species...');
+    get(ref(db, 'species'))
+      .then(snap => {
+        const data = snap.val();
+        if (!data) {
+          document.getElementById('speciesList').innerHTML = '<div class="no-results">No species found in database.</div>';
+          return;
+        }
+        allSpecies = Object.values(data).map(s => {
+          let adulthood_max_age = s.adulthood_max_age ? s.adulthood_max_age.split(',').map(n => parseInt(n.trim())) : [0, 0];
+          let adulthood = adulthood_max_age[0] || 0;
+          let max_age = adulthood_max_age[1] || 0;
+          let skills = typeof s.skills === 'string' ? s.skills.split(',').map(sk => sk.trim()) : (Array.isArray(s.skills) ? s.skills : []);
+          let languages = typeof s.languages === 'string' ? s.languages.split(',').map(l => l.trim()) : (Array.isArray(s.languages) ? s.languages : []);
+          let species_traits = typeof s.species_traits === 'string' ? s.species_traits.split(',').map(name => name.trim()) : (Array.isArray(s.species_traits) ? s.species_traits : []);
+          let ancestry_traits = typeof s.ancestry_traits === 'string' ? s.ancestry_traits.split(',').map(name => name.trim()) : (Array.isArray(s.ancestry_traits) ? s.ancestry_traits : []);
+          let flaws = typeof s.flaws === 'string' ? s.flaws.split(',').map(name => name.trim()) : (Array.isArray(s.flaws) ? s.flaws : []);
+          let characteristics = typeof s.characteristics === 'string' ? s.characteristics.split(',').map(name => name.trim()) : (Array.isArray(s.characteristics) ? s.characteristics : []);
+          const cleanTraitName = (rawName) => {
+            let cleanKey = rawName.trim()
+              .replace(/[.$#\[\]\/]/g, '_')
+              .replace(/\s+/g, '_')
+              .replace(/_+/g, '_')
+              .replace(/^_+|_+$/g, '');
+            return cleanKey || rawName.trim().replace(/\s+/g, '_');
+          };
+          species_traits = species_traits.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
+          ancestry_traits = ancestry_traits.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
+          flaws = flaws.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
+          characteristics = characteristics.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
+          return {
+            ...s,
+            ave_height: cmToFtIn(s.ave_hgt_cm),
+            ave_weight: kgToLb(s.ave_wgt_kg),
+            adulthood,
+            max_age,
+            skills,
+            languages,
+            species_traits,
+            ancestry_traits,
+            flaws,
+            characteristics,
+            sizes: s.sizes ? s.sizes.split(',').map(sz => sz.trim()) : [],
+            type: s.type || '',
+          };
+        });
+        console.log(`✓ Loaded ${allSpecies.length} species successfully`);
+        speciesLoaded = true;
+        populateSpeciesFilters();
+        applySpeciesFilters();
+      })
+      .catch(err => {
+        console.error('Error loading species:', err);
+        document.getElementById('speciesList').innerHTML = `<div class="no-results">Error loading species.</div>`;
+      });
+  }
+
+  // Populate species filters
+  function populateSpeciesFilters() {
+    const types = new Set();
+    const sizes = new Set();
+
+    allSpecies.forEach(s => {
+      if (s.type) types.add(s.type);
+      s.sizes.forEach(sz => sizes.add(sz));
+    });
+
+    const addOpts = (sel, vals) => {
+      sel.innerHTML = '<option value="">Choose...</option>' + Array.from(vals).sort().map(v => `<option value="${v}">${v}</option>`).join('');
+    };
+
+    addOpts(document.getElementById('speciesTypeSelect'), types);
+    addOpts(document.getElementById('speciesSizeSelect'), sizes);
+  }
+
+  // Apply species filters
+  function applySpeciesFilters() {
+    const searchTerm = document.getElementById('speciesSearch').value.toLowerCase();
+
+    filteredSpecies = allSpecies.filter(s => {
+      if (searchTerm && 
+        !s.name.toLowerCase().includes(searchTerm) && 
+        !(s.description && s.description.toLowerCase().includes(searchTerm))) return false;
+
+      if (selectedTypes.length && !selectedTypes.includes(s.type)) return false;
+
+      if (selectedSizes.length && !s.sizes.some(sz => selectedSizes.includes(sz))) return false;
+
+      return true;
+    });
+
+    applySpeciesSort();
+    renderSpecies();
+  }
+
+  function applySpeciesSort() {
+    const { col, dir } = speciesSortState;
+    filteredSpecies.sort((a, b) => {
+      let valA = a[col];
+      let valB = b[col];
+      if (col === 'sizes') {
+        valA = a.sizes.join(', ');
+        valB = b.sizes.join(', ');
+      }
+      if (typeof valA === 'string') {
+        return dir * valA.localeCompare(valB);
+      } else {
+        return dir * (valA - valB);
+      }
+    });
+  }
+
+  // Render species
+  function renderSpecies() {
+    if (!filteredSpecies.length) {
+      document.getElementById('speciesList').innerHTML = '<div class="no-results">No species match your filters.</div>';
+      return;
+    }
+
+    document.getElementById('speciesList').innerHTML = filteredSpecies.map(s => `
+      <div class="species-card" data-name="${s.name}">
+        <div class="species-header" onclick="toggleSpeciesExpand(this)">
+          <div class="col">${s.name}</div>
+          <div class="col">${s.type || ''}</div>
+          <div class="col">${s.sizes.join(', ')}</div>
+          <div class="col">${s.description ? s.description.substring(0, 100) + '...' : ''}</div>
+          <span class="expand-icon">▼</span>
+        </div>
+        <div class="species-body">
+          ${s.description ? `<div class="species-description">${s.description}</div>` : ''}
+          <div class="trait-section">
+            <h3>Species Traits</h3>
+            <div class="trait-grid">
+              ${s.species_traits.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+            </div>
+          </div>
+          <div class="trait-section">
+            <h3>Ancestry Traits</h3>
+            <div class="trait-grid">
+              ${s.ancestry_traits.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+            </div>
+          </div>
+          <div class="trait-section">
+            <h3>Flaws</h3>
+            <div class="trait-grid">
+              ${s.flaws.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+            </div>
+          </div>
+          <div class="trait-section">
+            <h3>Characteristics</h3>
+            <div class="trait-grid">
+              ${s.characteristics.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+            </div>
+          </div>
+          <div class="species-details">
+            <div><strong>Average Weight:</strong> ${s.ave_wgt_kg || 'N/A'} kg</div>
+            <div><strong>Average Height:</strong> ${s.ave_hgt_cm || 'N/A'} cm</div>
+            <div><strong>Lifespan:</strong> ${s.max_age || 'N/A'} years</div>
+            <div><strong>Adulthood:</strong> ${s.adulthood || 'N/A'} years</div>
+            <div><strong>Languages:</strong> ${s.languages.join(', ') || 'None'}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.toggleSpeciesExpand = function(header) {
+    header.parentElement.classList.toggle('expanded');
+  };
+
+  // Species event listeners
+  document.getElementById('speciesSearch').addEventListener('input', applySpeciesFilters);
+
+  document.getElementById('speciesTypeSelect').addEventListener('change', () => {
+    const val = document.getElementById('speciesTypeSelect').value;
+    if (val && !selectedTypes.includes(val)) {
+      selectedTypes.push(val);
+      createChip(val, document.getElementById('speciesTypeChips'), () => {
+        selectedTypes = selectedTypes.filter(t => t !== val);
+        applySpeciesFilters();
+      });
+      document.getElementById('speciesTypeSelect').value = '';
+      applySpeciesFilters();
+    }
+  });
+
+  document.getElementById('speciesSizeSelect').addEventListener('change', () => {
+    const val = document.getElementById('speciesSizeSelect').value;
+    if (val && !selectedSizes.includes(val)) {
+      selectedSizes.push(val);
+      createChip(val, document.getElementById('speciesSizeChips'), () => {
+        selectedSizes = selectedSizes.filter(sz => sz !== val);
+        applySpeciesFilters();
+      });
+      document.getElementById('speciesSizeSelect').value = '';
+      applySpeciesFilters();
+    }
+  });
+
+  // Species sorting
+  document.querySelectorAll('.species-headers .sort').forEach(sortBtn => {
+    sortBtn.addEventListener('click', (e) => {
+      const col = e.target.closest('.col').dataset.col;
+      const dir = e.target.dataset.dir === 'asc' ? 1 : -1;
+      speciesSortState = { col, dir };
+      applySpeciesFilters();
+    });
+  });
+
+  // Load all on start
+  loadTraits();
+  loadFeats();
+  loadSkills();
+  loadSpecies();
 });

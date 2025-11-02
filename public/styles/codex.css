@@ -367,6 +367,16 @@ select, input {
   justify-content: flex-end;
 }
 
+.skill-headers .sort {
+  font-size: 0.75rem;
+  color: var(--gray);
+  cursor: pointer;
+}
+
+.skill-headers .sort:hover {
+  color: var(--primary);
+}
+
 .skill-list {
   display: flex;
   flex-direction: column;
@@ -468,9 +478,134 @@ select, input {
   color: var(--gray);
 }
 
+/* Species styles */
+.species-headers {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 3.5fr;
+  gap: 8px;
+  padding: 12px;
+  background: var(--card-bg);
+  border-radius: 8px 8px 0 0;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.species-headers .col {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  justify-content: flex-start; /* Center-left align */
+}
+
+.species-header {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 3.5fr;
+  gap: 8px;
+  padding: 12px;
+  cursor: pointer;
+  align-items: center;
+  position: relative;
+}
+
+.species-header .col {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left; /* Center-left align */
+}
+
+.species-header .col:nth-child(4) {
+  white-space: normal; /* Allow wrapping for description */
+}
+
+.species-headers .sort {
+  font-size: 0.75rem;
+  color: var(--gray);
+  cursor: pointer;
+}
+
+.species-headers .sort:hover {
+  color: var(--primary);
+}
+
+.species-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.species-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.species-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* Increased from 4px for more space between cards */
+}
+
+.species-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 16px;
+}
+
+.expanded .species-body {
+  max-height: 2000px; /* Increased for more content */
+  padding: 16px;
+}
+
+.species-description {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--light-gray);
+  border-radius: 8px;
+  font-style: italic;
+}
+
+.trait-section {
+  margin-bottom: 24px;
+}
+
+.trait-section h3 {
+  font-size: 1.2rem;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.trait-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.trait-item {
+  background: var(--light-gray);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.trait-item h4 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.trait-item p {
+  font-size: 0.9rem;
+  color: var(--gray);
+}
+
 @media (max-width: 768px) {
   .filters { flex-direction: column; }
   .feat-headers, .feat-header { grid-template-columns: 2fr 1fr 1fr; }
+  .skill-headers, .skill-header { grid-template-columns: 2fr 1fr; }
+  .species-headers, .species-header { grid-template-columns: 1.5fr 1fr 1fr 2.5fr; } /* Adjusted for mobile */
   .requirements .req-field { flex-direction: column; }
   .requirements .req-field label { width: auto; margin-bottom: 4px; }
+  .trait-grid { grid-template-columns: 1fr; }
 }
