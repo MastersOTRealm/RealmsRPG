@@ -13,10 +13,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   firebaseConfig.authDomain = 'realmsroleplaygame.com';
   const app = initializeApp(firebaseConfig);
 
-  initializeAppCheck(app, {
+  // Initialize AppCheck FIRST and wait for it
+  const appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
     isTokenAutoRefreshEnabled: true
   });
+
+  // Add a small delay to ensure AppCheck token is ready
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   const db = getDatabase(app);
 
@@ -85,9 +89,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load traits
   function loadTraits() {
-    if (traitsLoaded) return;
+    if (traitsLoaded) return Promise.resolve();
     console.log('Loading traits...');
-    get(ref(db, 'traits'))
+    return get(ref(db, 'traits'))
       .then(snap => {
         const data = snap.val();
         if (data) {
@@ -98,6 +102,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       })
       .catch(err => {
         console.error('Error loading traits:', err);
+        if (err.code === 'PERMISSION_DENIED') {
+          console.error('Permission denied for /traits - check Firebase Realtime Database Rules');
+        }
       });
   }
 
@@ -162,7 +169,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Start loading feats
-  loadFeats();
+  // loadFeats();
+  // loadSkills();
+  // loadTraits();
+  // loadSpecies();
 
   // -------------------------------------------------
   // Populate Filters
@@ -437,7 +447,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       })
       .catch(err => {
         console.error('Error loading skills:', err);
-        document.getElementById('skillList').innerHTML = `<div class="no-results">Error loading skills.</div>`;
+        let errorMsg = 'Error loading skills. ';
+        if (err.code === 'PERMISSION_DENIED') {
+          errorMsg += 'Permission denied - check Firebase Realtime Database Rules.';
+        }
+        document.getElementById('skillList').innerHTML = `<div class="no-results">${errorMsg}</div>`;
       });
   }
 
@@ -528,54 +542,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     chip.textContent = chip.nextElementSibling.classList.contains('expanded') ? 'Difficulty Score Calculation ▲' : 'Difficulty Score Calculation ▼';
   };
 
-  // Load both on start
-  loadFeats();
-  loadSkills();
-
-  // Skill event listeners
-  document.getElementById('skillSearch').addEventListener('input', applySkillFilters);
-
-  document.getElementById('skillAbilitySelect').addEventListener('change', () => {
-    const val = document.getElementById('skillAbilitySelect').value;
-    if (val && !selectedSkillAbilities.includes(val)) {
-      selectedSkillAbilities.push(val);
-      createChip(val, document.getElementById('skillAbilityChips'), () => {
-        selectedSkillAbilities = selectedSkillAbilities.filter(a => a !== val);
-        applySkillFilters();
-      });
-      document.getElementById('skillAbilitySelect').value = '';
-      applySkillFilters();
-    }
-  });
-
-  document.getElementById('baseSkillSelect').addEventListener('change', () => {
-    selectedBaseSkill = document.getElementById('baseSkillSelect').value;
-    applySkillFilters();
-  });
-
-  document.getElementById('showSubSkills').addEventListener('change', (e) => {
-    showSubSkills = e.target.checked;
-    if (!showSubSkills) document.getElementById('subSkillsOnly').checked = false;
-    applySkillFilters();
-  });
-
-  document.getElementById('subSkillsOnly').addEventListener('change', (e) => {
-    subSkillsOnly = e.target.checked;
-    if (subSkillsOnly) document.getElementById('showSubSkills').checked = true;
-    showSubSkills = true;
-    applySkillFilters();
-  });
-
-  // Skill sorting
-  document.querySelectorAll('.skill-headers .sort').forEach(sortBtn => {
-    sortBtn.addEventListener('click', (e) => {
-      const col = e.target.closest('.col').dataset.col;
-      const dir = e.target.dataset.dir === 'asc' ? 1 : -1;
-      skillSortState = { col, dir };
-      applySkillFilters();
-    });
-  });
-
   // Load species
   function loadSpecies() {
     if (speciesLoaded) return;
@@ -632,7 +598,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       })
       .catch(err => {
         console.error('Error loading species:', err);
-        document.getElementById('speciesList').innerHTML = `<div class="no-results">Error loading species.</div>`;
+        let errorMsg = 'Error loading species. ';
+        if (err.code === 'PERMISSION_DENIED') {
+          errorMsg += 'Permission denied - check Firebase Realtime Database Rules.';
+        }
+        document.getElementById('speciesList').innerHTML = `<div class="no-results">${errorMsg}</div>`;
       });
   }
 
@@ -798,8 +768,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Load all on start
-  loadTraits();
+  // Load traits first, then species (since species depends on traits)
+  loadTraits().then(() => {
+    loadSpecies();
+  });
   loadFeats();
   loadSkills();
-  loadSpecies();
 });
