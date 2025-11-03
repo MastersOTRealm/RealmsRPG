@@ -24,6 +24,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const db = getDatabase(app);
 
+  // Retry wrapper for transient offline/network hiccups
+  async function getWithRetry(path, attempts = 3) {
+    const r = ref(db, path);
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await get(r);
+      } catch (err) {
+        lastErr = err;
+        const msg = (err && err.message) || '';
+        const isOffline = msg.includes('Client is offline') || msg.toLowerCase().includes('network');
+        if (!isOffline || i === attempts - 1) throw err;
+        await new Promise(res => setTimeout(res, 500 * (i + 1))); // simple backoff
+      }
+    }
+    throw lastErr;
+  }
+
   const elements = {
     list: document.getElementById('featList'),
     search: document.getElementById('search'),
@@ -123,7 +141,44 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }, 10000);
 
-    get(ref(db, 'feats'))
+    // Helpers to normalize DB shapes: string | array | object-with-numeric-keys
+    const toStrArray = (val) => {
+      if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
+      if (typeof val === 'string') return val.split(',').map(v => v.trim()).filter(Boolean);
+      if (val && typeof val === 'object') {
+        return Object.keys(val)
+          .sort((a, b) => Number(a) - Number(b))
+          .map(k => String(val[k]).trim())
+          .filter(Boolean);
+      }
+      return [];
+    };
+    const toNumArray = (val) => {
+      // Normalize numbers coming from Firebase which may be:
+      // - an array of numbers
+      // - a comma-separated string
+      // - a numeric scalar
+      // - an object with numeric keys (Firebase's array-like object)
+      if (val == null) return [];
+      if (Array.isArray(val)) return val.map(v => parseInt(String(v).trim()) || 0);
+      if (typeof val === 'number') return [val];
+      if (typeof val === 'string') {
+        const parts = val.split(',').map(v => v.trim()).filter(Boolean);
+        if (parts.length === 0) return [];
+        return parts.map(p => parseInt(p) || 0);
+      }
+      if (typeof val === 'object') {
+        return Object.keys(val)
+          .sort((a, b) => Number(a) - Number(b))
+          .map(k => {
+            const v = val[k];
+            return typeof v === 'number' ? v : parseInt(String(v).trim()) || 0;
+          });
+      }
+      return [];
+    };
+
+    getWithRetry('feats')
       .then(snap => {
         clearTimeout(timeoutId);
         console.log('Snapshot received:', snap.exists() ? 'Data exists' : 'No data at /feats');
@@ -137,11 +192,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         allFeats = Object.values(data).map(f => ({
           ...f,
-          tags: typeof f.tags === 'string' ? f.tags.split(',').map(t => t.trim()) : (Array.isArray(f.tags) ? f.tags : []),
-          ability_req: typeof f.ability_req === 'string' ? f.ability_req.split(',').map(a => a.trim()).filter(a => a) : [],
-          abil_req_val: typeof f.abil_req_val === 'string' ? f.abil_req_val.split(',').map(v => parseInt(v.trim()) || 0) : [],
-          skill_req: typeof f.skill_req === 'string' ? f.skill_req.split(',').map(s => s.trim()).filter(s => s) : [],
-          skill_req_value: typeof f.skill_req_value === 'string' ? f.skill_req_value.split(',').map(v => parseInt(v.trim()) || 0) : [],
+          // Normalized arrays (handles string | array | object)
+          ability_req: toStrArray(f.ability_req),
+          abil_req_val: toNumArray(f.abil_req_val),
+          tags: toStrArray(f.tags),
+          skill_req: toStrArray(f.skill_req),
+          skill_req_value: toNumArray(f.skill_req_value),
           lvl_req: parseInt(f.lvl_req) || 0,
           uses_per_recovery: parseInt(f.uses_per_recovery) || 0,
           mart_abil_req: f.mart_abil_req || '',
@@ -242,7 +298,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Ability Requirements
       for (const req of selectedAbilReqs) {
         const index = f.ability_req.indexOf(req.abil);
-        if (index !== -1 && f.abil_req_val[index] > req.val) return false;
+        if (index !== -1) {
+          // Support abil_req_val being an array or a numeric scalar
+          let v = NaN;
+          if (Array.isArray(f.abil_req_val)) v = Number(f.abil_req_val[index]);
+          else if (typeof f.abil_req_val === 'number') v = Number(f.abil_req_val);
+          else if (typeof f.abil_req_val === 'string') v = Number(f.abil_req_val);
+          if (Number.isFinite(v) && v > req.val) return false;
+        }
       }
 
       // Categories (OR)
@@ -301,12 +364,25 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="expand-icon">▼</span>
         </div>
         <div class="feat-body">
-          ${f.description ? `<div class="feat-description">${f.description}</div>` : ''}
+          ${f.description ? `<div class="feat-description" style="color:#000;">${f.description}</div>` : ''}
           ${f.char_feat ? '<div class="feat-type-chip">Character Feat</div>' : ''}
           <div class="requirements">
             ${f.req_desc ? `<div class="req-field"><label>Requirement Description:</label><span>${f.req_desc}</span></div>` : ''}
-            ${f.ability_req.length ? `<div class="req-field"><label>Ability Requirements:</label><span>${f.ability_req.map((a, i) => `${a}${typeof f.abil_req_val[i] === 'number' ? ` ${f.abil_req_val[i]}` : ''}`).join(', ')}</span></div>` : ''}
-            ${f.skill_req.length ? `<div class="req-field"><label>Skill Requirements:</label><span>${f.skill_req.map((s, i) => `${s}${typeof f.skill_req_value[i] === 'number' ? ` ${f.skill_req_value[i]}` : ''}`).join(', ')}</span></div>` : ''}
+            ${f.ability_req.length ? `<div class="req-field"><label>Ability Requirements:</label><span>${
+              f.ability_req.map((a, i) => {
+                let v = NaN;
+                if (Array.isArray(f.abil_req_val)) v = Number(f.abil_req_val[i]);
+                else if (typeof f.abil_req_val === 'number') v = Number(f.abil_req_val);
+                else if (typeof f.abil_req_val === 'string') v = Number(f.abil_req_val);
+                return `${a}${Number.isFinite(v) ? ` ${v}` : ''}`;
+              }).join(', ')
+            }</span></div>` : ''}
+            ${f.skill_req.length ? `<div class="req-field"><label>Skill Requirements:</label><span>${
+              f.skill_req.map((s, i) => {
+                const v = Number(f.skill_req_value?.[i]);
+                return `${s}${Number.isFinite(v) ? ` ${v}` : ''}`;
+              }).join(', ')
+            }</span></div>` : ''}
             ${f.feat_cat_req ? `<div class="req-field"><label>Feat Category Requirement:</label><span>${f.feat_cat_req}</span></div>` : ''}
             ${f.pow_abil_req ? `<div class="req-field"><label>Power Ability Requirement:</label><span>${f.pow_abil_req}</span></div>` : ''}
             ${f.mart_abil_req ? `<div class="req-field"><label>Martial Ability Requirement:</label><span>${f.mart_abil_req}</span></div>` : ''}
@@ -428,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function loadSkills() {
     if (skillsLoaded) return;
     console.log('Loading skills...');
-    get(ref(db, 'skills'))
+    getWithRetry('skills')
       .then(snap => {
         const data = snap.val();
         if (!data) {
@@ -524,9 +600,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="expand-icon">▼</span>
         </div>
         <div class="skill-body">
-          ${s.description ? `<div class="skill-description">${s.description}</div>` : ''}
-          ${s.success_desc ? `<div class="skill-success"><strong>Success:</strong> ${s.success_desc}</div>` : ''}
-          ${s.failure_desc ? `<div class="skill-failure"><strong>Failure:</strong> ${s.failure_desc}</div>` : ''}
+          ${s.description ? `<div class="skill-description" style="color:#000;">${s.description}</div>` : ''}
+          ${s.success_desc ? `<div class="skill-success" style="color:#000;"><strong>Success:</strong> ${s.success_desc}</div>` : ''}
+          ${s.failure_desc ? `<div class="skill-failure" style="color:#000;"><strong>Failure:</strong> ${s.failure_desc}</div>` : ''}
           ${s.ds_calc ? `<div class="ds-calc-chip" onclick="toggleDsCalc(this)">Difficulty Score Calculation ▼</div><div class="ds-calc-content">${s.ds_calc}</div>` : ''}
         </div>
       </div>
@@ -678,29 +754,29 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="expand-icon">▼</span>
         </div>
         <div class="species-body">
-          ${s.description ? `<div class="species-description">${s.description}</div>` : ''}
+          ${s.description ? `<div class="species-description" style="font-style:normal;color:#000;">${s.description}</div>` : ''}
           <div class="trait-section">
             <h3>Species Traits</h3>
             <div class="trait-grid">
-              ${s.species_traits.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+              ${s.species_traits.map(t => `<div class="trait-item"><h4>${t.name}</h4><p style="color:#000;">${t.desc}</p></div>`).join('')}
             </div>
           </div>
           <div class="trait-section">
             <h3>Ancestry Traits</h3>
             <div class="trait-grid">
-              ${s.ancestry_traits.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+              ${s.ancestry_traits.map(t => `<div class="trait-item"><h4>${t.name}</h4><p style="color:#000;">${t.desc}</p></div>`).join('')}
             </div>
           </div>
           <div class="trait-section">
             <h3>Flaws</h3>
             <div class="trait-grid">
-              ${s.flaws.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+              ${s.flaws.map(t => `<div class="trait-item"><h4>${t.name}</h4><p style="color:#000;">${t.desc}</p></div>`).join('')}
             </div>
           </div>
           <div class="trait-section">
             <h3>Characteristics</h3>
             <div class="trait-grid">
-              ${s.characteristics.map(t => `<div class="trait-item"><h4>${t.name}</h4><p>${t.desc}</p></div>`).join('')}
+              ${s.characteristics.map(t => `<div class="trait-item"><h4>${t.name}</h4><p style="color:#000;">${t.desc}</p></div>`).join('')}
             </div>
           </div>
           <div class="trait-section">
@@ -708,7 +784,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="trait-grid">
               ${s.skills.length ? s.skills.map(skill => {
                 const desc = skillsMap.get(skill) || 'No description';
-                return `<div class="trait-item"><h4>${skill}</h4><p>${desc}</p></div>`;
+                return `<div class="trait-item"><h4>${skill}</h4><p style="color:#000;">${desc}</p></div>`;
               }).join('') : '<div class="trait-item"><h4>No skills listed</h4></div>'}
             </div>
           </div>
@@ -757,6 +833,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // ---------------------------
+  // Skills event listeners
+  // ---------------------------
+  document.getElementById('skillSearch').addEventListener('input', applySkillFilters);
+
+  document.getElementById('skillAbilitySelect').addEventListener('change', () => {
+    const sel = document.getElementById('skillAbilitySelect');
+    const val = sel.value;
+    if (val && !selectedSkillAbilities.includes(val)) {
+      selectedSkillAbilities.push(val);
+      createChip(val, document.getElementById('skillAbilityChips'), () => {
+        selectedSkillAbilities = selectedSkillAbilities.filter(a => a !== val);
+        applySkillFilters();
+      });
+      sel.value = '';
+      applySkillFilters();
+    }
+  });
+
+  document.getElementById('baseSkillSelect').addEventListener('change', () => {
+    selectedBaseSkill = document.getElementById('baseSkillSelect').value || '';
+    applySkillFilters();
+  });
+
+  document.getElementById('showSubSkills').addEventListener('change', (e) => {
+    showSubSkills = e.target.checked;
+    if (!showSubSkills && subSkillsOnly) {
+      subSkillsOnly = false;
+      document.getElementById('subSkillsOnly').checked = false;
+    }
+    applySkillFilters();
+  });
+
+  document.getElementById('subSkillsOnly').addEventListener('change', (e) => {
+    subSkillsOnly = e.target.checked;
+    if (subSkillsOnly && !showSubSkills) {
+      showSubSkills = true;
+      document.getElementById('showSubSkills').checked = true;
+    }
+    applySkillFilters();
+  });
+
+  // Skills sorting
+  document.querySelectorAll('.skill-headers .sort').forEach(sortBtn => {
+    sortBtn.addEventListener('click', (e) => {
+      const col = e.target.closest('.col').dataset.col;
+      const dir = e.target.dataset.dir === 'asc' ? 1 : -1;
+      skillSortState = { col, dir };
+      applySkillFilters();
+    });
+  });
+
   // Species sorting
   document.querySelectorAll('.species-headers .sort').forEach(sortBtn => {
     sortBtn.addEventListener('click', (e) => {
@@ -774,4 +902,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   loadFeats();
   loadSkills();
+  loadTraits();
+  loadSpecies();
+
+  // Debugging aid - dump entire DB to console (remove in production)
+  window.dumpDB = function() {
+    get(ref(db, '/')).then(snap => {
+      console.log('=== DB DUMP ===');
+      function logNode(node, path) {
+        const data = node.val();
+        if (data && typeof data === 'object') {
+          console.log(`${path}:`);
+          Object.keys(data).forEach(key => {
+            logNode(ref(db, `${path}/${key}`), `${path}/${key}`);
+          });
+        } else {
+          console.log(`${path}: ${data}`);
+        }
+      }
+      logNode(snap, '/');
+      console.log('=== END DB DUMP ===');
+    });
+  };
 });
