@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
         allSpecies = Object.values(data).map(s => {
-          let adulthood_lifespan = s.adulthood_lifespan ? s.adulthood_lifespan.split(',').map(n => parseInt(n.trim())) : [0, 0];
+          let adulthood_lifespan = Array.isArray(s.adulthood_lifespan) ? s.adulthood_lifespan.map(n => parseInt(String(n).trim())) : (typeof s.adulthood_lifespan === 'string' ? s.adulthood_lifespan.split(',').map(n => parseInt(n.trim())) : [0, 0]);
           let adulthood = adulthood_lifespan[0] || 0;
           let max_age = adulthood_lifespan[1] || 0;
           let skills = typeof s.skills === 'string' ? s.skills.split(',').map(sk => sk.trim()) : (Array.isArray(s.skills) ? s.skills : []);
@@ -649,18 +649,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           let ancestry_traits = typeof s.ancestry_traits === 'string' ? s.ancestry_traits.split(',').map(name => name.trim()) : (Array.isArray(s.ancestry_traits) ? s.ancestry_traits : []);
           let flaws = typeof s.flaws === 'string' ? s.flaws.split(',').map(name => name.trim()) : (Array.isArray(s.flaws) ? s.flaws : []);
           let characteristics = typeof s.characteristics === 'string' ? s.characteristics.split(',').map(name => name.trim()) : (Array.isArray(s.characteristics) ? s.characteristics : []);
-          const cleanTraitName = (rawName) => {
-            let cleanKey = rawName.trim()
-              .replace(/[.$#\[\]\/]/g, '_')
-              .replace(/\s+/g, '_')
-              .replace(/_+/g, '_')
-              .replace(/^_+|_+$/g, '');
-            return cleanKey || rawName.trim().replace(/\s+/g, '_');
-          };
-          species_traits = species_traits.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
-          ancestry_traits = ancestry_traits.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
-          flaws = flaws.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
-          characteristics = characteristics.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
+          function sanitizeId(name) {
+            if (!name) return '';
+            return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+          }
+          species_traits = species_traits.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
+          ancestry_traits = ancestry_traits.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
+          flaws = flaws.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
+          characteristics = characteristics.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
           return {
             ...s,
             ave_height: s.ave_hgt_cm,
