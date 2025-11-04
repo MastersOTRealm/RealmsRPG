@@ -27,6 +27,8 @@
       <button class="tab-button active" onclick="openTab(event, 'feats')">Feats</button>
       <button class="tab-button" onclick="openTab(event, 'skills')">Skills</button>
       <button class="tab-button" onclick="openTab(event, 'species')">Species</button>
+      <button class="tab-button" onclick="openTab(event, 'parts')">Parts</button>
+      <button class="tab-button" onclick="openTab(event, 'properties')">Properties</button>
     </div>
     <div id="feats" class="tab-content active-tab">
       <div class="search-bar">
@@ -247,6 +249,124 @@
 
       <div id="speciesList" class="species-list">
         <div class="no-results">Loading species...</div>
+      </div>
+    </div>
+    <div id="parts" class="tab-content">
+      <div class="search-bar">
+        <input type="text" id="partSearch" placeholder="Search names, descriptions...">
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label for="partCategorySelect">Category</label>
+          <select id="partCategorySelect">
+            <option value="">Choose category</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="partTypeSelect">Type</label>
+          <select id="partTypeSelect">
+            <option value="">Choose type</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="part-headers">
+        <div class="col" data-col="name">
+          NAME
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="category">
+          CATEGORY
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="type">
+          TYPE
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="base_en">
+          BASE EN
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">0-10</span>
+            <span class="sort desc" data-dir="desc">10-0</span>
+          </div>
+        </div>
+        <div class="col" data-col="base_tp">
+          BASE TP
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">0-10</span>
+            <span class="sort desc" data-dir="desc">10-0</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="partList" class="part-list">
+        <div class="no-results">Loading parts...</div>
+      </div>
+    </div>
+    <div id="properties" class="tab-content">
+      <div class="search-bar">
+        <input type="text" id="propertySearch" placeholder="Search names, descriptions...">
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label for="propertyTypeSelect">Type</label>
+          <select id="propertyTypeSelect">
+            <option value="">Choose type</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="property-headers">
+        <div class="col" data-col="name">
+          NAME
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="type">
+          TYPE
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="base_ip">
+          BASE IP
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">0-10</span>
+            <span class="sort desc" data-dir="desc">10-0</span>
+          </div>
+        </div>
+        <div class="col" data-col="base_tp">
+          BASE TP
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">0-10</span>
+            <span class="sort desc" data-dir="desc">10-0</span>
+          </div>
+        </div>
+        <div class="col" data-col="base_gp">
+          BASE GP
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">0-10</span>
+            <span class="sort desc" data-dir="desc">10-0</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="propertyList" class="property-list">
+        <div class="no-results">Loading properties...</div>
       </div>
     </div>
   </div>

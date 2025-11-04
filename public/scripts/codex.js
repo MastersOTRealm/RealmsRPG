@@ -104,6 +104,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   let skillsLoaded = false;
   let traitsLoaded = false;
   let speciesLoaded = false;
+  let partsLoaded = false;
+  let propertiesLoaded = false;
+
+  let allParts = [];
+  let filteredParts = [];
+  let partSortState = { col: 'name', dir: 1 };
+
+  let allProperties = [];
+  let filteredProperties = [];
+  let propertySortState = { col: 'name', dir: 1 };
 
   // Load traits
   function loadTraits() {
@@ -197,9 +207,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           abil_req_val: toNumArray(f.abil_req_val),
           tags: toStrArray(f.tags),
           skill_req: toStrArray(f.skill_req),
-          skill_req_value: toNumArray(f.skill_req_value),
+          skill_req_val: toNumArray(f.skill_req_val),
           lvl_req: parseInt(f.lvl_req) || 0,
-          uses_per_recovery: parseInt(f.uses_per_recovery) || 0,
+          uses_per_rec: parseInt(f.uses_per_rec) || 0,
           mart_abil_req: f.mart_abil_req || '',
           char_feat: f.char_feat || false,
         }));
@@ -359,8 +369,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="col">${f.lvl_req || ''}</div>
           <div class="col">${f.category || ''}</div>
           <div class="col">${f.ability || ''}</div>
-          <div class="col">${f.recovery_period || ''}</div>
-          <div class="col">${f.uses_per_recovery || ''}</div>
+          <div class="col">${f.rec_period || ''}</div>
+          <div class="col">${f.uses_per_rec || ''}</div>
           <span class="expand-icon">▼</span>
         </div>
         <div class="feat-body">
@@ -379,7 +389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }</span></div>` : ''}
             ${f.skill_req.length ? `<div class="req-field"><label>Skill Requirements:</label><span>${
               f.skill_req.map((s, i) => {
-                const v = Number(f.skill_req_value?.[i]);
+                const v = Number(f.skill_req_val?.[i]);
                 return `${s}${Number.isFinite(v) ? ` ${v}` : ''}`;
               }).join(', ')
             }</span></div>` : ''}
@@ -630,9 +640,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
         allSpecies = Object.values(data).map(s => {
-          let adulthood_max_age = s.adulthood_max_age ? s.adulthood_max_age.split(',').map(n => parseInt(n.trim())) : [0, 0];
-          let adulthood = adulthood_max_age[0] || 0;
-          let max_age = adulthood_max_age[1] || 0;
+          let adulthood_lifespan = s.adulthood_lifespan ? s.adulthood_lifespan.split(',').map(n => parseInt(n.trim())) : [0, 0];
+          let adulthood = adulthood_lifespan[0] || 0;
+          let max_age = adulthood_lifespan[1] || 0;
           let skills = typeof s.skills === 'string' ? s.skills.split(',').map(sk => sk.trim()) : (Array.isArray(s.skills) ? s.skills : []);
           let languages = typeof s.languages === 'string' ? s.languages.split(',').map(l => l.trim()) : (Array.isArray(s.languages) ? s.languages : []);
           let species_traits = typeof s.species_traits === 'string' ? s.species_traits.split(',').map(name => name.trim()) : (Array.isArray(s.species_traits) ? s.species_traits : []);
@@ -653,8 +663,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           characteristics = characteristics.map(name => ({ name, desc: allTraits[cleanTraitName(name)]?.description || 'No description' }));
           return {
             ...s,
-            ave_height: cmToFtIn(s.ave_hgt_cm),
-            ave_weight: kgToLb(s.ave_wgt_kg),
+            ave_height: s.ave_hgt_cm,
+            ave_weight: s.ave_wgt_kg,
             adulthood,
             max_age,
             skills,
@@ -663,7 +673,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ancestry_traits,
             flaws,
             characteristics,
-            sizes: s.sizes ? s.sizes.split(',').map(sz => sz.trim()) : [],
+            sizes: typeof s.sizes === 'string' ? s.sizes.split(',').map(sz => sz.trim()) : (Array.isArray(s.sizes) ? s.sizes : []),
             type: s.type || '',
           };
         });
@@ -789,8 +799,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
           <div class="species-details">
-            <div><strong>Average Weight:</strong> ${s.ave_wgt_kg || 'N/A'} kg</div>
-            <div><strong>Average Height:</strong> ${s.ave_hgt_cm || 'N/A'} cm</div>
+            <div><strong>Average Weight:</strong> ${s.ave_weight || 'N/A'} kg</div>
+            <div><strong>Average Height:</strong> ${s.ave_height || 'N/A'} cm</div>
             <div><strong>Lifespan:</strong> ${s.max_age || 'N/A'} years</div>
             <div><strong>Adulthood:</strong> ${s.adulthood || 'N/A'} years</div>
             <div><strong>Languages:</strong> ${s.languages.join(', ') || 'None'}</div>
@@ -903,7 +913,299 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadFeats();
   loadSkills();
   loadTraits();
-  loadSpecies();
+  loadParts();
+  loadProperties();
+
+  // Debugging aid - dump entire DB to console (remove in production)
+  window.dumpDB = function() {
+    get(ref(db, '/')).then(snap => {
+      console.log('=== DB DUMP ===');
+      function logNode(node, path) {
+        const data = node.val();
+        if (data && typeof data === 'object') {
+          console.log(`${path}:`);
+          Object.keys(data).forEach(key => {
+            logNode(ref(db, `${path}/${key}`), `${path}/${key}`);
+          });
+        } else {
+          console.log(`${path}: ${data}`);
+        }
+      }
+      logNode(snap, '/');
+      console.log('=== END DB DUMP ===');
+    });
+  };
+
+  // Load parts
+  function loadParts() {
+    if (partsLoaded) return;
+    console.log('Loading parts...');
+    getWithRetry('parts')
+      .then(snap => {
+        const data = snap.val();
+        if (!data) {
+          document.getElementById('partList').innerHTML = '<div class="no-results">No parts found in database.</div>';
+          return;
+        }
+        allParts = Object.values(data).map(p => ({
+          ...p,
+          base_en: parseInt(p.base_en) || 0,
+          base_tp: parseInt(p.base_tp) || 0,
+          op_1_en: parseInt(p.op_1_en) || 0,
+          op_1_tp: parseInt(p.op_1_tp) || 0,
+          op_2_en: parseInt(p.op_2_en) || 0,
+          op_2_tp: parseInt(p.op_2_tp) || 0,
+          op_3_en: parseInt(p.op_3_en) || 0,
+          op_3_tp: parseInt(p.op_3_tp) || 0,
+          mechanic: p.mechanic || false,
+          percentage: p.percentage || false,
+        }));
+        console.log(`✓ Loaded ${allParts.length} parts successfully`);
+        partsLoaded = true;
+        populatePartFilters();
+        applyPartFilters();
+      })
+      .catch(err => {
+        console.error('Error loading parts:', err);
+        let errorMsg = 'Error loading parts. ';
+        if (err.code === 'PERMISSION_DENIED') {
+          errorMsg += 'Permission denied - check Firebase Realtime Database Rules.';
+        }
+        document.getElementById('partList').innerHTML = `<div class="no-results">${errorMsg}</div>`;
+      });
+  }
+
+  // Populate part filters
+  function populatePartFilters() {
+    const categories = new Set();
+    const types = new Set();
+
+    allParts.forEach(p => {
+      if (p.category) categories.add(p.category);
+      if (p.type) types.add(p.type);
+    });
+
+    const addOpts = (sel, vals) => {
+      sel.innerHTML = '<option value="">Choose...</option>' + Array.from(vals).sort().map(v => `<option value="${v}">${v}</option>`).join('');
+    };
+
+    addOpts(document.getElementById('partCategorySelect'), categories);
+    addOpts(document.getElementById('partTypeSelect'), types);
+  }
+
+  // Apply part filters
+  function applyPartFilters() {
+    const searchTerm = document.getElementById('partSearch').value.toLowerCase();
+    const selectedCategory = document.getElementById('partCategorySelect').value;
+    const selectedType = document.getElementById('partTypeSelect').value;
+
+    filteredParts = allParts.filter(p => {
+      if (searchTerm && !p.name.toLowerCase().includes(searchTerm) && !(p.description && p.description.toLowerCase().includes(searchTerm))) return false;
+      if (selectedCategory && p.category !== selectedCategory) return false;
+      if (selectedType && p.type !== selectedType) return false;
+      return true;
+    });
+
+    applyPartSort();
+    renderParts();
+  }
+
+  function applyPartSort() {
+    const { col, dir } = partSortState;
+    filteredParts.sort((a, b) => {
+      let valA = a[col] || '';
+      let valB = b[col] || '';
+      if (typeof valA === 'string') {
+        return dir * valA.localeCompare(valB);
+      } else {
+        return dir * (valA - valB);
+      }
+    });
+  }
+
+  // Render parts
+  function renderParts() {
+    if (!filteredParts.length) {
+      document.getElementById('partList').innerHTML = '<div class="no-results">No parts match your filters.</div>';
+      return;
+    }
+
+    document.getElementById('partList').innerHTML = filteredParts.map(p => `
+      <div class="part-card" data-name="${p.name}">
+        <div class="part-header" onclick="togglePartExpand(this)">
+          <div class="col">${p.name}</div>
+          <div class="col">${p.category || ''}</div>
+          <div class="col">${p.type || ''}</div>
+          <div class="col">${p.base_en || ''}</div>
+          <div class="col">${p.base_tp || ''}</div>
+          <span class="expand-icon">▼</span>
+        </div>
+        <div class="part-body">
+          ${p.description ? `<div class="part-description" style="color:#000;">${p.description}</div>` : ''}
+          <div class="part-options">
+            ${p.op_1_desc ? `<div class="option"><strong>Option 1:</strong> ${p.op_1_desc} (EN: ${p.op_1_en}, TP: ${p.op_1_tp})</div>` : ''}
+            ${p.op_2_desc ? `<div class="option"><strong>Option 2:</strong> ${p.op_2_desc} (EN: ${p.op_2_en}, TP: ${p.op_2_tp})</div>` : ''}
+            ${p.op_3_desc ? `<div class="option"><strong>Option 3:</strong> ${p.op_3_desc} (EN: ${p.op_3_en}, TP: ${p.op_3_tp})</div>` : ''}
+          </div>
+          <div class="part-flags">
+            ${p.mechanic ? '<span class="flag">Mechanic</span>' : ''}
+            ${p.percentage ? '<span class="flag">Percentage</span>' : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.togglePartExpand = function(header) {
+    header.parentElement.classList.toggle('expanded');
+  };
+
+  // Load properties
+  function loadProperties() {
+    if (propertiesLoaded) return;
+    console.log('Loading properties...');
+    getWithRetry('properties')
+      .then(snap => {
+        const data = snap.val();
+        if (!data) {
+          document.getElementById('propertyList').innerHTML = '<div class="no-results">No properties found in database.</div>';
+          return;
+        }
+        allProperties = Object.values(data).map(p => ({
+          ...p,
+          base_ip: parseInt(p.base_ip) || 0,
+          base_tp: parseInt(p.base_tp) || 0,
+          base_gp: parseInt(p.base_gp) || 0,
+          opt_1_ip: parseInt(p.opt_1_ip) || 0,
+          opt_1_tp: parseInt(p.opt_1_tp) || 0,
+          opt_1_gp: parseInt(p.opt_1_gp) || 0,
+        }));
+        console.log(`✓ Loaded ${allProperties.length} properties successfully`);
+        propertiesLoaded = true;
+        populatePropertyFilters();
+        applyPropertyFilters();
+      })
+      .catch(err => {
+        console.error('Error loading properties:', err);
+        let errorMsg = 'Error loading properties. ';
+        if (err.code === 'PERMISSION_DENIED') {
+          errorMsg += 'Permission denied - check Firebase Realtime Database Rules.';
+        }
+        document.getElementById('propertyList').innerHTML = `<div class="no-results">${errorMsg}</div>`;
+      });
+  }
+
+  // Populate property filters
+  function populatePropertyFilters() {
+    const types = new Set();
+
+    allProperties.forEach(p => {
+      if (p.type) types.add(p.type);
+    });
+
+    const addOpts = (sel, vals) => {
+      sel.innerHTML = '<option value="">Choose...</option>' + Array.from(vals).sort().map(v => `<option value="${v}">${v}</option>`).join('');
+    };
+
+    addOpts(document.getElementById('propertyTypeSelect'), types);
+  }
+
+  // Apply property filters
+  function applyPropertyFilters() {
+    const searchTerm = document.getElementById('propertySearch').value.toLowerCase();
+    const selectedType = document.getElementById('propertyTypeSelect').value;
+
+    filteredProperties = allProperties.filter(p => {
+      if (searchTerm && !p.name.toLowerCase().includes(searchTerm) && !(p.description && p.description.toLowerCase().includes(searchTerm))) return false;
+      if (selectedType && p.type !== selectedType) return false;
+      return true;
+    });
+
+    applyPropertySort();
+    renderProperties();
+  }
+
+  function applyPropertySort() {
+    const { col, dir } = propertySortState;
+    filteredProperties.sort((a, b) => {
+      let valA = a[col] || '';
+      let valB = b[col] || '';
+      if (typeof valA === 'string') {
+        return dir * valA.localeCompare(valB);
+      } else {
+        return dir * (valA - valB);
+      }
+    });
+  }
+
+  // Render properties
+  function renderProperties() {
+    if (!filteredProperties.length) {
+      document.getElementById('propertyList').innerHTML = '<div class="no-results">No properties match your filters.</div>';
+      return;
+    }
+
+    document.getElementById('propertyList').innerHTML = filteredProperties.map(p => `
+      <div class="property-card" data-name="${p.name}">
+        <div class="property-header" onclick="togglePropertyExpand(this)">
+          <div class="col">${p.name}</div>
+          <div class="col">${p.type || ''}</div>
+          <div class="col">${p.base_ip || ''}</div>
+          <div class="col">${p.base_tp || ''}</div>
+          <div class="col">${p.base_gp || ''}</div>
+          <span class="expand-icon">▼</span>
+        </div>
+        <div class="property-body">
+          ${p.description ? `<div class="property-description" style="color:#000;">${p.description}</div>` : ''}
+          ${p.opt_1_desc ? `<div class="option"><strong>Optional:</strong> ${p.opt_1_desc} (IP: ${p.opt_1_ip}, TP: ${p.opt_1_tp}, GP: ${p.opt_1_gp})</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.togglePropertyExpand = function(header) {
+    header.parentElement.classList.toggle('expanded');
+  };
+
+  // Parts event listeners
+  document.getElementById('partSearch').addEventListener('input', applyPartFilters);
+  document.getElementById('partCategorySelect').addEventListener('change', applyPartFilters);
+  document.getElementById('partTypeSelect').addEventListener('change', applyPartFilters);
+
+  // Parts sorting
+  document.querySelectorAll('.part-headers .sort').forEach(sortBtn => {
+    sortBtn.addEventListener('click', (e) => {
+      const col = e.target.closest('.col').dataset.col;
+      const dir = e.target.dataset.dir === 'asc' ? 1 : -1;
+      partSortState = { col, dir };
+      applyPartFilters();
+    });
+  });
+
+  // Properties event listeners
+  document.getElementById('propertySearch').addEventListener('input', applyPropertyFilters);
+  document.getElementById('propertyTypeSelect').addEventListener('change', applyPropertyFilters);
+
+  // Properties sorting
+  document.querySelectorAll('.property-headers .sort').forEach(sortBtn => {
+    sortBtn.addEventListener('click', (e) => {
+      const col = e.target.closest('.col').dataset.col;
+      const dir = e.target.dataset.dir === 'asc' ? 1 : -1;
+      propertySortState = { col, dir };
+      applyPropertyFilters();
+    });
+  });
+
+  // Load all on start
+  // Load traits first, then species (since species depends on traits)
+  loadTraits().then(() => {
+    loadSpecies();
+  });
+  loadFeats();
+  loadSkills();
+  loadTraits();
+  loadParts();
+  loadProperties();
 
   // Debugging aid - dump entire DB to console (remove in production)
   window.dumpDB = function() {
