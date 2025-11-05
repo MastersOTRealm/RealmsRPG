@@ -690,7 +690,7 @@ select, input {
 /* Properties styles */
 .property-headers {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr 1fr;
   gap: 8px;
   padding: 12px;
   background: var(--card-bg);
@@ -727,7 +727,7 @@ select, input {
 
 .property-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr 1fr;
   gap: 8px;
   padding: 12px;
   cursor: pointer;

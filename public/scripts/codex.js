@@ -840,7 +840,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // ---------------------------
-  // Skills event listeners
+// Skills event listeners
   // ---------------------------
   document.getElementById('skillSearch').addEventListener('input', applySkillFilters);
 
@@ -1146,13 +1146,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="property-header" onclick="togglePropertyExpand(this)">
           <div class="col">${p.name}</div>
           <div class="col">${p.type || ''}</div>
-          <div class="col">${p.base_ip || ''}</div>
           <div class="col">${p.base_tp || ''}</div>
-          <div class="col">${p.base_gp || ''}</div>
           <span class="expand-icon">▼</span>
         </div>
         <div class="property-body">
           ${p.description ? `<div class="property-description" style="color:#000;">${p.description}</div>` : ''}
+          <div class="property-details">
+            <div><strong>Base IP:</strong> ${p.base_ip || 'N/A'}</div>
+            <div><strong>Base GP:</strong> ${p.base_gp || 'N/A'}</div>
+            ${p.opt_1_ip ? `<div><strong>Optional IP:</strong> ${p.opt_1_ip}</div>` : ''}
+            ${p.opt_1_gp ? `<div><strong>Optional GP:</strong> ${p.opt_1_gp}</div>` : ''}
+          </div>
           ${p.opt_1_desc ? `<div class="option"><strong>Optional:</strong> ${p.opt_1_desc} (IP: ${p.opt_1_ip}, TP: ${p.opt_1_tp}, GP: ${p.opt_1_gp})</div>` : ''}
         </div>
       </div>
