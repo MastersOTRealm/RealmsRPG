@@ -603,7 +603,7 @@ select, input {
 /* Parts styles */
 .part-headers {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 0.8fr 1.2fr; /* Adjusted to give more space to TRAINING POINTS by reducing ENERGY column */
   gap: 8px;
   padding: 12px;
   background: var(--card-bg);
@@ -640,7 +640,7 @@ select, input {
 
 .part-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 0.8fr 1.2fr; /* Mirrored adjustment for consistency */
   gap: 8px;
   padding: 12px;
   cursor: pointer;

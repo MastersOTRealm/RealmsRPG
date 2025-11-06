@@ -17,7 +17,7 @@ body {
     margin-top: 20px;
 }
 
-#addItemPartButton, #addShieldPartButton, #addArmorPartButton {
+#addItemPropertyButton, #addShieldPropertyButton, #addArmorPropertyButton {
     padding: 10px 20px;
     font-size: 16px;
     border-radius: 5px;
@@ -28,11 +28,11 @@ body {
     margin: 10px;
 }
 
-#addItemPartButton:hover, #addShieldPartButton:hover, #addArmorPartButton:hover {
+#addItemPropertyButton:hover, #addShieldPropertyButton:hover, #addArmorPropertyButton:hover {
     background-color: #0056b3;
 }
 
-#itemPartsContainer {
+#itemPropertiesContainer {
     margin-top: 20px;
     width: 100%; /* Widen to fill the page */
     position: relative;
@@ -96,7 +96,7 @@ body {
     z-index: 1001; /* Ensure the arrow stays on top */
 }
 
-.item-part-section {
+.item-property-section {
     margin-bottom: 20px;
     padding: 15px;
     background-color: white;
@@ -105,19 +105,19 @@ body {
     position: relative;
 }
 
-.item-part-section h3 {
+.item-property-section h3 {
     font-family: 'Merriweather', serif;
     font-size: 24px;
     margin: 0;
 }
 
-.item-part-section p {
+.item-property-section p {
     font-family: 'Nunito', sans-serif;
     font-size: 14px;
     margin: 5px 0;
 }
 
-.item-part-section h4 {
+.item-property-section h4 {
     font-family: 'Nunito', sans-serif;
     font-size: 16px;
     margin: 10px 0 5px;
@@ -144,22 +144,22 @@ button:hover {
     font-size: 14px;
 }
 
-.item-part-section button {
+.item-property-section button {
     margin: 5px;
 }
 
-.item-part-section .delete-button {
+.item-property-section .delete-button {
     background-color: #dc3545;
     position: absolute;
     top: 10px;
     right: 10px;
 }
 
-.item-part-section .delete-button:hover {
+.item-property-section .delete-button:hover {
     background-color: #c82333;
 }
 
-.item-part-section select {
+.item-property-section select {
     display: block;
     margin: 0 auto 10px auto;
     padding: 5px;
@@ -281,21 +281,21 @@ button:hover {
     margin-bottom: 10px;
 }
 
-.item-summary-parts {
+.item-summary-properties {
     margin-top: 10px;
 }
 
-.item-summary-parts h4 {
+.item-summary-properties h4 {
     margin: 0 0 5px 0;
 }
 
-#summaryParts {
+#summaryProperties {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
 }
 
-#summaryParts div {
+#summaryProperties div {
     background-color: #f9f9f9;
     border-radius: 5px;
     padding: 5px;

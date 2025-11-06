@@ -11,7 +11,7 @@
     <header id="header"></header>
     <main>
         <div id="generalItemOptionsContainer">
-            <h3 class="centered-title">General Item Options</h3>
+            <h3 class="centered-title">General Properties</h3>
             <div class="option-container">
                 <div class="option-box range-box">
                     <!-- Armament Type Dropdown -->
@@ -80,7 +80,6 @@
                         <input type="number" id="dieAmount1" min="1" max="99" value="" placeholder="Amount"> d 
                         <select id="dieSize1">
                             <option value="" selected disabled>Size</option>
-                            <option value="2">2</option>
                             <option value="4">4</option>
                             <option value="6">6</option>
                             <option value="8">8</option>
@@ -100,11 +99,11 @@
             </div>
         </div>
         <div class="button-row">
-            <button id="addShieldPartButton">Add Shield Part</button>
-            <button id="addItemPartButton">Add Weapon Part</button>
-            <button id="addArmorPartButton">Add Armor Part</button>
+            <button id="addShieldPropertyButton">Add Shield Property</button>
+            <button id="addItemPropertyButton">Add Weapon Property</button>
+            <button id="addArmorPropertyButton">Add Armor Property</button>
         </div>
-        <div id="itemPartsContainer"></div>
+        <div id="itemPropertiesContainer" class="item-properties-container"></div>
         <div id="itemSummary">
             <h3>Item Summary</h3>
             <div class="item-summary-top">
@@ -120,9 +119,9 @@
                 <p>Rarity: <span id="summaryRarity">Common</span></p>
                 <p>Item Type: <span id="summaryType">Weapon</span></p>
             </div>
-            <div class="item-summary-parts">
-                <h4>Item Parts:</h4>
-                <div id="summaryParts"></div>
+            <div class="item-summary-properties">
+                <h4>Item Properties:</h4>
+                <div id="summaryProperties"></div>
             </div>
             <div class="item-summary-proficiencies">
                 <h4>Proficiencies:</h4>
@@ -246,10 +245,10 @@
             const handednessSelect = document.getElementById('handedness');
             const rangeContainer = document.getElementById('rangeContainer');
             const rangeValue = document.getElementById('rangeValue');
-            const addWeaponBtn = document.getElementById('addItemPartButton');
-            const addArmorBtn = document.getElementById('addArmorPartButton');
-            const addShieldBtn = document.getElementById('addShieldPartButton');
-            const itemPartsContainer = document.getElementById('itemPartsContainer');
+            const addWeaponBtn = document.getElementById('addItemPropertyButton');
+            const addArmorBtn = document.getElementById('addArmorPropertyButton');
+            const addShieldBtn = document.getElementById('addShieldPropertyButton');
+            const itemPropertiesContainer = document.getElementById('itemPropertiesContainer');
 
             // Agility Reduction state
             window.agilityReduction = 0;
@@ -277,22 +276,33 @@
             updateAgilityReductionDisplay();
 
             function updateArmamentUI(type) {
-                // Show/hide add part buttons
+                // Clear all currently added properties regardless of type
+                if (window.clearAllItemProperties) window.clearAllItemProperties();
+                if (window.getAbilityRequirements) {
+                    // Reset ability requirements list
+                    const current = window.getAbilityRequirements();
+                    if (current && current.length) {
+                        current.splice(0, current.length);
+                        const list = document.getElementById('abilityRequirementsList');
+                        if (list) list.innerHTML = '';
+                    }
+                }
+                // Show/hide add property buttons
                 if (addWeaponBtn) addWeaponBtn.style.display = (type === 'Weapon') ? '' : 'none';
                 if (addArmorBtn) addArmorBtn.style.display = (type === 'Armor') ? '' : 'none';
                 if (addShieldBtn) addShieldBtn.style.display = (type === 'Shield') ? '' : 'none';
 
-                // Remove parts of other types
-                if (window && window.selectedItemParts) {
+                // Remove properties of other types
+                if (window && window.selectedItemProperties) {
                     const keepType = type;
                     let changed = false;
-                    for (let i = window.selectedItemParts.length - 1; i >= 0; i--) {
-                        if (window.selectedItemParts[i].part.type !== keepType) {
-                            window.selectedItemParts.splice(i, 1);
+                    for (let i = window.selectedItemProperties.length - 1; i >= 0; i--) {
+                        if (window.selectedItemProperties[i].property.type !== keepType) {
+                            window.selectedItemProperties.splice(i, 1);
                             changed = true;
                         }
                     }
-                    if (changed && window.renderItemParts) window.renderItemParts();
+                    if (changed && window.renderItemProperties) window.renderItemProperties();
                     if (window.updateTotalCosts) window.updateTotalCosts();
                 }
 
@@ -316,9 +326,10 @@
                         rangeContainer.style.display = "";
                     }
                 }
-                // Update ability requirement options
-                updateAbilityRequirementOptions(type);
-
+                // Update ability requirement options dynamically from loaded properties
+                if (window.updateAbilityRequirementDropdown) {
+                    window.updateAbilityRequirementDropdown(type);
+                }
                 // Hide/show damage box and set damage to none for Armor or Shield
                 const damageBox = document.getElementById('damageBox');
                 if (damageBox) {
