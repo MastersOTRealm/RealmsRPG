@@ -707,34 +707,155 @@ let appCheckInitialized = false;
             return;
         }
 
+        // Collect item data
         const itemName = document.getElementById('itemName').value || '';
         const itemDescription = document.getElementById('itemDescription').value || '';
-        const totalTP = document.getElementById('totalTP').textContent || '0';
-        const totalIP = document.getElementById('totalIP').textContent || '0';
-        const totalGP = document.getElementById('totalGP').textContent || '0';
-        const range = document.getElementById('rangeValue').textContent || 'Melee';
-        const handedness = document.getElementById('handedness')?.value || 'One-Handed';
-        const rarity = document.getElementById('totalRarity')?.textContent || 'Common';
-        const damage = [
-            {
-                type: document.getElementById('damageType1').value || 'none',
-                amount: document.getElementById('dieAmount1').value || '0',
-                size: document.getElementById('dieSize1').value || '0'
-            },
-            {
-                type: document.getElementById('damageType2')?.value || 'none',
-                amount: document.getElementById('dieAmount2')?.value || '0',
-                size: document.getElementById('dieSize2')?.value || '0'
-            }
-        ];
-        const itemProperties = selectedItemProperties.map(propertyData => ({
-            property: propertyData.property.name,
-            op_1_lvl: propertyData.op_1_lvl || 0
-        }));
-        const abilityRequirements = window.getAbilityRequirements ? window.getAbilityRequirements() : [];
+        const armamentType = window.selectedArmamentType ? window.selectedArmamentType() : 'Weapon';
 
+        // Build properties array (including general properties if selected)
+        let properties = [];
+
+        // Add selected item properties
+        selectedItemProperties.forEach(propertyData => {
+            if (!propertyData.property) return;
+            properties.push({
+                id: propertyData.property.id || propertyData.property.name,
+                name: propertyData.property.name,
+                op_1_lvl: propertyData.op_1_lvl || 0
+            });
+        });
+
+        // Add general properties if selected
+        // Two-Handed
+        const handedness = document.getElementById('handedness')?.value || 'One-Handed';
+        if (handedness === "Two-Handed") {
+            const propTwoHanded = itemProperties.find(p => p.name === "Two-Handed");
+            if (propTwoHanded) {
+                properties.push({
+                    id: propTwoHanded.id || propTwoHanded.name,
+                    name: propTwoHanded.name,
+                    op_1_lvl: 0
+                });
+            }
+        }
+        // Range (if > 0)
+        const rangeVal = typeof range === "number" ? range : 0;
+        if (armamentType === "Weapon" && rangeVal > 0) {
+            const propRange = itemProperties.find(p => p.name === "Range");
+            if (propRange) {
+                properties.push({
+                    id: propRange.id || propRange.name,
+                    name: propRange.name,
+                    op_1_lvl: rangeVal
+                });
+            }
+        }
+        // Weapon Damage (if valid)
+        if (armamentType === "Weapon") {
+            const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
+            const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
+            const validSizes = [4,6,8,10,12];
+            if (!isNaN(dieAmount1) && !isNaN(dieSize1) && validSizes.includes(dieSize1)) {
+                const propWeaponDamage = itemProperties.find(p => p.name === "Weapon Damage");
+                if (propWeaponDamage) {
+                    const weaponDamageLevel = Math.max(0, ((dieAmount1 * dieSize1) - 4) / 2);
+                    properties.push({
+                        id: propWeaponDamage.id || propWeaponDamage.name,
+                        name: propWeaponDamage.name,
+                        op_1_lvl: weaponDamageLevel
+                    });
+                }
+            }
+        }
+        // Split Damage Dice (if valid and splits > 0)
+        if (armamentType === "Weapon") {
+            const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
+            const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
+            const validSizes = [4,6,8,10,12];
+            if (!isNaN(dieAmount1) && !isNaN(dieSize1) && validSizes.includes(dieSize1)) {
+                const splits = computeSplits(dieAmount1, dieSize1);
+                if (splits > 0) {
+                    const propSplitDice = itemProperties.find(p => p.name === "Split Damage Dice");
+                    if (propSplitDice) {
+                        properties.push({
+                            id: propSplitDice.id || propSplitDice.name,
+                            name: propSplitDice.name,
+                            op_1_lvl: splits - 1 // base covers first split
+                        });
+                    }
+                }
+            }
+        }
+        // Shield Base (if Shield)
+        if (armamentType === "Shield") {
+            const propShieldBase = itemProperties.find(p => p.name === "Shield Base");
+            if (propShieldBase) {
+                properties.push({
+                    id: propShieldBase.id || propShieldBase.name,
+                    name: propShieldBase.name,
+                    op_1_lvl: 0
+                });
+            }
+        }
+        // Armor Base (if Armor)
+        if (armamentType === "Armor") {
+            const propArmorBase = itemProperties.find(p => p.name === "Armor Base");
+            if (propArmorBase) {
+                properties.push({
+                    id: propArmorBase.id || propArmorBase.name,
+                    name: propArmorBase.name,
+                    op_1_lvl: 0
+                });
+            }
+        }
+        // Damage Reduction (if Armor and > 0)
+        if (armamentType === "Armor" && typeof damageReduction === "number" && damageReduction > 0) {
+            const propDamageReduction = itemProperties.find(p => p.name === "Damage Reduction");
+            if (propDamageReduction) {
+                properties.push({
+                    id: propDamageReduction.id || propDamageReduction.name,
+                    name: propDamageReduction.name,
+                    op_1_lvl: damageReduction - 1 // base is 1, so option level is (damageReduction - 1)
+                });
+            }
+        }
+        // Agility Reduction (if Armor and > 0)
+        if (armamentType === "Armor" && typeof window.agilityReduction === "number" && window.agilityReduction > 0) {
+            const propAgilityReduction = itemProperties.find(p => p.name === "Agility Reduction");
+            if (propAgilityReduction) {
+                properties.push({
+                    id: propAgilityReduction.id || propAgilityReduction.name,
+                    name: propAgilityReduction.name,
+                    op_1_lvl: window.agilityReduction - 1
+                });
+            }
+        }
+
+        // Add ability requirements as properties
+        const abilityRequirements = window.getAbilityRequirements ? window.getAbilityRequirements() : [];
+        abilityRequirements.forEach(req => {
+            const value = parseInt(req.value, 10);
+            if (value > 0) {
+                let propertyName = '';
+                if (armamentType === "Weapon" || armamentType === "Shield") {
+                    propertyName = `Weapon ${req.type} Requirement`;
+                } else if (armamentType === "Armor") {
+                    propertyName = `Armor ${req.type} Requirement`;
+                }
+                
+                const property = itemProperties.find(p => p.name === propertyName);
+                if (property) {
+                    properties.push({
+                        id: property.id || property.name,
+                        name: property.name,
+                        op_1_lvl: value - 1 // base covers requirement of 1
+                    });
+                }
+            }
+        });
+
+        // Save to Firestore
         try {
-            const idToken = await currentUser.getIdToken(true);
             const db = getFirestore();
             const itemsRef = collection(db, 'users', userId, 'itemLibrary');
             const q = query(itemsRef, where('name', '==', itemName));
@@ -750,15 +871,8 @@ let appCheckInitialized = false;
             await setDoc(docRef, {
                 name: itemName,
                 description: itemDescription,
-                totalTP: Number(totalTP),
-                totalIP: Number(totalIP),
-                totalGP: Number(totalGP),
-                range,
-                handedness,
-                rarity,
-                damage,
-                itemProperties,
-                abilityRequirements,
+                armamentType,
+                properties,
                 timestamp: new Date()
             });
 

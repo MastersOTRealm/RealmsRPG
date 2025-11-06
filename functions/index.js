@@ -182,14 +182,8 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
     const {
         itemName,
         itemDescription,
-        totalTP,
-        totalIP,
-        totalGP,
-        range,
-        handedness,
-        rarity,
-        damage,
-        itemParts
+        armamentType,
+        properties
     } = data;
     const uid = context.auth.uid;
 
@@ -198,18 +192,16 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
         throw new HttpsError("invalid-argument", "The function must be called with a valid 'itemName'.");
     }
 
-    // Validate types for required fields
-    if (typeof totalTP === "undefined" || typeof totalIP === "undefined" || typeof totalGP === "undefined") {
-        logger.error('Missing totalTP, totalIP, or totalGP', { totalTP, totalIP, totalGP });
-        throw new HttpsError("invalid-argument", "Missing required item cost fields.");
+    // Validate armamentType
+    if (!armamentType || !['Weapon', 'Armor', 'Shield'].includes(armamentType)) {
+        logger.error('Invalid armamentType:', armamentType);
+        throw new HttpsError("invalid-argument", "The function must be called with a valid 'armamentType' (Weapon, Armor, or Shield).");
     }
-    if (!Array.isArray(damage)) {
-        logger.error('Damage is not an array:', damage);
-        throw new HttpsError("invalid-argument", "Damage must be an array.");
-    }
-    if (!Array.isArray(itemParts)) {
-        logger.error('itemParts is not an array:', itemParts);
-        throw new HttpsError("invalid-argument", "itemParts must be an array.");
+
+    // Validate properties array
+    if (!Array.isArray(properties)) {
+        logger.error('properties is not an array:', properties);
+        throw new HttpsError("invalid-argument", "properties must be an array.");
     }
 
     try {
@@ -217,14 +209,8 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
         const docRef = await db.collection('users').doc(uid).collection('itemLibrary').add({
             name: itemName,
             description: itemDescription || "",
-            totalTP: Number(totalTP),
-            totalIP: Number(totalIP),
-            totalGP: Number(totalGP),
-            range: range || "",
-            handedness: handedness || "",
-            rarity: rarity || "",
-            damage,
-            itemParts,
+            armamentType,
+            properties,
             timestamp: new Date()
         });
         logger.info('Item document written with ID: ', docRef.id);
