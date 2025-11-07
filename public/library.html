@@ -16,134 +16,205 @@
 <body>
     <header id="header"></header>
     <main>
-        <div class="tabs">
-            <button class="tab-button" onclick="openTab(event, 'powers')">Powers</button>
-            <button class="tab-button" onclick="openTab(event, 'techniques')">Techniques</button>
-            <button class="tab-button" onclick="openTab(event, 'armaments')">Armaments</button>
-            <button class="tab-button" onclick="openTab(event, 'creatures')">Creatures</button>
-        </div>
-        <div id="powers" class="tab-content">
-            <ul id="powersList"></ul>
-        </div>
-        <div id="techniques" class="tab-content">
-            <ul id="techniquesList"></ul>
-        </div>
-        <div id="armaments" class="tab-content">
-            <ul id="armamentsList"></ul>
-        </div>
-        <div id="creatures" class="tab-content">
-            <table class="creature-table">
-                <tbody>
-                    <!-- Summary row -->
-                    <tr class="creature-summary-row" onclick="toggleCreatureExpand(this)">
-                        <td>
-                            Shadow Drake
-                        </td>
-                        <td>
-                            Level 5
-                        </td>
-                        <td>
-                            Dragon
-                        </td>
-                        <td>
-                            Power Creature
-                        </td>
-                    </tr>
-                    <!-- Expanded row -->
-                    <tr class="creature-expanded-row">
-                        <td colspan="4">
-                            <div class="creature-expanded-content" style="flex-wrap:wrap;">
-                                <!-- Left: Abilities and Defenses in soft boxes -->
-                                <div style="display:flex;flex-direction:column;gap:10px;min-width:200px;max-width:250px;">
-                                    <div style="display:flex;gap:10px;">
-                                        <div class="creature-abilities-box">
-                                            <div class="creature-abilities">
-                                                <table>
-                                                    <tr>
-                                                        <th>STR</th><th>VIT</th><th>AGG</th>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>+2</td><td>+3</td><td>+4</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>ACU</th><th>INT</th><th>CHA</th>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>+1</td><td>+0</td><td>+2</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        <div class="creature-defenses-box">
-                                            <div class="creature-defenses">
-                                                <table>
-                                                    <tr>
-                                                        <th>MGT</th><th>FRT</th><th>RFX</th>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>12</td><td>13</td><td>14</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>DSC</th><th>MFT</th><th>RSL</th>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>11</td><td>10</td><td>12</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Other Details box below abilities/defenses -->
-                                    <div class="creature-other-box">
-                                        <h4>Other Details</h4>
-                                        <div><strong>Equipment:</strong> None</div>
-                                        <div style="margin-top:10px;"><strong>Description:</strong> A sleek, dark-scaled drake that lurks in the shadows, its eyes glinting with malevolent cunning. The Shadow Drake is a territorial predator that uses its necrotic breath and stealth to ambush prey.</div>
-                                    </div>
-                                </div>
-                                <!-- Middle: Details and Feats stacked vertically -->
-                                <div style="display:flex;flex-direction:column;gap:10px;min-width:220px;max-width:260px;flex:1 1 220px;">
-                                    <div class="creature-details-box">
-                                        <h4>Details</h4>
-                                        <div class="creature-details-group">
-                                            <div><strong>Resistances:</strong> Necrotic, Poison</div>
-                                            <div><strong>Weaknesses:</strong> Radiant</div>
-                                            <div><strong>Senses:</strong> Darkvision 60 ft., Passive Perception 12</div>
-                                            <div><strong>Languages:</strong> Draconic, Common</div>
-                                            <div><strong>Immunities:</strong> Poisoned</div>
-                                            <div><strong>Movement:</strong> 40 ft., Fly 60 ft.</div>
-                                            <div><strong>Skills:</strong> Hide +5, Stealth +2</div>
-                                        </div>
-                                    </div>
-                                    <div class="creature-feats-box">
-                                        <h4>Feats</h4>
-                                        <div>
-                                            <strong>Stealthy Predator:</strong> The Shadow Drake has advantage on Stealth checks in dim light or darkness.
-                                            <strong>Shadow Blend:</strong> Can become invisible in shadows for 1 minute (recharges after a short rest).
-                                            <strong>Night Stalker:</strong> Gains +2 to attack rolls when in dim light or darkness.
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Right: Attacks and Powers stacked vertically -->
-                                <div style="display:flex;flex-direction:column;gap:10px;min-width:220px;max-width:260px;flex:1 1 220px;">
-                                    <div class="creature-attacks-box">
-                                        <h4>Attacks</h4>
-                                        <div>
-                                            <strong>Bite:</strong> Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 2d6 + 4 piercing damage.
-                                            <strong>Tail Whip:</strong> Melee Weapon Attack: +6 to hit, reach 10 ft., one target. Hit: 1d8 + 4 bludgeoning damage.
-                                        </div>
-                                    </div>
-                                    <div class="creature-powers-box">
-                                        <h4>Powers</h4>
-                                        <div>
-                                            <strong>Shadow Breath (Recharge 5-6):</strong> The Shadow Drake exhales a 15 ft. cone of shadowy mist. Each creature in the area must make a DC 14 Dexterity saving throw, taking 4d8 necrotic damage on a failed save, or half as much on a successful one.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="container">
+            <div class="tabs">
+                <button class="tab-button active" onclick="openTab(event, 'powers')">Powers</button>
+                <button class="tab-button" onclick="openTab(event, 'techniques')">Techniques</button>
+                <button class="tab-button" onclick="openTab(event, 'armaments')">Armaments</button>
+                <button class="tab-button" onclick="openTab(event, 'creatures')">Creatures</button>
+            </div>
+            
+            <div id="powers" class="tab-content active-tab">
+                <div class="library-headers">
+                    <div class="col" data-col="name">
+                        NAME
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="powers">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="powers">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="energy">
+                        ENERGY
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="powers">0-10</span>
+                            <span class="sort" data-dir="desc" data-tab="powers">10-0</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="actionType">
+                        ACTION
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="powers">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="powers">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="duration">
+                        DURATION
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="powers">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="powers">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="range">
+                        RANGE
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="powers">0-10</span>
+                            <span class="sort" data-dir="desc" data-tab="powers">10-0</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="areaEffect">
+                        AREA
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="powers">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="powers">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="targets">
+                        TARGET
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="powers">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="powers">Z-A</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="powersList" class="library-list">
+                    <div class="no-results">Loading powers...</div>
+                </div>
+            </div>
+            
+            <div id="techniques" class="tab-content">
+                <div class="library-headers">
+                    <div class="col" data-col="name">
+                        NAME
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="techniques">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="techniques">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="energy">
+                        ENERGY
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="techniques">0-10</span>
+                            <span class="sort" data-dir="desc" data-tab="techniques">10-0</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="tp">
+                        TP
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="techniques">0-10</span>
+                            <span class="sort" data-dir="desc" data-tab="techniques">10-0</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="actionType">
+                        ACTION
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="techniques">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="techniques">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="weapon">
+                        WEAPON
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="techniques">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="techniques">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="damage">
+                        DAMAGE
+                    </div>
+                </div>
+                <div id="techniquesList" class="library-list">
+                    <div class="no-results">Loading techniques...</div>
+                </div>
+            </div>
+            
+            <div id="armaments" class="tab-content">
+                <div class="library-headers">
+                    <div class="col" data-col="name">
+                        NAME
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="armaments">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="armaments">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="type">
+                        TYPE
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="armaments">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="armaments">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="rarity">
+                        RARITY
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="armaments">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="armaments">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="goldCost">
+                        GOLD
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="armaments">0-10</span>
+                            <span class="sort" data-dir="desc" data-tab="armaments">10-0</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="tp">
+                        TP
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="armaments">0-10</span>
+                            <span class="sort" data-dir="desc" data-tab="armaments">10-0</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="range">
+                        RANGE
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="armaments">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="armaments">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="damage">
+                        DAMAGE
+                    </div>
+                </div>
+                <div id="armamentsList" class="library-list">
+                    <div class="no-results">Loading armaments...</div>
+                </div>
+            </div>
+            
+            <div id="creatures" class="tab-content">
+                <div class="library-headers creature-headers">
+                    <div class="col" data-col="name">
+                        NAME
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="creatures">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="creatures">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="level">
+                        LEVEL
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="creatures">0-10</span>
+                            <span class="sort" data-dir="desc" data-tab="creatures">10-0</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="type">
+                        TYPE
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="creatures">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="creatures">Z-A</span>
+                        </div>
+                    </div>
+                    <div class="col" data-col="archetype">
+                        ARCHETYPE
+                        <div class="sort-group">
+                            <span class="sort" data-dir="asc" data-tab="creatures">A-Z</span>
+                            <span class="sort" data-dir="desc" data-tab="creatures">Z-A</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="creaturesList" class="library-list">
+                    <div class="no-results">Loading creatures...</div>
+                </div>
+            </div>
         </div>
     </main>
     <footer id="footer"></footer>

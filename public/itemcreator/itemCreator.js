@@ -746,7 +746,7 @@ let appCheckInitialized = false;
                 properties.push({
                     id: propRange.id || propRange.name,
                     name: propRange.name,
-                    op_1_lvl: rangeVal
+                    op_1_lvl: rangeVal - 1 // Base property gives 8 spaces, so level 0 = 8 spaces, level 1 = 16 spaces
                 });
             }
         }
@@ -854,6 +854,21 @@ let appCheckInitialized = false;
             }
         });
 
+        // Collect damage information for display
+        const damage = [];
+        const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
+        const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
+        const damageType1 = document.getElementById('damageType1')?.value;
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 && damageType1 !== 'none') {
+            damage.push({ amount: dieAmount1, size: dieSize1, type: damageType1 });
+        }
+        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
+        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
+        const damageType2 = document.getElementById('damageType2')?.value;
+        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 && damageType2 !== 'none') {
+            damage.push({ amount: dieAmount2, size: dieSize2, type: damageType2 });
+        }
+
         // Save to Firestore
         try {
             const db = getFirestore();
@@ -873,6 +888,7 @@ let appCheckInitialized = false;
                 description: itemDescription,
                 armamentType,
                 properties,
+                damage, // Add damage array
                 timestamp: new Date()
             });
 

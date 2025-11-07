@@ -183,7 +183,8 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
         itemName,
         itemDescription,
         armamentType,
-        properties
+        properties,
+        damage // Add damage parameter
     } = data;
     const uid = context.auth.uid;
 
@@ -204,6 +205,12 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
         throw new HttpsError("invalid-argument", "properties must be an array.");
     }
 
+    // Validate damage array (optional)
+    if (damage !== undefined && !Array.isArray(damage)) {
+        logger.error('damage is not an array:', damage);
+        throw new HttpsError("invalid-argument", "damage must be an array if provided.");
+    }
+
     try {
         const db = getFirestore();
         const docRef = await db.collection('users').doc(uid).collection('itemLibrary').add({
@@ -211,6 +218,7 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
             description: itemDescription || "",
             armamentType,
             properties,
+            damage: damage || [], // Add damage array
             timestamp: new Date()
         });
         logger.info('Item document written with ID: ', docRef.id);
