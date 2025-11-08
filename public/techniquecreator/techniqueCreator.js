@@ -1,8 +1,9 @@
-import techniquePartsData from './techniquePartsData.js';
 import { initializeFirebase } from '/scripts/auth.js'; // Use correct path for your project
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { calculateItemCosts } from '../itemcreator/itemMechanics.js';
 
 // Store Firebase objects after initialization
 let firebaseApp = null;
@@ -11,25 +12,15 @@ let firebaseDb = null;
 let firebaseFunctions = null;
 let selectedWeapon = { name: "Unarmed Prowess", tp: 0, id: null };
 let weaponLibrary = [];
+let techniqueParts = []; // Initialize as empty array - will be populated from database
 
 (() => {
-    const techniqueParts = techniquePartsData;
-
     const selectedTechniqueParts = [];
     let tpSources = []; // New global array to track TP sources
 
-    const actionTypeDescriptions = {
-        basic: "Basic Action",
-        free: "+50% EN: This technique uses a free action to activate instead of a basic action.",
-        quick: "+25% EN: This technique uses a quick action to activate instead of a basic action.",
-        long3: "-12.5% EN: This technique takes 1 more AP to perform (cannot be added to a quick or free action technique).",
-        long4: "-12.5% EN: For each additional 1 AP required. This type of technique can only be used with this reduced cost if used inside combat and does not linger longer than 1 minute (10 rounds).",
-        reaction: "+25% EN: This technique uses a basic reaction instead of a basic action."
-    };
-
     function addTechniquePart() {
-        // Add the first available part of any type (base, increase, decrease)
-        const allParts = techniqueParts;
+        // Add the first available part of any type (base, increase, decrease), excluding mechanic parts
+        const allParts = techniqueParts.filter(p => !p.mechanic);
         if (allParts.length === 0) return;
         selectedTechniqueParts.push({ part: allParts[0], opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
 
@@ -37,47 +28,136 @@ let weaponLibrary = [];
         updateTotalCosts();
     }
 
+    // Sanitize property name to ID (matches your script)
+    function sanitizeId(name) {
+        if (!name) return '';
+        return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    }
+
+    // Fetch technique parts from Realtime Database
+    async function fetchTechniqueParts(database) {
+        // Retry wrapper for transient offline/network hiccups (borrowed from codex.js)
+        async function getWithRetry(path, attempts = 3) {
+            const r = ref(database, path);
+            let lastErr;
+            for (let i = 0; i < attempts; i++) {
+                try {
+                    return await get(r);
+                } catch (err) {
+                    lastErr = err;
+                    const msg = (err && err.message) || '';
+                    const isOffline = msg.includes('Client is offline') || msg.toLowerCase().includes('network');
+                    if (!isOffline || i === attempts - 1) throw err;
+                    await new Promise(res => setTimeout(res, 500 * (i + 1))); // simple backoff
+                }
+            }
+            throw lastErr;
+        }
+
+        try {
+            // Use 'parts' to match the database path
+            const partsRef = ref(database, 'parts');
+            console.log('Fetching from path: parts');
+            const snapshot = await getWithRetry('parts');
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                console.log('Raw parts data:', data);
+                
+                // Log all unique types present in the data for debugging
+                const allTypes = Object.values(data).map(part => part.type).filter(Boolean);
+                const uniqueTypes = [...new Set(allTypes)];
+                console.log('Unique part types in database:', uniqueTypes);
+                
+                techniqueParts = Object.entries(data)
+                    .filter(([id, part]) => part.type && part.type.toLowerCase() === 'technique') // Case-insensitive filter
+                    .map(([id, part]) => ({
+                        id: id,
+                        name: part.name || '',
+                        description: part.description || '',
+                        category: part.category || '',
+                        // Coerce to numbers
+                        base_en: parseFloat(part.base_en) || 0,
+                        base_tp: parseFloat(part.base_tp) || 0,
+                        op_1_desc: part.op_1_desc || '',
+                        op_1_en: parseFloat(part.op_1_en) || 0,
+                        op_1_tp: parseFloat(part.op_1_tp) || 0,
+                        op_2_desc: part.op_2_desc || '',
+                        op_2_en: parseFloat(part.op_2_en) || 0,
+                        op_2_tp: parseFloat(part.op_2_tp) || 0,
+                        op_3_desc: part.op_3_desc || '',
+                        op_3_en: parseFloat(part.op_3_en) || 0,
+                        op_3_tp: parseFloat(part.op_3_tp) || 0,
+                        type: part.type || 'technique',
+                        mechanic: part.mechanic === 'true' || part.mechanic === true,
+                        percentage: part.percentage === 'true' || part.percentage === true,
+                        // Add alt fields if present (assuming similar structure)
+                        alt_base_en: parseFloat(part.alt_base_en) || 0,
+                        alt_tp: parseFloat(part.alt_tp) || 0,
+                        alt_desc: part.alt_desc || ''
+                    }));
+                
+                console.log('Loaded', techniqueParts.length, 'technique parts from database');
+                return true;
+            } else {
+                console.error('No parts found in database at path: parts');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error fetching parts:', error);
+            if (error.code === 'PERMISSION_DENIED') {
+                console.error('Permission denied for /parts - check Firebase Realtime Database Rules');
+            }
+            return false;
+        }
+    }
+
     function generatePartContent(partIndex, part) {
+        const hasOption1 =
+            (part.op_1_desc && part.op_1_desc.trim() !== '') ||
+            (part.op_1_en && part.op_1_en !== 0) ||
+            (part.op_1_tp && part.op_1_tp !== 0);
+
         return `
-            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.baseEnergy}</span></span> <span class="small-text">Training Points: <span id="baseTP-${partIndex}">${part.baseTP}</span></span></h3>
-            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.baseEnergy}</span> Part TP: <span id="totalTP-${partIndex}">${part.baseTP}</span></p>
+            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.base_en}</span></span> <span class="small-text">Training Points: <span id="baseTP-${partIndex}">${part.base_tp}</span></span></h3>
+            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.base_en}</span> Part TP: <span id="totalTP-${partIndex}">${part.base_tp}</span></p>
             <p>${part.description}</p>
             
-            ${part.opt1Cost !== undefined || part.opt1Description ? `
+            ${hasOption1 ? `
             <div class="option-container">
-                ${part.opt1Cost !== undefined || part.opt1Description ? `
+                ${hasOption1 ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}     Training Points: ${part.TPIncreaseOpt1 >= 0 ? '+' : ''}${part.TPIncreaseOpt1}</h4>
+                    <h4>Energy: ${part.op_1_en >= 0 ? '+' : ''}${part.op_1_en}     Training Points: ${part.op_1_tp >= 0 ? '+' : ''}${part.op_1_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', -1)">-</button>
                     <span>Level: <span id="opt1Level-${partIndex}">${selectedTechniqueParts[partIndex].opt1Level}</span></span>
-                    <p>${part.opt1Description}</p>
+                    <p>${part.op_1_desc}</p>
                 </div>` : ''}
                 
-                ${part.opt2Cost !== undefined || part.opt2Description ? `
+                ${part.op_2_desc ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}     Training Points: ${part.TPIncreaseOpt2 >= 0 ? '+' : ''}${part.TPIncreaseOpt2}</h4>
+                    <h4>Energy: ${part.op_2_en >= 0 ? '+' : ''}${part.op_2_en}     Training Points: ${part.op_2_tp >= 0 ? '+' : ''}${part.op_2_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', -1)">-</button>
                     <span>Level: <span id="opt2Level-${partIndex}">${selectedTechniqueParts[partIndex].opt2Level}</span></span>
-                    <p>${part.opt2Description}</p>
+                    <p>${part.op_2_desc}</p>
                 </div>` : ''}
-    
-                ${part.opt3Cost !== undefined || part.opt3Description ? `
+
+                ${part.op_3_desc ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt3Cost >= 0 ? '+' : ''}${part.opt3Cost}     Training Points: ${part.TPIncreaseOpt3 >= 0 ? '+' : ''}${part.TPIncreaseOpt3}</h4>
+                    <h4>Energy: ${part.op_3_en >= 0 ? '+' : ''}${part.op_3_en}     Training Points: ${part.op_3_tp >= 0 ? '+' : ''}${part.op_3_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', -1)">-</button>
                     <span>Level: <span id="opt3Level-${partIndex}">${selectedTechniqueParts[partIndex].opt3Level}</span></span>
-                    <p>${part.opt3Description}</p>
+                    <p>${part.op_3_desc}</p>
                 </div>` : ''}
             </div>` : ''}
-    
-            ${part.altBaseEnergy !== undefined || part.altTP !== undefined ? `
+
+            ${part.alt_base_en ? `
             <div class="option-box">
-                <h4>Alternate Base Energy: ${part.altBaseEnergy}</h4>
+                <h4>Alternate Base Energy: ${part.alt_base_en}</h4>
                 <button id="altEnergyButton-${partIndex}" class="alt-energy-button" onclick="toggleAltEnergy(${partIndex})">Toggle</button>
-                <p>${part.altEnergyDescription}</p>
+                <p>${part.alt_desc}</p>
             </div>` : ''}
         `;
     }
@@ -121,11 +201,7 @@ let weaponLibrary = [];
     function updateActionType() {
         const actionType = document.getElementById('actionType').value;
         const reactionChecked = document.getElementById('reactionCheckbox').checked;
-        let description = actionTypeDescriptions[actionType];
-        if (reactionChecked) {
-            description += " " + actionTypeDescriptions.reaction;
-        }
-        document.getElementById('actionTypeDescription').textContent = description;
+        // Remove description setting here
         updateTotalCosts();
     }
 
@@ -133,165 +209,123 @@ let weaponLibrary = [];
         updateTotalCosts();
     }
 
-    function calculateDamageEnergyCost() {
-        let totalDamageEnergy = 0;
+    function updateTotalCosts() {
+        // Build mechanic parts based on current selections
+        let mechanicParts = [];
+        const actionType = document.getElementById('actionType').value;
+        const reactionChecked = document.getElementById('reactionCheckbox').checked;
 
+        // Reaction
+        if (reactionChecked) {
+            const reactionPart = techniqueParts.find(p => p.name === 'Reaction' && p.mechanic);
+            if (reactionPart) {
+                mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
+            }
+        }
+
+        // Long Action
+        if (actionType === 'long3') {
+            const longPart = techniqueParts.find(p => p.name === 'Long Action' && p.mechanic);
+            if (longPart) {
+                mechanicParts.push({ part: longPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
+            }
+        } else if (actionType === 'long4') {
+            const longPart = techniqueParts.find(p => p.name === 'Long Action' && p.mechanic);
+            if (longPart) {
+                mechanicParts.push({ part: longPart, opt1Level: 1, opt2Level: 0, opt3Level: 0, useAltCost: false });
+            }
+        }
+
+        // Quick or Free Action
+        if (actionType === 'quick') {
+            const quickFreePart = techniqueParts.find(p => p.name === 'Quick or Free Action' && p.mechanic);
+            if (quickFreePart) {
+                mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
+                // Use part description for action type description
+                document.getElementById('actionTypeDescription').textContent = quickFreePart.description;
+            }
+        } else if (actionType === 'free') {
+            const quickFreePart = techniqueParts.find(p => p.name === 'Quick or Free Action' && p.mechanic);
+            if (quickFreePart) {
+                mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0, useAltCost: false });
+                // Use part description for action type description
+                document.getElementById('actionTypeDescription').textContent = quickFreePart.description;
+            }
+        }
+
+        // Additional Damage
+        let totalDamage = 0;
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
-
-        if (!isNaN(dieAmount1) && !isNaN(dieSize1)) {
-            totalDamageEnergy += ((dieAmount1 * dieSize1) / 2) * 1.5;
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && dieSize1 >= 4) {
+            totalDamage += dieAmount1 * dieSize1;
         }
-
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
         const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
-
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2)) {
-            totalDamageEnergy += ((dieAmount2 * dieSize2) / 2) * 1.5;
+        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && dieSize2 >= 4) {
+            totalDamage += dieAmount2 * dieSize2;
+        }
+        let damageLevel = 0;
+        if (totalDamage > 0) {
+            damageLevel = Math.max(0, Math.floor((totalDamage - 4) / 2));
+            const damagePart = techniqueParts.find(p => p.name === 'Additional Damage' && p.mechanic);
+            if (damagePart) {
+                mechanicParts.push({ part: damagePart, opt1Level: damageLevel, opt2Level: 0, opt3Level: 0, useAltCost: false });
+            }
         }
 
-        return totalDamageEnergy;
-    }
-
-    function updateTotalCosts() {
-        let sumBaseEnergy = 0;
-        let totalTP = 0;
-        tpSources = []; // Reset the array each time
-
-        // Only base, increase, decrease parts (no linger, duration, etc)
-        const baseEnergyParts = [];
-        const increaseParts = [];
-        const decreaseParts = [];
-
-        selectedTechniqueParts.forEach((partData) => {
-            const part = partData.part;
-            if (part.type === "base") {
-                baseEnergyParts.push(partData);
-            } else if (part.type === "increase") {
-                increaseParts.push(partData);
-            } else if (part.type === "decrease") {
-                decreaseParts.push(partData);
+        // Add Weapon Attack
+        if (selectedWeapon && selectedWeapon.tp >= 1) {
+            const weaponPart = techniqueParts.find(p => p.name === 'Add Weapon Attack' && p.mechanic);
+            if (weaponPart) {
+                mechanicParts.push({ part: weaponPart, opt1Level: selectedWeapon.tp - 1, opt2Level: 0, opt3Level: 0, useAltCost: false });
             }
-        });
+        }
 
-        // Step 1: Calculate base energy parts
-        baseEnergyParts.forEach((partData) => {
+        // Combine user and mechanic parts
+        const allParts = [...selectedTechniqueParts, ...mechanicParts];
+
+        let sumNonPercentage = 0;
+        let productPercentage = 1;
+        let totalTP = 0;
+        tpSources = []; // Reset
+
+        allParts.forEach((partData) => {
             const part = partData.part;
-            let partEnergy = partData.useAltCost ? part.altBaseEnergy : part.baseEnergy;
-            let partTP = part.baseTP;
-            partEnergy += (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += (part.opt3Cost || 0) * partData.opt3Level;
-            sumBaseEnergy += partEnergy;
+            // Calculate contribution for each part
+            let partContribution = part.base_en + (part.op_1_en || 0) * partData.opt1Level + (part.op_2_en || 0) * partData.opt2Level + (part.op_3_en || 0) * partData.opt3Level;
+            if (part.percentage) {
+                productPercentage *= partContribution;
+            } else {
+                sumNonPercentage += partContribution;
+            }
+            // TP calculation remains the same
+            let partTP = part.base_tp;
             totalTP += partTP;
-            // Add TP from options
-            const opt1TP = (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
-            const opt2TP = (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
-            const opt3TP = (part.TPIncreaseOpt3 || 0) * partData.opt3Level;
-            totalTP += opt1TP + opt2TP + opt3TP;
-            if (partTP > 0 || opt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
+            const opt1TP = (part.op_1_tp || 0) * partData.opt1Level;
+            const opt2TP = (part.op_2_tp || 0) * partData.opt2Level;
+            const opt3TP = (part.op_3_tp || 0) * partData.opt3Level;
+            let adjustedOpt1TP = opt1TP;
+            if (part.name === 'Additional Damage') {
+                adjustedOpt1TP = Math.floor(opt1TP);
+            }
+            totalTP += adjustedOpt1TP + opt2TP + opt3TP;
+            if (partTP > 0 || adjustedOpt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
                 let partSource = `${partTP} TP: ${part.name}`;
-                if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${opt1TP} TP)`;
+                if (adjustedOpt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${adjustedOpt1TP} TP)`;
                 if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.opt2Level}: ${opt2TP} TP)`;
                 if (opt3TP > 0) partSource += ` (Option 3 Level ${partData.opt3Level}: ${opt3TP} TP)`;
                 tpSources.push(partSource);
             }
         });
 
-        // --- Add weapon energy cost if weapon is selected ---
-        if (selectedWeapon && selectedWeapon.name !== "Unarmed Prowess" && selectedWeapon.tp > 0) {
-            sumBaseEnergy += 0.25 * selectedWeapon.tp;
-        }
-        // ----------------------------------------------------
-
-        // Calculate damage energy cost
-        sumBaseEnergy += calculateDamageEnergyCost();
-
-        // Increase TP based on damage dice total value (dieAmount * dieSize / 6, rounded up)
-        const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
-        const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
-        if (!isNaN(dieAmount1) && !isNaN(dieSize1)) {
-            const totalValue1 = dieAmount1 * dieSize1;
-            const tp1 = Math.ceil(totalValue1 / 6);
-            totalTP += tp1;
-            let display1 = '';
-            if (tp1 === 1) {
-                display1 = `1d6`;
-            } else if (tp1 % 2 === 0) {
-                const y = tp1 / 2;
-                display1 = `${y}d12`;
-            } else {
-                const x = (tp1 - 1) / 2;
-                display1 = `${x}d12 & 1d6`;
-            }
-            tpSources.push(`${tp1} TP: ${display1}`);
-        }
-
-        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
-        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2)) {
-            const totalValue2 = dieAmount2 * dieSize2;
-            const tp2 = Math.ceil(totalValue2 / 6);
-            totalTP += tp2;
-            let display2 = '';
-            if (tp2 === 1) {
-                display2 = `1d6`;
-            } else if (tp2 % 2 === 0) {
-                const y = tp2 / 2;
-                display2 = `${y}d12`;
-            } else {
-                const x = (tp2 - 1) / 2;
-                display2 = `${x}d12 & 1d6`;
-            }
-            tpSources.push(`${tp2} TP: ${display2}`);
-        }
-
-        // Step 2: Apply increase parts
-        let increasedEnergy = sumBaseEnergy;
-        increaseParts.forEach((partData) => {
-            const part = partData.part;
-            let partEnergy = increasedEnergy * part.baseEnergy;
-            partEnergy += increasedEnergy * (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += increasedEnergy * (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += increasedEnergy * (part.opt3Cost || 0) * partData.opt3Level;
-            increasedEnergy += partEnergy;
-        });
-
-        // Apply action type cost (only increases)
-        const actionType = document.getElementById('actionType').value;
-        const reactionChecked = document.getElementById('reactionCheckbox').checked;
-        const actionTypeCost = {
-            basic: 0,
-            free: 0.5,
-            quick: 0.25,
-            long3: -0.125,
-            long4: -0.25
-        }[actionType];
-        if (actionTypeCost > 0) {
-            increasedEnergy *= 1 + actionTypeCost;
-        }
-        if (reactionChecked) {
-            increasedEnergy *= 1 + 0.25;
-        }
-
-        // Step 3: Apply decrease parts
-        let decreasedEnergy = increasedEnergy;
-        decreaseParts.forEach((partData) => {
-            const part = partData.part;
-            let partEnergy = decreasedEnergy * part.baseEnergy;
-            partEnergy += decreasedEnergy * (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += decreasedEnergy * (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += decreasedEnergy * (part.opt3Cost || 0) * partData.opt3Level;
-            decreasedEnergy += partEnergy;
-        });
-
-        // Apply action type cost (only decreases)
-        if (actionTypeCost < 0) {
-            decreasedEnergy *= 1 + actionTypeCost;
-        }
+        // Removed: extra manual weapon energy add to avoid double-counting
+        // if (selectedWeapon && selectedWeapon.name !== "Unarmed Prowess" && selectedWeapon.tp > 0) {
+        //     sumNonPercentage += 0.25 * selectedWeapon.tp;
+        // }
 
         // Final energy calculation
-        const finalEnergy = decreasedEnergy;
+        const finalEnergy = sumNonPercentage * productPercentage;
 
         document.getElementById("totalEnergy").textContent = finalEnergy.toFixed(2);
         document.getElementById("totalTP").textContent = totalTP;
@@ -334,13 +368,13 @@ let weaponLibrary = [];
             const partElement = document.createElement('div');
             partElement.innerHTML = `
                 <h4>${part.name}</h4>
-                <p>Energy: ${part.baseEnergy}</p>
-                <p>Training Points: ${part.baseTP}</p>
+                <p>Energy: ${part.base_en}</p>
+                <p>Training Points: ${part.base_tp}</p>
                 <p>${part.description}</p>
-                ${part.opt1Description ? `<p>Option 1: ${part.opt1Description} (Level: ${partData.opt1Level})</p>` : ''}
-                ${part.opt2Description ? `<p>Option 2: ${part.opt2Description} (Level: ${partData.opt2Level})</p>` : ''}
-                ${part.opt3Description ? `<p>Option 3: ${part.opt3Description} (Level: ${partData.opt3Level})</p>` : ''}
-                ${part.altEnergyDescription ? `<p>Alternate Energy: ${part.altEnergyDescription}</p>` : ''}
+                ${part.op_1_desc ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.opt1Level})</p>` : ''}
+                ${part.op_2_desc ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.opt2Level})</p>` : ''}
+                ${part.op_3_desc ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.opt3Level})</p>` : ''}
+                ${part.alt_desc ? `<p>Alternate Energy: ${part.alt_desc}</p>` : ''}
             `;
             summaryPartsContainer.appendChild(partElement);
         });
@@ -429,6 +463,13 @@ let weaponLibrary = [];
         firebaseDb = db;
         firebaseFunctions = functions;
 
+        // Fetch parts from Realtime Database
+        const partsLoaded = await fetchTechniqueParts(getDatabase(app));
+        
+        if (!partsLoaded) {
+            alert('Failed to load technique parts. Please refresh the page.');
+        }
+
         // Set up event listeners
         initializeEventListeners();
 
@@ -481,15 +522,7 @@ let weaponLibrary = [];
             techniquePartSection.id = `techniquePart-${partIndex}`;
             techniquePartSection.classList.add("technique-part-section");
 
-            let filteredParts = [];
-            if (partData.part.type === 'base') {
-                filteredParts = techniqueParts.filter(part => part.type === 'base');
-            } else if (partData.part.type === 'increase') {
-                filteredParts = techniqueParts.filter(part => part.type === 'increase');
-            } else if (partData.part.type === 'decrease') {
-                filteredParts = techniqueParts.filter(part => part.type === 'decrease');
-            }
-
+            let filteredParts = techniqueParts.filter(p => !p.mechanic); // Exclude mechanic parts
             const selectedCategory = partData.category || 'any';
             if (selectedCategory !== 'any') {
                 filteredParts = filteredParts.filter(part => part.category === selectedCategory);
@@ -529,17 +562,7 @@ let weaponLibrary = [];
     function filterPartsByCategory(partIndex, category) {
         selectedTechniqueParts[partIndex].category = category;
 
-        let filteredParts = [];
-        const partType = selectedTechniqueParts[partIndex].part.type;
-
-        if (partType === 'base') {
-            filteredParts = techniqueParts.filter(part => part.type === 'base');
-        } else if (partType === 'increase') {
-            filteredParts = techniqueParts.filter(part => part.type === 'increase');
-        } else if (partType === 'decrease') {
-            filteredParts = techniqueParts.filter(part => part.type === 'decrease');
-        }
-
+        let filteredParts = techniqueParts.slice(); // Start with all parts
         if (category !== 'any') {
             filteredParts = filteredParts.filter(part => part.category === category);
         }
@@ -561,21 +584,65 @@ let weaponLibrary = [];
         }
     }
 
+    // Load properties from Realtime Database (copied from library.js for consistency)
+    let itemPropertiesCache = null;
+    async function loadItemProperties(database) {
+        if (itemPropertiesCache) return itemPropertiesCache;
+        
+        try {
+            const propertiesRef = ref(database, 'properties');
+            const snapshot = await get(propertiesRef);
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                itemPropertiesCache = Object.entries(data).map(([id, prop]) => ({
+                    id: id,
+                    name: prop.name || '',
+                    description: prop.description || '',
+                    base_ip: parseFloat(prop.base_ip) || 0,
+                    base_tp: parseFloat(prop.base_tp) || 0,
+                    base_gp: parseFloat(prop.base_gp) || 0,
+                    op_1_desc: prop.op_1_desc || '',
+                    op_1_ip: parseFloat(prop.op_1_ip) || 0,
+                    op_1_tp: parseFloat(prop.op_1_tp) || 0,
+                    op_1_gp: parseFloat(prop.op_1_gp) || 0,
+                    type: prop.type ? prop.type.charAt(0).toUpperCase() + prop.type.slice(1) : 'Weapon'
+                }));
+                console.log(`Loaded ${itemPropertiesCache.length} properties from database`);
+                return itemPropertiesCache;
+            }
+        } catch (error) {
+            console.error('Error loading properties:', error);
+        }
+        return [];
+    }
+
     // --- MISSING FUNCTION: loadWeaponLibrary ---
     async function loadWeaponLibrary() {
         if (!firebaseAuth || !firebaseDb) return;
         const user = firebaseAuth.currentUser;
         if (!user) return;
         try {
+            // Fetch properties data first
+            const database = getDatabase(firebaseApp);
+            const propertiesData = await loadItemProperties(database);
+            if (!propertiesData || propertiesData.length === 0) {
+                console.error('Failed to load properties for weapon library');
+                return;
+            }
+
             const snapshot = await getDocs(collection(firebaseDb, 'users', user.uid, 'itemLibrary'));
             weaponLibrary = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (data && (data.itemParts?.some(p => p.type === "Weapon") || data.totalTP)) {
+                // Filter for weapons by armamentType
+                if (data.armamentType === 'Weapon') {
+                    // Calculate total TP from properties
+                    const costs = calculateItemCosts(data.properties || [], propertiesData);
                     weaponLibrary.push({
                         id: docSnap.id,
                         name: data.name,
-                        totalTP: data.totalTP || 0
+                        totalTP: costs.totalTP || 0
                     });
                 }
             });
