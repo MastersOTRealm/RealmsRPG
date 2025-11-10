@@ -358,9 +358,43 @@ async function showSavedTechniques(db, userId) {
         // Sort techniques
         sortItems(techniques, sortState.techniques);
 
-        // Render techniques
+        // Load technique parts from Realtime Database for cost calculation
+        const database = getDatabase();
+        const partsRef = ref(database, 'parts');
+        const snapshot = await get(partsRef);
+        let techniquePartsDb = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            techniquePartsDb = Object.entries(data)
+                .filter(([id, part]) => part.type && part.type.toLowerCase() === 'technique')
+                .map(([id, part]) => ({
+                    id: id,
+                    name: part.name || '',
+                    description: part.description || '',
+                    category: part.category || '',
+                    base_en: parseFloat(part.base_en) || 0,
+                    base_tp: parseFloat(part.base_tp) || 0,
+                    op_1_desc: part.op_1_desc || '',
+                    op_1_en: parseFloat(part.op_1_en) || 0,
+                    op_1_tp: parseFloat(part.op_1_tp) || 0,
+                    op_2_desc: part.op_2_desc || '',
+                    op_2_en: parseFloat(part.op_2_en) || 0,
+                    op_2_tp: parseFloat(part.op_2_tp) || 0,
+                    op_3_desc: part.op_3_desc || '',
+                    op_3_en: parseFloat(part.op_3_en) || 0,
+                    op_3_tp: parseFloat(part.op_3_tp) || 0,
+                    type: part.type || 'technique',
+                    mechanic: part.mechanic === 'true' || part.mechanic === true,
+                    percentage: part.percentage === 'true' || part.percentage === true,
+                    alt_base_en: parseFloat(part.alt_base_en) || 0,
+                    alt_tp: parseFloat(part.alt_tp) || 0,
+                    alt_desc: part.alt_desc || ''
+                }));
+        }
+
         techniques.forEach(technique => {
-            const card = createTechniqueCard(technique, db, userId);
+            // Always pass an array for technique.parts
+            const card = createTechniqueCardDynamic(technique, techniquePartsDb, db, userId);
             techniquesList.appendChild(card);
         });
     } catch (e) {
@@ -369,7 +403,58 @@ async function showSavedTechniques(db, userId) {
     }
 }
 
-function createTechniqueCard(technique, db, userId) {
+// --- Dynamic calculation for technique costs and TP ---
+function calculateTechniqueCosts(parts, techniquePartsDb) {
+    // Ensure parts is always an array
+    if (!Array.isArray(parts)) parts = [];
+    let sumNonPercentage = 0;
+    let productPercentage = 1;
+    let totalTP = 0;
+    let tpSources = [];
+
+    parts.forEach((partData) => {
+        const part = techniquePartsDb.find(tp => tp.name === partData.name);
+        if (!part) return;
+        // Calculate energy
+        let partContribution = part.base_en +
+            (part.op_1_en || 0) * (partData.op_1_lvl || 0) +
+            (part.op_2_en || 0) * (partData.op_2_lvl || 0) +
+            (part.op_3_en || 0) * (partData.op_3_lvl || 0);
+        if (part.percentage) {
+            productPercentage *= partContribution;
+        } else {
+            sumNonPercentage += partContribution;
+        }
+        // Calculate TP
+        let partTP = part.base_tp;
+        totalTP += partTP;
+        const opt1TP = (part.op_1_tp || 0) * (partData.op_1_lvl || 0);
+        const opt2TP = (part.op_2_tp || 0) * (partData.op_2_lvl || 0);
+        const opt3TP = (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
+        let adjustedOpt1TP = part.name === 'Additional Damage' ? Math.floor(opt1TP) : opt1TP;
+        totalTP += adjustedOpt1TP + opt2TP + opt3TP;
+        if (partTP > 0 || adjustedOpt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
+            let partSource = `${partTP} TP: ${part.name}`;
+            if (adjustedOpt1TP > 0) partSource += ` (Opt 1 ${partData.op_1_lvl}: ${adjustedOpt1TP} TP)`;
+            if (opt2TP > 0) partSource += ` (Opt 2 ${partData.op_2_lvl}: ${opt2TP} TP)`;
+            if (opt3TP > 0) partSource += ` (Opt 3 ${partData.op_3_lvl}: ${opt3TP} TP)`;
+            tpSources.push({ name: part.name, tp: partTP + adjustedOpt1TP + opt2TP + opt3TP, part, partData });
+        }
+    });
+
+    const finalEnergy = sumNonPercentage * productPercentage;
+    return {
+        totalEnergy: finalEnergy,
+        totalTP,
+        tpSources
+    };
+}
+
+// --- Technique card with dynamic calculation ---
+function createTechniqueCardDynamic(technique, techniquePartsDb, db, userId) {
+    // Ensure technique.parts is always an array
+    const partsArr = Array.isArray(technique.parts) ? technique.parts : [];
+
     const card = document.createElement('div');
     card.className = 'library-card';
 
@@ -378,19 +463,20 @@ function createTechniqueCard(technique, db, userId) {
     header.style.gridTemplateColumns = '1.5fr 0.8fr 0.8fr 1fr 1fr 1fr';
     header.onclick = () => toggleExpand(card);
 
+    // Calculate costs
+    const calc = calculateTechniqueCosts(partsArr, techniquePartsDb);
+
+    // Damage display
     let damageStr = "";
-    if (technique.damage && Array.isArray(technique.damage)) {
-        damageStr = technique.damage
-            .filter(d => d && d.amount && d.size && d.amount !== '0' && d.size !== '0')
-            .map(d => `+${d.amount}d${d.size}`)
-            .join(', ');
+    if (technique.damage && typeof technique.damage === 'object' && technique.damage.amount && technique.damage.size && technique.damage.amount !== '0' && technique.damage.size !== '0') {
+        damageStr = `+${technique.damage.amount}d${technique.damage.size}`;
     }
 
     header.innerHTML = `
         <div class="col">${technique.name}</div>
-        <div class="col">${technique.totalEnergy}</div>
-        <div class="col">${technique.totalTP}</div>
-        <div class="col">${formatActionType(technique.actionType, technique.reactionChecked)}</div>
+        <div class="col">${calc.totalEnergy.toFixed(2)}</div>
+        <div class="col">${calc.totalTP}</div>
+        <div class="col">${technique.actionType ? capitalize(technique.actionType) : '-'}</div>
         <div class="col">${technique.weapon && technique.weapon.name ? technique.weapon.name : "Unarmed"}</div>
         <div class="col">${damageStr}</div>
         <span class="expand-icon">▼</span>
@@ -403,20 +489,52 @@ function createTechniqueCard(technique, db, userId) {
         body.innerHTML += `<div class="library-description">${technique.description}</div>`;
     }
 
-    if (technique.techniqueParts && technique.techniqueParts.length > 0) {
+    // Parts/proficiencies chips
+    if (partsArr && partsArr.length > 0) {
         const partsHTML = `
+            <h4 style="margin: 16px 0 8px 0; color: var(--primary);">Technique Parts & Proficiencies</h4>
             <div class="library-parts">
-                ${technique.techniqueParts.map(part => {
-                    let text = part.part;
-                    if (part.opt1Level) text += ` Opt 1: (${part.opt1Level})`;
-                    if (part.opt2Level) text += ` Opt 2: (${part.opt2Level})`;
-                    if (part.opt3Level) text += ` Opt 3: (${part.opt3Level})`;
-                    return `<div class="part-chip">${text}</div>`;
+                ${partsArr.map(partData => {
+                    const part = techniquePartsDb.find(tp => tp.name === partData.name);
+                    if (!part) return '';
+                    let tp = part.base_tp +
+                        (part.op_1_tp || 0) * (partData.op_1_lvl || 0) +
+                        (part.op_2_tp || 0) * (partData.op_2_lvl || 0) +
+                        (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
+                    if (part.name === 'Additional Damage') {
+                        tp = part.base_tp + Math.floor((part.op_1_tp || 0) * (partData.op_1_lvl || 0)) +
+                            (part.op_2_tp || 0) * (partData.op_2_lvl || 0) +
+                            (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
+                    }
+                    let text = part.name;
+                    if (partData.op_1_lvl > 0) text += ` (Opt 1: ${partData.op_1_lvl})`;
+                    if (partData.op_2_lvl > 0) text += ` (Opt 2: ${partData.op_2_lvl})`;
+                    if (partData.op_3_lvl > 0) text += ` (Opt 3: ${partData.op_3_lvl})`;
+                    if (tp > 0) text += ` | TP: ${tp}`;
+                    return `<div class="part-chip proficiency-chip" title="${part.description}">${text}</div>`;
                 }).join('')}
             </div>
         `;
         body.innerHTML += partsHTML;
     }
+
+    // Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-button';
+    deleteBtn.textContent = 'Delete Technique';
+    deleteBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (confirm(`Are you sure you want to delete ${technique.name}?`)) {
+            try {
+                await deleteDoc(doc(db, 'users', userId, 'techniqueLibrary', technique.docId));
+                card.remove();
+            } catch (error) {
+                console.error('Error deleting technique: ', error);
+                alert('Error deleting technique');
+            }
+        }
+    };
+    body.appendChild(deleteBtn);
 
     card.appendChild(header);
     card.appendChild(body);

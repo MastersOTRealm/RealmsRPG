@@ -201,12 +201,68 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
     function updateActionType() {
         const actionType = document.getElementById('actionType').value;
         const reactionChecked = document.getElementById('reactionCheckbox').checked;
-        // Remove description setting here
+        const descElement = document.getElementById('actionTypeDescription');
+        
+        let descriptions = [];
+        
+        // Add action type description
+        if (actionType === 'quick') {
+            const quickFreePart = techniqueParts.find(p => p.name === 'Quick or Free Action' && p.mechanic);
+            if (quickFreePart && quickFreePart.description) {
+                descriptions.push(quickFreePart.description);
+            }
+        } else if (actionType === 'free') {
+            const quickFreePart = techniqueParts.find(p => p.name === 'Quick or Free Action' && p.mechanic);
+            if (quickFreePart && quickFreePart.op_1_desc) {
+                descriptions.push(quickFreePart.op_1_desc);
+            }
+        } else if (actionType === 'long3') {
+            const longPart = techniqueParts.find(p => p.name === 'Long Action' && p.mechanic);
+            if (longPart && longPart.description) {
+                descriptions.push(longPart.description);
+            }
+        } else if (actionType === 'long4') {
+            const longPart = techniqueParts.find(p => p.name === 'Long Action' && p.mechanic);
+            if (longPart && longPart.op_1_desc) {
+                descriptions.push(longPart.op_1_desc);
+            }
+        }
+        
+        // Add reaction description if checked
+        if (reactionChecked) {
+            const reactionPart = techniqueParts.find(p => p.name === 'Reaction' && p.mechanic);
+            if (reactionPart && reactionPart.description) {
+                descriptions.push(reactionPart.description);
+            }
+        }
+        
+        // Set combined description
+        if (descElement) {
+            descElement.textContent = descriptions.join(' ');
+        }
+        
         updateTotalCosts();
     }
 
     function updateDamageType() {
         updateTotalCosts();
+    }
+
+    // Helper function to compute number of splits needed
+    function computeSplits(dieAmount, dieSize) {
+        const validSizes = [4, 6, 8, 10, 12];
+        if (!validSizes.includes(dieSize)) return 0;
+        if (dieAmount <= 1) return 0;
+        
+        // Calculate total damage
+        const totalDamage = dieAmount * dieSize;
+        
+        // Find minimum number of dice needed by greedily using largest die (d12)
+        const maxDieSize = 12;
+        const minDice = Math.ceil(totalDamage / maxDieSize);
+        
+        // Number of splits = original dice count - minimum possible dice count
+        return dieAmount - minDice;
     }
 
     function updateTotalCosts() {
@@ -241,29 +297,20 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
             const quickFreePart = techniqueParts.find(p => p.name === 'Quick or Free Action' && p.mechanic);
             if (quickFreePart) {
                 mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
-                // Use part description for action type description
-                document.getElementById('actionTypeDescription').textContent = quickFreePart.description;
             }
         } else if (actionType === 'free') {
             const quickFreePart = techniqueParts.find(p => p.name === 'Quick or Free Action' && p.mechanic);
             if (quickFreePart) {
                 mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0, useAltCost: false });
-                // Use part description for action type description
-                document.getElementById('actionTypeDescription').textContent = quickFreePart.description;
             }
         }
 
-        // Additional Damage
+        // Additional Damage - only first row
         let totalDamage = 0;
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
         if (!isNaN(dieAmount1) && !isNaN(dieSize1) && dieSize1 >= 4) {
-            totalDamage += dieAmount1 * dieSize1;
-        }
-        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
-        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && dieSize2 >= 4) {
-            totalDamage += dieAmount2 * dieSize2;
+            totalDamage = dieAmount1 * dieSize1;
         }
         let damageLevel = 0;
         if (totalDamage > 0) {
@@ -271,6 +318,24 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
             const damagePart = techniqueParts.find(p => p.name === 'Additional Damage' && p.mechanic);
             if (damagePart) {
                 mechanicParts.push({ part: damagePart, opt1Level: damageLevel, opt2Level: 0, opt3Level: 0, useAltCost: false });
+            }
+        }
+
+        // Split Damage Dice - add after Additional Damage
+        const validSizes = [4, 6, 8, 10, 12];
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && validSizes.includes(dieSize1)) {
+            const splits = computeSplits(dieAmount1, dieSize1);
+            if (splits > 0) {
+                const splitPart = techniqueParts.find(p => p.name === 'Split Damage Dice' && p.mechanic);
+                if (splitPart) {
+                    mechanicParts.push({
+                        part: splitPart,
+                        opt1Level: splits - 1,  // Base covers first split
+                        opt2Level: 0,
+                        opt3Level: 0,
+                        useAltCost: false
+                    });
+                }
             }
         }
 
@@ -347,15 +412,10 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
 
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
-        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
-        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
 
         let damageText = '';
         if (!isNaN(dieAmount1) && !isNaN(dieSize1)) {
-            damageText += `Increased Damage: ${dieAmount1}d${dieSize1}`;
-        }
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2)) {
-            damageText += (damageText ? ', ' : '') + `Increased Damage: ${dieAmount2}d${dieSize2}`;
+            damageText = `Increased Damage: ${dieAmount1}d${dieSize1}`;
         }
         document.getElementById('summaryDamage').textContent = damageText;
         document.getElementById('summaryDamage').style.display = damageText ? 'block' : 'none';
@@ -427,7 +487,8 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
                 alert('Please login to load saved techniques.');
             }
         });
-        closeButton.addEventListener('click', closeModal);
+        // Guard in case the close button is not present yet
+        if (closeButton) closeButton.addEventListener('click', closeModal);
         window.addEventListener('click', (event) => {
             if (event.target === document.getElementById('loadTechniqueModal')) {
                 closeModal();
@@ -482,33 +543,6 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
 
         updateWeaponBoxUI();
     });
-
-    function addDamageRow() {
-        const additionalDamageRow = document.getElementById('additionalDamageRow');
-        additionalDamageRow.innerHTML = `
-            <div style="display:flex; align-items:center; gap:8px;">
-                <input type="number" id="dieAmount2" min="1" max="99" value="" placeholder="Amount">
-                <span>d</span>
-                <select id="dieSize2">
-                    <option value="" selected disabled>Size</option>
-                    <option value="2">2</option>
-                    <option value="4">4</option>
-                    <option value="6">6</option>
-                    <option value="8">8</option>
-                    <option value="10">10</option>
-                    <option value="12">12</option>
-                </select>
-                <button id="removeDamageRowButton" class="medium-button red-button" onclick="removeDamageRow()">-</button>
-            </div>
-        `;
-        document.getElementById('addDamageRowButton').style.display = 'none';
-    }
-
-    function removeDamageRow() {
-        const additionalDamageRow = document.getElementById('additionalDamageRow');
-        additionalDamageRow.innerHTML = '';
-        document.getElementById('addDamageRowButton').style.display = 'inline-block';
-    }
 
     function renderTechniqueParts() {
         const techniquePartsContainer = document.getElementById("techniquePartsContainer");
@@ -709,7 +743,82 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         updateTotalCosts();
     }
 
-    // --- Update saveTechniqueToLibrary to use direct Firestore write ---
+    // Helper: build mechanic parts (mirrors logic in updateTotalCosts; kept local to avoid refactor)
+    function buildMechanicPartsForSave() {
+        const mechanicParts = [];
+        const actionType = document.getElementById('actionType')?.value;
+        const reactionChecked = document.getElementById('reactionCheckbox')?.checked;
+
+        // Reaction
+        if (reactionChecked) {
+            const reactionPart = techniqueParts.find(p => p.name === 'Reaction' && p.mechanic);
+            if (reactionPart) mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+        }
+        // Long Action
+        if (actionType === 'long3' || actionType === 'long4') {
+            const longPart = techniqueParts.find(p => p.name === 'Long Action' && p.mechanic);
+            if (longPart) mechanicParts.push({
+                part: longPart,
+                opt1Level: actionType === 'long4' ? 1 : 0,
+                opt2Level: 0,
+                opt3Level: 0
+            });
+        }
+        // Quick / Free
+        if (actionType === 'quick' || actionType === 'free') {
+            const quickFreePart = techniqueParts.find(p => p.name === 'Quick or Free Action' && p.mechanic);
+            if (quickFreePart) mechanicParts.push({
+                part: quickFreePart,
+                opt1Level: actionType === 'free' ? 1 : 0,
+                opt2Level: 0,
+                opt3Level: 0
+            });
+        }
+        // Additional Damage (based on first row only per new save rules)
+        const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
+        const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && dieSize1 >= 4) {
+            const totalDamage = dieAmount1 * dieSize1;
+            if (totalDamage > 0) {
+                const damageLevel = Math.max(0, Math.floor((totalDamage - 4) / 2));
+                const damagePart = techniqueParts.find(p => p.name === 'Additional Damage' && p.mechanic);
+                if (damagePart) mechanicParts.push({
+                    part: damagePart,
+                    opt1Level: damageLevel,
+                    opt2Level: 0,
+                    opt3Level: 0
+                });
+            }
+        }
+        // Split Damage Dice
+        const validSizes = [4, 6, 8, 10, 12];
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && validSizes.includes(dieSize1)) {
+            const splits = computeSplits(dieAmount1, dieSize1);
+            if (splits > 0) {
+                const splitPart = techniqueParts.find(p => p.name === 'Split Damage Dice' && p.mechanic);
+                if (splitPart) mechanicParts.push({
+                    part: splitPart,
+                    opt1Level: splits - 1,  // Base covers first split
+                    opt2Level: 0,
+                    opt3Level: 0
+                });
+            }
+        }
+
+        // Add Weapon Attack
+        if (selectedWeapon && selectedWeapon.tp >= 1) {
+            const weaponPart = techniqueParts.find(p => p.name === 'Add Weapon Attack' && p.mechanic);
+            if (weaponPart) mechanicParts.push({
+                part: weaponPart,
+                opt1Level: selectedWeapon.tp - 1,
+                opt2Level: 0,
+                opt3Level: 0
+            });
+        }
+        return mechanicParts;
+    }
+
+    // UPDATED: Save Technique (minimal fields per new requirements)
     async function saveTechniqueToLibrary(functions, userId) {
         const techniqueName = document.getElementById('techniqueName').value?.trim();
         if (!techniqueName) {
@@ -717,35 +826,42 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
             return;
         }
         const techniqueDescription = document.getElementById('techniqueDescription').value || '';
-        const totalEnergy = document.getElementById('totalEnergy').textContent || '0';
-        const totalTP = document.getElementById('totalTP').textContent || '0';
-        if (!totalEnergy || !totalTP) {
-            alert('Energy and TP values are required');
-            return;
-        }
-        const actionType = document.getElementById('actionType').value || 'basic';
-        const reactionChecked = document.getElementById('reactionCheckbox').checked || false;
-        const damage = [
-            { amount: document.getElementById('dieAmount1').value || '0', size: document.getElementById('dieSize1').value || '0', type: 'none' },
-            { amount: document.getElementById('dieAmount2')?.value || '0', size: document.getElementById('dieSize2')?.value || '0', type: 'none' }
-        ];
-        const techniqueParts = selectedTechniqueParts.map(partData => ({
-            part: partData.part.name,
-            opt1Level: partData.opt1Level,
-            opt2Level: partData.opt2Level,
-            opt3Level: partData.opt3Level,
-            useAltCost: partData.useAltCost
-        }));
-        const weaponToSave = selectedWeapon && selectedWeapon.name
-            ? { name: selectedWeapon.name, tp: selectedWeapon.tp, id: selectedWeapon.id }
-            : { name: "Unarmed Prowess", tp: 0, id: null };
 
+        // First damage row only
+        const dieAmount1 = document.getElementById('dieAmount1')?.value || '';
+        const dieSize1 = document.getElementById('dieSize1')?.value || '';
+        const damage = (dieAmount1 && dieSize1) ? { amount: dieAmount1, size: dieSize1 } : { amount: '0', size: '0' };
+
+        // All parts = user-selected + mechanic parts at save time
+        const mechanicParts = buildMechanicPartsForSave();
+        const allParts = [
+            ...selectedTechniqueParts.map(p => ({
+                part: p.part,
+                opt1Level: p.opt1Level,
+                opt2Level: p.opt2Level,
+                opt3Level: p.opt3Level
+            })),
+            ...mechanicParts
+        ];
+
+        // Map to compact structure similar to item save (properties)
+        const partsPayload = allParts.map(p => ({
+            name: p.part.name,
+            op_1_lvl: p.opt1Level || 0,
+            op_2_lvl: p.opt2Level || 0,
+            op_3_lvl: p.opt3Level || 0
+        }));
+
+        const weaponPayload = (selectedWeapon && selectedWeapon.name && selectedWeapon.name !== 'Unarmed Prowess')
+            ? { name: selectedWeapon.name }
+            : { name: 'Unarmed Prowess' };
+      
         try {
             if (!firebaseAuth.currentUser) {
                 alert('Please login to save techniques');
                 return;
             }
-            await firebaseAuth.currentUser.getIdToken(true); // Refresh token
+            await firebaseAuth.currentUser.getIdToken(true);
             const db = firebaseDb;
             const techniquesRef = collection(db, 'users', userId, 'techniqueLibrary');
             const q = query(techniquesRef, where('name', '==', techniqueName));
@@ -761,35 +877,86 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
             await setDoc(docRef, {
                 name: techniqueName,
                 description: techniqueDescription,
-                totalEnergy: Number(totalEnergy),
-                totalTP: Number(totalTP),
-                actionType,
-                reactionChecked,
-                damage,
-                techniqueParts,
-                weapon: weaponToSave,
+                parts: partsPayload,
+                weapon: weaponPayload,
+                damage, // single object
+                // optional timestamp kept for ordering (not restricted by spec)
                 timestamp: new Date()
             });
 
-            alert('Technique saved to library');
+            alert('Technique saved (minimal format)');
         } catch (e) {
-            console.error('Error saving technique:', {
-                code: e.code,
-                message: e.message,
-                details: e.details
-            });
-            let errorMessage = 'Error saving technique to library';
-            if (e.code === 'unauthenticated') {
-                errorMessage = 'Please login to save techniques';
-            } else if (e.code === 'permission-denied') {
-                errorMessage = 'Permission denied. Please check your authentication status.';
-            }
-            alert(errorMessage);
+            console.error('Error saving technique (minimal):', e);
+            alert('Error saving technique.');
         }
     }
 
+    // UPDATED: Load Technique (supports new minimal shape & old shape)
+    function loadTechnique(technique) {
+        // Name / Description
+        document.getElementById('techniqueName').value = technique.name || '';
+        document.getElementById('techniqueDescription').value = technique.description || '';
+
+        // Damage (handle new object or legacy array)
+        let dmgObj = null;
+        if (technique.damage) {
+            if (Array.isArray(technique.damage)) {
+                // legacy: first element
+                dmgObj = technique.damage[0] || null;
+            } else {
+                dmgObj = technique.damage;
+            }
+        }
+        if (dmgObj) {
+            document.getElementById('dieAmount1').value = dmgObj.amount || '';
+            document.getElementById('dieSize1').value = dmgObj.size || '';
+        } else {
+            document.getElementById('dieAmount1').value = '';
+            document.getElementById('dieSize1').value = '';
+        }
+
+        // Parts (new key: parts; fallback to legacy techniqueParts)
+        const savedParts = technique.parts || technique.techniqueParts || [];
+        selectedTechniqueParts.length = 0;
+        savedParts.forEach(p => {
+            const partObj = techniqueParts.find(tp => tp.name === p.name);
+            if (partObj) {
+                // Skip mechanic parts so updateTotalCosts can re-add dynamically
+                if (partObj.mechanic) return;
+                selectedTechniqueParts.push({
+                    part: partObj,
+                    opt1Level: p.op_1_lvl ?? p.opt1Level ?? 0,
+                    opt2Level: p.op_2_lvl ?? p.opt2Level ?? 0,
+                    opt3Level: p.op_3_lvl ?? p.opt3Level ?? 0,
+                    useAltCost: false
+                });
+            }
+        });
+
+        // Weapon (only name stored now)
+        if (technique.weapon && technique.weapon.name) {
+            selectedWeapon = {
+                name: technique.weapon.name,
+                tp: 0,
+                id: null
+            };
+            const sel = document.getElementById('techniqueWeaponSelect');
+            if (sel) sel.value = (selectedWeapon.name === 'Unarmed Prowess') ? 'unarmed' : '';
+        } else {
+            selectedWeapon = { name: 'Unarmed Prowess', tp: 0, id: null };
+            const sel = document.getElementById('techniqueWeaponSelect');
+            if (sel) sel.value = 'unarmed';
+        }
+
+        renderTechniqueParts();
+        updateWeaponBoxUI();
+        updateTotalCosts(); // Recalculate energy & TP from current definitions
+    }
+
+    // Load saved techniques list into modal
     async function loadSavedTechniques(db, userId) {
         const savedTechniquesList = document.getElementById('savedTechniquesList');
+        if (!savedTechniquesList) return;
         savedTechniquesList.innerHTML = '';
 
         try {
@@ -815,66 +982,14 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         }
     }
 
-    function loadTechnique(technique) {
-        document.getElementById('techniqueName').value = technique.name;
-        document.getElementById('techniqueDescription').value = technique.description;
-        document.getElementById('totalEnergy').textContent = technique.totalEnergy;
-        document.getElementById('totalTP').textContent = technique.totalTP;
-        document.getElementById('actionType').value = technique.actionType;
-        document.getElementById('reactionCheckbox').checked = technique.reactionChecked;
-
-        // Load damage values
-        document.getElementById('dieAmount1').value = technique.damage?.[0]?.amount || '';
-        document.getElementById('dieSize1').value = technique.damage?.[0]?.size || '';
-        if (technique.damage?.[1] && (technique.damage[1].amount || technique.damage[1].size)) {
-            addDamageRow();
-            document.getElementById('dieAmount2').value = technique.damage[1].amount;
-            document.getElementById('dieSize2').value = technique.damage[1].size;
-        } else {
-            removeDamageRow();
-        }
-
-        // Load technique parts
-        selectedTechniqueParts.length = 0;
-        (technique.techniqueParts || []).forEach(partData => {
-            const part = techniqueParts.find(p => p.name === partData.part);
-            if (part) {
-                selectedTechniqueParts.push({
-                    part,
-                    opt1Level: partData.opt1Level,
-                    opt2Level: partData.opt2Level,
-                    opt3Level: partData.opt3Level,
-                    useAltCost: partData.useAltCost
-                });
-            }
-        });
-
-        // Load weapon
-        if (technique.weapon && technique.weapon.name) {
-            selectedWeapon = {
-                name: technique.weapon.name,
-                tp: Number(technique.weapon.tp) || 0,
-                id: technique.weapon.id || null
-            };
-            const select = document.getElementById('techniqueWeaponSelect');
-            if (select) select.value = technique.weapon.id || "unarmed";
-        } else {
-            selectedWeapon = { name: "Unarmed Prowess", tp: 0, id: null };
-            const select = document.getElementById('techniqueWeaponSelect');
-            if (select) select.value = "unarmed";
-        }
-
-        renderTechniqueParts();
-        updateWeaponBoxUI();
-        updateTotalCosts();
-    }
-
+    // Simple modal helpers
     function openModal() {
-        document.getElementById('loadTechniqueModal').style.display = 'block';
+        const modal = document.getElementById('loadTechniqueModal');
+        if (modal) modal.style.display = 'block';
     }
-
     function closeModal() {
-        document.getElementById('loadTechniqueModal').style.display = 'none';
+        const modal = document.getElementById('loadTechniqueModal');
+        if (modal) modal.style.display = 'none';
     }
 
     // Expose functions to global scope for inline event handlers
@@ -884,8 +999,6 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
     window.updateTotalCosts = updateTotalCosts;
     window.updateActionType = updateActionType;
     window.updateDamageType = updateDamageType;
-    window.addDamageRow = addDamageRow;
-    window.removeDamageRow = removeDamageRow;
     window.filterPartsByCategory = filterPartsByCategory;
     window.toggleTotalCosts = toggleTotalCosts;
     window.loadSavedTechniques = loadSavedTechniques;
@@ -907,4 +1020,5 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         }
     };
     window.onTechniqueWeaponChange = onTechniqueWeaponChange;
+    window.saveTechniqueToLibrary = saveTechniqueToLibrary;
 })();

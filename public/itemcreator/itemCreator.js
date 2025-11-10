@@ -1111,20 +1111,19 @@ let appCheckInitialized = false;
 
     // Helper: compute splits (needed by Split Damage Dice)
     function computeSplits(dieAmount, dieSize) {
-        if (!dieAmount || !dieSize) return 0;
-        const validSizes = [4,6,8,10,12];
+        const validSizes = [4, 6, 8, 10, 12];
         if (!validSizes.includes(dieSize)) return 0;
-        let totalValue = dieAmount * dieSize;
-        let remaining = totalValue;
-        let minDice = 0;
-        const sizesDesc = [12,10,8,6,4];
-        for (const s of sizesDesc) {
-            const need = Math.floor(remaining / s);
-            minDice += need;
-            remaining -= need * s;
-        }
-        if (remaining !== 0) return 0;
-        return Math.max(0, dieAmount - minDice);
+        if (dieAmount <= 1) return 0;
+        
+        // Calculate total damage
+        const totalDamage = dieAmount * dieSize;
+        
+        // Find minimum number of dice needed by greedily using largest die (d12)
+        const maxDieSize = 12;
+        const minDice = Math.ceil(totalDamage / maxDieSize);
+        
+        // Number of splits = original dice count - minimum possible dice count
+        return dieAmount - minDice;
     }
 
     // Ensure initial pushes use op_1_lvl

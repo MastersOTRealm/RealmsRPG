@@ -229,10 +229,9 @@ exports.saveItemToLibrary = onCall(async (data, context) => {
     }
 });
 
-// --- Technique Library Functions (copies of power library functions, adapted) ---
-
+// --- Technique Library Functions (minimal format) ---
 exports.saveTechniqueToLibrary = onCall(async (data, context) => {
-    const { techniqueName, techniqueDescription, totalEnergy, totalTP, actionType, reactionChecked, damage, techniqueParts, weapon } = data;
+    const { techniqueName, techniqueDescription, parts, weapon, damage } = data;
     const uid = context.auth.uid;
 
     if (!uid) {
@@ -243,31 +242,33 @@ exports.saveTechniqueToLibrary = onCall(async (data, context) => {
     if (!(typeof techniqueName === "string") || techniqueName.trim().length === 0) {
         throw new HttpsError("invalid-argument", "The function must be called with a valid 'techniqueName'.");
     }
-    if (typeof totalEnergy === "undefined" || totalEnergy === null || totalEnergy === "") {
-        throw new HttpsError("invalid-argument", "Missing required 'totalEnergy'.");
+    if (!Array.isArray(parts)) {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'parts' array.");
     }
-    if (typeof totalTP === "undefined" || totalTP === null || totalTP === "") {
-        throw new HttpsError("invalid-argument", "Missing required 'totalTP'.");
+    if (!damage || typeof damage !== "object" || !("amount" in damage) || !("size" in damage)) {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'damage' object.");
     }
-    if (!Array.isArray(damage)) {
-        throw new HttpsError("invalid-argument", "Missing or invalid 'damage' array.");
-    }
-    if (!Array.isArray(techniqueParts)) {
-        throw new HttpsError("invalid-argument", "Missing or invalid 'techniqueParts' array.");
+    if (!weapon || typeof weapon !== "object" || !("name" in weapon)) {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'weapon' object.");
     }
 
     try {
         const db = getFirestore();
-        const docRef = await db.collection('users').doc(uid).collection('techniqueLibrary').add({
+        // Overwrite if name exists, else add new
+        const techniquesRef = db.collection('users').doc(uid).collection('techniqueLibrary');
+        const querySnap = await techniquesRef.where('name', '==', techniqueName).get();
+        let docRef;
+        if (!querySnap.empty) {
+            docRef = techniquesRef.doc(querySnap.docs[0].id);
+        } else {
+            docRef = techniquesRef.doc();
+        }
+        await docRef.set({
             name: techniqueName,
             description: techniqueDescription || "",
-            totalEnergy,
-            totalTP,
-            actionType,
-            reactionChecked,
+            parts,
+            weapon,
             damage,
-            techniqueParts,
-            weapon: weapon || { name: "Unarmed Prowess", tp: 0, id: null },
             timestamp: new Date()
         });
         logger.info('Technique document written with ID: ', docRef.id);
@@ -280,8 +281,7 @@ exports.saveTechniqueToLibrary = onCall(async (data, context) => {
 
 exports.saveTechniqueToLibrary = onRequest((req, res) => {
     cors(req, res, async () => {
-        const { techniqueName, techniqueDescription, totalEnergy, totalTP, actionType, reactionChecked, damage, techniqueParts, weapon } = req.body;
-        
+        const { techniqueName, techniqueDescription, parts, weapon, damage } = req.body;
         // Verify the ID token from the Authorization header
         const idToken = req.headers.authorization?.split('Bearer ')[1];
         if (!idToken) {
@@ -298,34 +298,35 @@ exports.saveTechniqueToLibrary = onRequest((req, res) => {
                 res.status(400).json({ error: "The function must be called with a valid 'techniqueName'." });
                 return;
             }
-            if (typeof totalEnergy === "undefined" || totalEnergy === null || totalEnergy === "") {
-                res.status(400).json({ error: "Missing required 'totalEnergy'." });
+            if (!Array.isArray(parts)) {
+                res.status(400).json({ error: "Missing or invalid 'parts' array." });
                 return;
             }
-            if (typeof totalTP === "undefined" || totalTP === null || totalTP === "") {
-                res.status(400).json({ error: "Missing required 'totalTP'." });
+            if (!damage || typeof damage !== "object" || !("amount" in damage) || !("size" in damage)) {
+                res.status(400).json({ error: "Missing or invalid 'damage' object." });
                 return;
             }
-            if (!Array.isArray(damage)) {
-                res.status(400).json({ error: "Missing or invalid 'damage' array." });
-                return;
-            }
-            if (!Array.isArray(techniqueParts)) {
-                res.status(400).json({ error: "Missing or invalid 'techniqueParts' array." });
+            if (!weapon || typeof weapon !== "object" || !("name" in weapon)) {
+                res.status(400).json({ error: "Missing or invalid 'weapon' object." });
                 return;
             }
 
             const db = getFirestore();
-            const docRef = await db.collection('users').doc(uid).collection('techniqueLibrary').add({
+            // Overwrite if name exists, else add new
+            const techniquesRef = db.collection('users').doc(uid).collection('techniqueLibrary');
+            const querySnap = await techniquesRef.where('name', '==', techniqueName).get();
+            let docRef;
+            if (!querySnap.empty) {
+                docRef = techniquesRef.doc(querySnap.docs[0].id);
+            } else {
+                docRef = techniquesRef.doc();
+            }
+            await docRef.set({
                 name: techniqueName,
                 description: techniqueDescription || "",
-                totalEnergy,
-                totalTP,
-                actionType,
-                reactionChecked,
+                parts,
+                weapon,
                 damage,
-                techniqueParts,
-                weapon: weapon || { name: "Unarmed Prowess", tp: 0, id: null },
                 timestamp: new Date()
             });
             logger.info('Technique document written with ID: ', docRef.id);
