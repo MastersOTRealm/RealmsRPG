@@ -69,6 +69,10 @@
   margin-bottom: 4px;
 }
 
+.technique-headers {
+  grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;
+}
+
 .library-headers .col {
   display: flex;
   flex-direction: row;
@@ -123,14 +127,14 @@
   position: relative;
 }
 
+.library-header.technique-header {
+  grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;
+}
+
 .library-header .col {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.library-header .col:nth-child(n+2) {
-  text-align: center;
 }
 
 .expand-icon {

@@ -450,6 +450,25 @@ function calculateTechniqueCosts(parts, techniquePartsDb) {
     };
 }
 
+// Helper function to compute action type from parts
+function computeActionType(parts) {
+    if (!Array.isArray(parts)) return 'Basic Action';
+    let actionType = 'Basic';
+    let isReaction = false;
+    for (let p of parts) {
+        if (p.name === 'Reaction') {
+            isReaction = true;
+        } else if (p.name === 'Quick or Free Action') {
+            if (p.op_1_lvl == 0) actionType = 'Quick';
+            else if (p.op_1_lvl == 1) actionType = 'Free';
+        } else if (p.name === 'Long Action') {
+            if (p.op_1_lvl == 0) actionType = 'Long (3)';
+            else if (p.op_1_lvl == 1) actionType = 'Long (4)';
+        }
+    }
+    return isReaction ? `${actionType} Reaction` : `${actionType} Action`;
+}
+
 // --- Technique card with dynamic calculation ---
 function createTechniqueCardDynamic(technique, techniquePartsDb, db, userId) {
     // Ensure technique.parts is always an array
@@ -459,7 +478,7 @@ function createTechniqueCardDynamic(technique, techniquePartsDb, db, userId) {
     card.className = 'library-card';
 
     const header = document.createElement('div');
-    header.className = 'library-header';
+    header.className = 'library-header technique-header';
     header.style.gridTemplateColumns = '1.5fr 0.8fr 0.8fr 1fr 1fr 1fr';
     header.onclick = () => toggleExpand(card);
 
@@ -476,7 +495,7 @@ function createTechniqueCardDynamic(technique, techniquePartsDb, db, userId) {
         <div class="col">${technique.name}</div>
         <div class="col">${calc.totalEnergy.toFixed(2)}</div>
         <div class="col">${calc.totalTP}</div>
-        <div class="col">${technique.actionType ? capitalize(technique.actionType) : '-'}</div>
+        <div class="col">${computeActionType(technique.parts)}</div>
         <div class="col">${technique.weapon && technique.weapon.name ? technique.weapon.name : "Unarmed"}</div>
         <div class="col">${damageStr}</div>
         <span class="expand-icon">▼</span>
