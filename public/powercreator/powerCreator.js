@@ -1,13 +1,16 @@
-import powerPartsData from './powerPartsData.js';
 import damageTypeValues from './damageTypesData.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durationMultipliers, actionTypeCosts, rangeCostPerUnit, sustainBaseReduction, sustainStepReduction, reactionCost } from './powerMechanics.js';
 
 (() => {
-    const powerParts = powerPartsData;
+    // const powerParts = powerPartsData;
+    let powerParts = [];
+    let durationParts = {}; // New global variable to store duration parts
 
     const selectedPowerParts = [];
     let range = 0; // Internal default value
@@ -17,76 +20,99 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     let durationType = 'rounds'; // Default duration type
     let tpSources = []; // New global array to track TP sources
 
-    const areaEffectDescriptions = {
-        none: "Area of Effect is one target or one space.",
-        sphere: "+25% EN: Add a sphere of effect with a 1-space radius centered on yourself or a point within range that you can see. The power affects all targets within this area. +25% EN: Increase the radius by +1. Roll one attack against all targets' relevant defense.",
-        cylinder: "+25% EN: Add a cylinder of effect with a 1-space radius and a 2 space height centered on yourself or a point within range that you can see. The power affects all targets within this area. +25% EN: Increase the radius by +1 or to increase the height by 4. Roll one attack against all targets' relevant defense.",
-        cone: "+12.5% EN: Create a 45-degree angle cone that goes directly out from yourself for 2 spaces. +12.5% EN: Increase this effect by +1 space. Roll one attack against all targets' relevant defense.",
-        line: "+25% EN: Each creature occupying a space directly between you and the power's target is affected by this power. Roll attack and damage once and apply it to all creatures affected.",
-        space: "+25% EN: Each space directly between you and this power's target is affected for the power's duration. A creature that begins its turn in one of these spaces must roll the relevant defense against your potency or become affected.",
-        additionalTarget: "+12.5% EN: When you affect a target with this power, you may choose a new target within half of the power's range and make an attack roll against that target. +12.5% EN: Increase the number of creatures this power can jump to by 1 (base is 1 jump).",
-        expanding: "+50% EN: At the end of your turn after the round in which power was used its area of effect increases 1 space in all directions.",
-        targetOnly: "-25% EN: When you first use this power and at the beginning of the turn the power was used you can choose one creature within its area of effect to target with the power. The power can only target and affect creatures in this way. You don't need to see a target to make it the target of the power."
-    };
-
-    const actionTypeDescriptions = {
-        basic: "Basic Action",
-        free: "+50% EN: This power uses a free action to activate instead of a basic action.",
-        quick: "+25% EN: This power uses a quick action to activate instead of a basic action.",
-        long3: "-12.5% EN: This power takes 1 more AP to perform (cannot be added to a quick or free action power).",
-        long4: "-12.5% EN: For each additional 1 AP required. This type of power can only be used with this reduced cost if used inside combat and does not linger longer than 1 minute (10 rounds).",
-        reaction: "+25% EN: This power uses a basic reaction instead of a basic action."
-    };
+    async function fetchPowerParts(database) {
+        const powerPartsRef = ref(database, 'parts');
+        const snapshot = await get(powerPartsRef);
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            powerParts = Object.entries(data)
+                .filter(([id, part]) => part.type && part.type.toLowerCase() === 'power')
+                .map(([id, part]) => ({
+                    id: id,
+                    name: part.name || '',
+                    description: part.description || '',
+                    category: part.category || '',
+                    base_en: parseFloat(part.base_en) || 0,
+                    base_tp: parseFloat(part.base_tp) || 0,
+                    op_1_desc: part.op_1_desc || '',
+                    op_1_en: parseFloat(part.op_1_en) || 0,
+                    op_1_tp: parseFloat(part.op_1_tp) || 0,
+                    op_2_desc: part.op_2_desc || '',
+                    op_2_en: parseFloat(part.op_2_en) || 0,
+                    op_2_tp: parseFloat(part.op_2_tp) || 0,
+                    op_3_desc: part.op_3_desc || '',
+                    op_3_en: parseFloat(part.op_3_en) || 0,
+                    op_3_tp: parseFloat(part.op_3_tp) || 0,
+                    type: part.type || 'power',
+                    mechanic: part.mechanic === 'true' || part.mechanic === true,
+                    percentage: part.percentage === 'true' || part.percentage === true
+                }));
+            
+            // Fetch duration parts
+            durationParts = {
+                rounds: Object.values(data).find(part => part.name === 'Duration (Round)'),
+                minutes: Object.values(data).find(part => part.name === 'Duration (Minute)'),
+                hours: Object.values(data).find(part => part.name === 'Duration (Hour)'),
+                days: Object.values(data).find(part => part.name === 'Duration (Days)'),
+                permanent: Object.values(data).find(part => part.name === 'Duration (Permanent)')
+            };
+        } else {
+            console.log("No power parts data available");
+        }
+    }
 
     function addPowerPart() {
+        if (powerParts.length === 0) return; // Wait for data to load
         const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts.filter(part => part.type === 'base')[0], opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
+        selectedPowerParts.push({ part: powerParts.filter(part => !part.percentage)[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
 
         renderPowerParts();
         updateTotalCosts();
     }
 
     function generatePartContent(partIndex, part) {
-        return `
-            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.baseEnergy}</span></span> <span class="small-text">Training Points: <span id="baseTP-${partIndex}">${part.baseTP}</span></span></h3>
-            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.baseEnergy}</span> Part TP: <span id="totalTP-${partIndex}">${part.baseTP}</span></p>
+		function hasOption(p, n) {
+			const desc = p[`op_${n}_desc`];
+			const en = p[`op_${n}_en`];
+			const tp = p[`op_${n}_tp`];
+			return (desc && String(desc).trim() !== '') || (en !== undefined && Number(en) !== 0) || (tp !== undefined && Number(tp) !== 0);
+		}
+
+		const anyOption = hasOption(part, 1) || hasOption(part, 2) || hasOption(part, 3);
+
+		return `
+            <h3>${part.name} <span class="small-text">Energy: <span id="baseEnergy-${partIndex}">${part.base_en}</span></span> <span class="small-text">Training Points: <span id="baseTP-${partIndex}">${part.base_tp}</span></span></h3>
+            <p>Part EN: <span id="totalEnergy-${partIndex}">${part.base_en}</span> Part TP: <span id="totalTP-${partIndex}">${part.base_tp}</span></p>
             <p>${part.description}</p>
             
-            ${part.opt1Cost !== undefined || part.opt1Description ? `
+            ${anyOption ? `
             <div class="option-container">
-                ${part.opt1Cost !== undefined || part.opt1Description ? `
+                ${hasOption(part,1) ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt1Cost >= 0 ? '+' : ''}${part.opt1Cost}     Training Points: ${part.TPIncreaseOpt1 >= 0 ? '+' : ''}${part.TPIncreaseOpt1}</h4>
+                    <h4>Energy: ${part.op_1_en >= 0 ? '+' : ''}${part.op_1_en}     Training Points: ${part.op_1_tp >= 0 ? '+' : ''}${part.op_1_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', -1)">-</button>
                     <span>Level: <span id="opt1Level-${partIndex}">${selectedPowerParts[partIndex].opt1Level}</span></span>
-                    <p>${part.opt1Description}</p>
+                    <p>${part.op_1_desc}</p>
                 </div>` : ''}
                 
-                ${part.opt2Cost !== undefined || part.opt2Description ? `
+                ${hasOption(part,2) ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt2Cost >= 0 ? '+' : ''}${part.opt2Cost}     Training Points: ${part.TPIncreaseOpt2 >= 0 ? '+' : ''}${part.TPIncreaseOpt2}</h4>
+                    <h4>Energy: ${part.op_2_en >= 0 ? '+' : ''}${part.op_2_en}     Training Points: ${part.op_2_tp >= 0 ? '+' : ''}${part.op_2_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', -1)">-</button>
                     <span>Level: <span id="opt2Level-${partIndex}">${selectedPowerParts[partIndex].opt2Level}</span></span>
-                    <p>${part.opt2Description}</p>
+                    <p>${part.op_2_desc}</p>
                 </div>` : ''}
-    
-                ${part.opt3Cost !== undefined || part.opt3Description ? `
+
+                ${hasOption(part,3) ? `
                 <div class="option-box">
-                    <h4>Energy: ${part.opt3Cost >= 0 ? '+' : ''}${part.opt3Cost}     Training Points: ${part.TPIncreaseOpt3 >= 0 ? '+' : ''}${part.TPIncreaseOpt3}</h4>
+                    <h4>Energy: ${part.op_3_en >= 0 ? '+' : ''}${part.op_3_en}     Training Points: ${part.op_3_tp >= 0 ? '+' : ''}${part.op_3_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', -1)">-</button>
                     <span>Level: <span id="opt3Level-${partIndex}">${selectedPowerParts[partIndex].opt3Level}</span></span>
-                    <p>${part.opt3Description}</p>
+                    <p>${part.op_3_desc}</p>
                 </div>` : ''}
-            </div>` : ''}
-    
-            ${part.altBaseEnergy !== undefined || part.altTP !== undefined ? `
-            <div class="option-box">
-                <h4>Alternate Base Energy: ${part.altBaseEnergy}</h4>
-                <button id="altEnergyButton-${partIndex}" class="alt-energy-button" onclick="toggleAltEnergy(${partIndex})">Toggle</button>
-                <p>${part.altEnergyDescription}</p>
             </div>` : ''}
     
             <div class="linger-container">
@@ -101,7 +127,6 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         selectedPowerParts[index].opt1Level = 0;
         selectedPowerParts[index].opt2Level = 0;
         selectedPowerParts[index].opt3Level = 0;
-        selectedPowerParts[index].useAltCost = false;
 
         // Preserve the selected category
         const selectedCategory = selectedPowerParts[index].category || 'any';
@@ -120,14 +145,6 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
 
         // Update the level indicator in the DOM
         document.getElementById(`${levelKey}-${index}`).textContent = part[levelKey];
-
-        renderPowerParts();
-        updateTotalCosts();
-    }
-
-    function toggleAltEnergy(partIndex) {
-        const partData = selectedPowerParts[partIndex];
-        partData.useAltCost = !partData.useAltCost;
 
         renderPowerParts();
         updateTotalCosts();
@@ -154,7 +171,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             rounds: [1, 2, 3, 4, 5, 6],
             minutes: [1, 10, 30],
             hours: [1, 6, 12],
-            days: [1, 7, 14],
+            days: [1, 10, 20, 30],
             permanent: [1]
         };
 
@@ -244,6 +261,48 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         return totalDamageEnergy;
     }
 
+    function calculateDurationMultiplier(durationType, durationValue) {
+        const durationPart = durationParts[durationType];
+        if (!durationPart) {
+            console.warn(`No duration part found for type: ${durationType}`);
+            return 0;
+        }
+
+        const durationValues = {
+            rounds: [1, 2, 3, 4, 5, 6],
+            minutes: [1, 10, 30],
+            hours: [1, 6, 12],
+            days: [1, 7, 14],
+            permanent: [1]
+        };
+
+        const selectedIndex = durationValue - 1; // Convert to 0-based index
+        let multiplier = parseFloat(durationPart.base_en) || 0;
+
+        console.log(`Calculating duration multiplier for ${durationType}, index ${selectedIndex}`);
+        console.log(`Base multiplier: ${multiplier}`);
+
+        // For index 0: just base_en
+        // For index 1: base_en + op_1_en * 1
+        // For index 2: base_en + op_1_en * 1 + op_2_en * 1
+        // etc.
+
+        if (selectedIndex >= 1 && durationPart.op_1_en !== undefined) {
+            multiplier += parseFloat(durationPart.op_1_en) || 0;
+            console.log(`Added op_1_en: ${durationPart.op_1_en}, new multiplier: ${multiplier}`);
+        }
+        
+        if (selectedIndex >= 2 && durationPart.op_2_en !== undefined) {
+            const op2Levels = selectedIndex - 1; // How many times to add op_2_en
+            const op2Cost = (parseFloat(durationPart.op_2_en) || 0) * op2Levels;
+            multiplier += op2Cost;
+            console.log(`Added op_2_en * ${op2Levels}: ${op2Cost}, new multiplier: ${multiplier}`);
+        }
+
+        console.log(`Final duration multiplier: ${multiplier}`);
+        return multiplier;
+    }
+
     function updateTotalCosts() {
         console.log("updateTotalCosts called");
         let sumBaseEnergy = 0;
@@ -260,21 +319,21 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     
         selectedPowerParts.forEach((partData, partIndex) => {
             const part = partData.part;
-            if (part.type === "base") {
+            if (!part.percentage) {
                 baseEnergyParts.push(partData);
                 if (document.getElementById(`lingerCheckbox-${partIndex}`)?.checked) {
                     lingerParts.push(partData);
                 }
-            } else if (part.type === "increase") {
+            } else if (part.percentage && part.base_en > 1) {
+                increaseParts.push(partData);
                 if (document.getElementById(`lingerCheckbox-${partIndex}`)?.checked) {
                     lingerIncreaseParts.push(partData);
                 } 
-                increaseParts.push(partData);
-            } else if (part.type === "decrease") {
+            } else if (part.percentage && part.base_en < 1) {
+                decreaseParts.push(partData);
                 if (document.getElementById(`lingerCheckbox-${partIndex}`)?.checked) {
                     lingerDecreaseParts.push(partData);
                 }
-                decreaseParts.push(partData);
             }
         });
     
@@ -284,17 +343,17 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         // Step 1: Calculate base energy parts
         baseEnergyParts.forEach((partData) => {
             const part = partData.part;
-            let partEnergy = partData.useAltCost ? part.altBaseEnergy : part.baseEnergy;
-            let partTP = part.baseTP;
-            partEnergy += (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += (part.opt3Cost || 0) * partData.opt3Level;
+            let partEnergy = part.base_en;
+            let partTP = part.base_tp;
+            partEnergy += (part.op_1_en || 0) * partData.opt1Level;
+            partEnergy += (part.op_2_en || 0) * partData.opt2Level;
+            partEnergy += (part.op_3_en || 0) * partData.opt3Level;
             sumBaseEnergy += partEnergy;
             totalTP += partTP;
             // Add TP from options
-            const opt1TP = (part.TPIncreaseOpt1 || 0) * partData.opt1Level;
-            const opt2TP = (part.TPIncreaseOpt2 || 0) * partData.opt2Level;
-            const opt3TP = (part.TPIncreaseOpt3 || 0) * partData.opt3Level;
+            const opt1TP = (part.op_1_tp || 0) * partData.opt1Level;
+            const opt2TP = (part.op_2_tp || 0) * partData.opt2Level;
+            const opt3TP = (part.op_3_tp || 0) * partData.opt3Level;
             totalTP += opt1TP + opt2TP + opt3TP;
             if (partTP > 0 || opt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
                 let partSource = `${partTP} TP: ${part.name}`;
@@ -308,7 +367,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         console.log("Sum base energy after base parts:", sumBaseEnergy);
     
         // Apply range cost before any increases or decreases
-        const rangeCost = (range) * 0.5;
+        const rangeCost = range * rangeCostPerUnit;
         sumBaseEnergy += rangeCost;
         const tpRange = Math.ceil(range / 4);
         totalTP += tpRange;
@@ -370,10 +429,10 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         let increasedEnergy = sumBaseEnergy;
         increaseParts.forEach((partData) => {
             const part = partData.part;
-            let partEnergy = increasedEnergy * part.baseEnergy;
-            partEnergy += increasedEnergy * (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += increasedEnergy * (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += increasedEnergy * (part.opt3Cost || 0) * partData.opt3Level;
+            let partEnergy = increasedEnergy * part.base_en;
+            partEnergy += increasedEnergy * (part.op_1_en || 0) * partData.opt1Level;
+            partEnergy += increasedEnergy * (part.op_2_en || 0) * partData.opt2Level;
+            partEnergy += increasedEnergy * (part.op_3_en || 0) * partData.opt3Level;
             increasedEnergy += partEnergy;
         });
     
@@ -381,17 +440,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     
         // Apply area effect cost
         const areaEffect = document.getElementById('areaEffect').value;
-        const areaEffectCost = {
-            none: 0,
-            sphere: 0.25,
-            cylinder: 0.25,
-            cone: 0.125,
-            line: 0.25,
-            space: 0.25,
-            additionalTarget: 0.125,
-            expanding: 0.5,
-            targetOnly: -0.25
-        }[areaEffect];
+        const areaEffectCost = areaEffectCosts[areaEffect] || 0;
         increasedEnergy *= 1 + (areaEffectLevel * areaEffectCost);
     
         console.log("Increased energy after area effect cost:", increasedEnergy);
@@ -399,18 +448,12 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         // Apply action type cost (only increases)
         const actionType = document.getElementById('actionType').value;
         const reactionChecked = document.getElementById('reactionCheckbox').checked;
-        const actionTypeCost = {
-            basic: 0,
-            free: 0.5,
-            quick: 0.25,
-            long3: -0.125,
-            long4: -0.25
-        }[actionType];
+        const actionTypeCost = actionTypeCosts[actionType] || 0;
         if (actionTypeCost > 0) {
             increasedEnergy *= 1 + actionTypeCost;
         }
         if (reactionChecked) {
-            increasedEnergy *= 1 + 0.25;
+            increasedEnergy *= 1 + reactionCost;
         }
     
         console.log("Increased energy after action type cost:", increasedEnergy);
@@ -419,10 +462,10 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         let decreasedEnergy = increasedEnergy;
         decreaseParts.forEach((partData) => {
             const part = partData.part;
-            let partEnergy = decreasedEnergy * part.baseEnergy;
-            partEnergy += decreasedEnergy * (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += decreasedEnergy * (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += decreasedEnergy * (part.opt3Cost || 0) * partData.opt3Level;
+            let partEnergy = decreasedEnergy * part.base_en;
+            partEnergy += decreasedEnergy * (part.op_1_en || 0) * partData.opt1Level;
+            partEnergy += decreasedEnergy * (part.op_2_en || 0) * partData.opt2Level;
+            partEnergy += decreasedEnergy * (part.op_3_en || 0) * partData.opt3Level;
             decreasedEnergy += partEnergy;
         });
     
@@ -435,11 +478,32 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     
         console.log("Decreased energy after action type cost:", decreasedEnergy);
     
-        // Step 4: Calculate duration energy
-        const durationValue = parseInt(document.getElementById('durationValue').value, 10);
-        let durationEnergy = calculateDurationEnergy(lingerParts, lingerIncreaseParts, lingerDecreaseParts, durationValue);
+        // Step 4: Apply duration multiplier based on the altered total energy value
+        const focusChecked = document.getElementById('focusCheckbox').checked;
+        const noHarmChecked = document.getElementById('noHarmCheckbox').checked;
+        const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked;
     
-        console.log("Duration energy:", durationEnergy);
+        const durationType = document.getElementById('durationType').value;
+        const durationValue = parseInt(document.getElementById('durationValue').value, 10);
+        let durationMultiplier = calculateDurationMultiplier(durationType, durationValue);
+        
+        if (focusChecked) durationMultiplier /= 2;
+        if (noHarmChecked) durationMultiplier /= 2;
+        if (endsOnceChecked) durationMultiplier /= 2;
+    
+        const sustainValue = parseInt(document.getElementById('sustainValue').value, 10);
+        let sustainReduction = 1 - (sustainBaseReduction + (sustainValue - 1) * sustainStepReduction);
+        if (sustainValue === 0) sustainReduction = 1;
+    
+        console.log("durationMultiplier:", durationMultiplier);
+        console.log("sustainReduction:", sustainReduction);
+    
+        // Apply duration - 1 adjustment only if using rounds
+        const adjustedDuration = durationType === 'rounds' ? durationValue - 1 : durationValue;
+    
+        const durationEnergy = (((((adjustedDuration) * durationMultiplier) * sustainReduction) + 1) * decreasedEnergy) - decreasedEnergy;
+    
+        console.log("Final duration energy:", durationEnergy);
     
         // Final energy calculation
         const finalEnergy = decreasedEnergy + durationEnergy;
@@ -452,17 +516,17 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         updatePowerSummary();
     }
     
-    function calculateDurationEnergy(lingerParts, lingerIncreaseParts, lingerDecreaseParts, duration) {
-        console.log("calculateDurationEnergy called with duration:", duration);
+    function calculateDurationEnergy(lingerParts, lingerIncreaseParts, lingerDecreaseParts, durationValue) {
+        console.log("calculateDurationEnergy called with duration:", durationValue);
         let baseDurationEnergy = 0;
     
         // Step 1: Calculate base energy parts that linger
         lingerParts.forEach((partData) => {
             const part = partData.part;
-            let partEnergy = partData.useAltCost ? part.altBaseEnergy : part.baseEnergy;
-            partEnergy += (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += (part.opt3Cost || 0) * partData.opt3Level;
+            let partEnergy = part.base_en;
+            partEnergy += (part.op_1_en || 0) * partData.opt1Level;
+            partEnergy += (part.op_2_en || 0) * partData.opt2Level;
+            partEnergy += (part.op_3_en || 0) * partData.opt3Level;
             baseDurationEnergy += partEnergy;
         });
     
@@ -471,17 +535,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         const areaLingerCheckbox = document.getElementById('areaLingerCheckbox');
         if (areaLingerCheckbox && areaLingerCheckbox.checked) {
             const areaEffect = document.getElementById('areaEffect').value;
-            const areaEffectCost = {
-                none: 0,
-                sphere: 0.25,
-                cylinder: 0.25,
-                cone: 0.125,
-                line: 0.25,
-                space: 0.25,
-                additionalTarget: 0.125,
-                expanding: 0.5,
-                targetOnly: -0.25
-            }[areaEffect];
+            const areaEffectCost = areaEffectCosts[areaEffect] || 0;
             baseDurationEnergy *= 1 + (areaEffectLevel * areaEffectCost);
         }
     
@@ -491,10 +545,10 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         let increasedDurationEnergy = baseDurationEnergy;
         lingerIncreaseParts.forEach((partData) => {
             const part = partData.part;
-            let partEnergy = increasedDurationEnergy * part.baseEnergy;
-            partEnergy += increasedDurationEnergy * (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += increasedDurationEnergy * (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += increasedDurationEnergy * (part.opt3Cost || 0) * partData.opt3Level;
+            let partEnergy = increasedDurationEnergy * part.base_en;
+            partEnergy += increasedDurationEnergy * (part.op_1_en || 0) * partData.opt1Level;
+            partEnergy += increasedDurationEnergy * (part.op_2_en || 0) * partData.opt2Level;
+            partEnergy += increasedDurationEnergy * (part.op_3_en || 0) * partData.opt3Level;
             increasedDurationEnergy += partEnergy;
         });
     
@@ -504,10 +558,10 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         let decreasedDurationEnergy = increasedDurationEnergy;
         lingerDecreaseParts.forEach((partData) => {
             const part = partData.part;
-            let partEnergy = decreasedDurationEnergy * part.baseEnergy;
-            partEnergy += decreasedDurationEnergy * (part.opt1Cost || 0) * partData.opt1Level;
-            partEnergy += decreasedDurationEnergy * (part.opt2Cost || 0) * partData.opt2Level;
-            partEnergy += decreasedDurationEnergy * (part.opt3Cost || 0) * partData.opt3Level;
+            let partEnergy = decreasedDurationEnergy * part.base_en;
+            partEnergy += decreasedDurationEnergy * (part.op_1_en || 0) * partData.opt1Level;
+            partEnergy += decreasedDurationEnergy * (part.op_2_en || 0) * partData.opt2Level;
+            partEnergy += decreasedDurationEnergy * (part.op_3_en || 0) * partData.opt3Level;
             decreasedDurationEnergy += partEnergy;
         });
     
@@ -519,28 +573,21 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
         const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked;
     
         const durationType = document.getElementById('durationType').value;
-        const durationMultipliers = {
-            rounds: 0.125,
-            minutes: 0.75,
-            hours: 2.5,
-            days: 8,
-            permanent: 25
-        };
-    
-        let durationMultiplier = durationMultipliers[durationType];
+        let durationMultiplier = calculateDurationMultiplier(durationType, durationValue);
+        
         if (focusChecked) durationMultiplier /= 2;
         if (noHarmChecked) durationMultiplier /= 2;
         if (endsOnceChecked) durationMultiplier /= 2;
     
         const sustainValue = parseInt(document.getElementById('sustainValue').value, 10);
-        let sustainReduction = 1 - (0.25 + (sustainValue - 1) * 0.125);
+        let sustainReduction = 1 - (sustainBaseReduction + (sustainValue - 1) * sustainStepReduction);
         if (sustainValue === 0) sustainReduction = 1;
     
         console.log("durationMultiplier:", durationMultiplier);
         console.log("sustainReduction:", sustainReduction);
     
         // Apply duration - 1 adjustment only if using rounds
-        const adjustedDuration = durationType === 'rounds' ? duration - 1 : duration;
+        const adjustedDuration = durationType === 'rounds' ? durationValue - 1 : durationValue;
     
         const durationEnergy = (((((adjustedDuration) * durationMultiplier) * sustainReduction) + 1) * decreasedDurationEnergy) - decreasedDurationEnergy;
     
@@ -598,13 +645,12 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             const partElement = document.createElement('div');
             partElement.innerHTML = `
                 <h4>${part.name}</h4>
-                <p>Energy: ${part.baseEnergy}</p>
-                <p>Training Points: ${part.baseTP}</p>
+                <p>Energy: ${part.base_en}</p>
+                <p>Training Points: ${part.base_tp}</p>
                 <p>${part.description}</p>
-                ${part.opt1Description ? `<p>Option 1: ${part.opt1Description} (Level: ${partData.opt1Level})</p>` : ''}
-                ${part.opt2Description ? `<p>Option 2: ${part.opt2Description} (Level: ${partData.opt2Level})</p>` : ''}
-                ${part.opt3Description ? `<p>Option 3: ${part.opt3Description} (Level: ${partData.opt3Level})</p>` : ''}
-                ${part.altEnergyDescription ? `<p>Alternate Energy: ${part.altEnergyDescription}</p>` : ''}
+                ${part.op_1_desc ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.opt1Level})</p>` : ''}
+                ${part.op_2_desc ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.opt2Level})</p>` : ''}
+                ${part.op_3_desc ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.opt3Level})</p>` : ''}
             `;
             summaryPartsContainer.appendChild(partElement);
         });
@@ -691,12 +737,12 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             powerPartSection.classList.add("power-part-section");
 
             let filteredParts = [];
-            if (partData.part.type === 'base') {
-                filteredParts = powerParts.filter(part => part.type === 'base');
-            } else if (partData.part.type === 'increase') {
-                filteredParts = powerParts.filter(part => part.type === 'increase');
-            } else if (partData.part.type === 'decrease') {
-                filteredParts = powerParts.filter(part => part.type === 'decrease');
+            if (!partData.part.percentage) {
+                filteredParts = powerParts.filter(part => !part.percentage);
+            } else if (partData.part.percentage && partData.part.base_en > 1) {
+                filteredParts = powerParts.filter(part => part.percentage && part.base_en > 1);
+            } else if (partData.part.percentage && partData.part.base_en < 1) {
+                filteredParts = powerParts.filter(part => part.percentage && part.base_en < 1);
             }
 
             const selectedCategory = partData.category || 'any';
@@ -729,25 +775,23 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     }
 
     function filterPartsByCategory(partIndex, category) {
-        selectedPowerParts[partIndex].category = category;
-
         let filteredParts = [];
-        const partType = selectedPowerParts[partIndex].part.type;
+        const part = selectedPowerParts[partIndex].part;
     
-        if (partType === 'base') {
-            filteredParts = powerParts.filter(part => part.type === 'base');
-        } else if (partType === 'increase') {
-            filteredParts = powerParts.filter(part => part.type === 'increase');
-        } else if (partType === 'decrease') {
-            filteredParts = powerParts.filter(part => part.type === 'decrease');
+        if (!part.percentage) {
+            filteredParts = powerParts.filter(p => !p.percentage);
+        } else if (part.percentage && part.base_en > 1) {
+            filteredParts = powerParts.filter(p => p.percentage && p.base_en > 1);
+        } else if (part.percentage && part.base_en < 1) {
+            filteredParts = powerParts.filter(p => p.percentage && p.base_en < 1);
         }
     
         if (category !== 'any') {
             filteredParts = filteredParts.filter(part => part.category === category);
         }
-    
+
         filteredParts.sort((a, b) => a.name.localeCompare(b.name));
-    
+
         const selectElement = document.querySelector(`#powerPart-${partIndex} select`);
         selectElement.innerHTML = filteredParts.map((part, index) => `<option value="${powerParts.indexOf(part)}" ${selectedPowerParts[partIndex].part === part ? 'selected' : ''}>${part.name}</option>`).join('');
     }
@@ -789,16 +833,18 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     });
 
     function addDecreasePart() {
+        if (powerParts.length === 0) return; // Wait for data to load
         const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts.filter(part => part.type === 'decrease')[0], opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
+        selectedPowerParts.push({ part: powerParts.filter(part => part.percentage && part.base_en < 1)[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
 
         renderPowerParts();
         updateTotalCosts();
     }
 
     function addIncreasePart() {
+        if (powerParts.length === 0) return; // Wait for data to load
         const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts.filter(part => part.type === 'increase')[0], opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
+        selectedPowerParts.push({ part: powerParts.filter(part => part.percentage && part.base_en > 1)[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
 
         renderPowerParts();
         updateTotalCosts();
@@ -832,7 +878,6 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
             opt1Level: partData.opt1Level,
             opt2Level: partData.opt2Level,
             opt3Level: partData.opt3Level,
-            useAltCost: partData.useAltCost,
             linger: document.getElementById(`lingerCheckbox-${selectedPowerParts.indexOf(partData)}`)?.checked || false
         }));
 
@@ -944,8 +989,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
                 part,
                 opt1Level: partData.opt1Level,
                 opt2Level: partData.opt2Level,
-                opt3Level: partData.opt3Level,
-                useAltCost: partData.useAltCost
+                opt3Level: partData.opt3Level
             });
         });
     
@@ -987,7 +1031,7 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-        fetch('/__/firebase/init.json').then(response => response.json()).then(firebaseConfig => {
+        fetch('/__/firebase/init.json').then(response => response.json()).then(async firebaseConfig => {
             firebaseConfig.authDomain = 'realmsroleplaygame.com';
             const app = initializeApp(firebaseConfig);
 
@@ -998,6 +1042,11 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
 
             const auth = getAuth(app);
             const functions = getFunctions(app);
+            const db = getFirestore(app);
+            const database = getDatabase(app);
+
+            // Fetch power parts from Realtime Database
+            await fetchPowerParts(database);
 
             onAuthStateChanged(auth, (user) => {
                 const savePowerButton = document.getElementById('savePowerButton');
@@ -1021,7 +1070,6 @@ import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "ht
 // Expose functions to global scope for inline event handlers
 window.updateSelectedPart = updateSelectedPart;
 window.changeOptionLevel = changeOptionLevel;
-window.toggleAltEnergy = toggleAltEnergy;
 window.changeRange = changeRange;
 window.changeArea = changeArea;
 window.changeDuration = changeDuration;
