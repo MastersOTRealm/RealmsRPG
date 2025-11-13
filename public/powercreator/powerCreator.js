@@ -4,12 +4,11 @@ import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
-import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainStepReduction } from './powerMechanics.js';
 
 (() => {
     // const powerParts = powerPartsData;
     let powerParts = [];
-    let durationParts = {}; // New global variable to store duration parts
+    let durationParts = {}; // kept but no longer used for multiplier logic
 
     const selectedPowerParts = [];
     let range = 0; // Internal default value
@@ -44,7 +43,9 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
                     op_3_tp: parseFloat(part.op_3_tp) || 0,
                     type: part.type || 'power',
                     mechanic: part.mechanic === 'true' || part.mechanic === true,
-                    percentage: part.percentage === 'true' || part.percentage === true
+                    percentage: part.percentage === 'true' || part.percentage === true,
+                    // NEW: master duration flag
+                    duration: part.duration === 'true' || part.duration === true
                 }));
             
             // Fetch duration parts
@@ -56,7 +57,7 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
                 permanent: Object.values(data).find(part => part.name === 'Duration (Permanent)')
             };
         } else {
-            console.log("No power parts data available");
+            // console.log("No power parts data available");
         }
     }
 
@@ -281,50 +282,7 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
         updateTotalCosts();
     }
 
-    function calculateDurationMultiplier(durationType, durationValue) {
-        const durationPart = durationParts[durationType];
-        if (!durationPart) {
-            console.warn(`No duration part found for type: ${durationType}`);
-            return 0;
-        }
-
-        const durationValues = {
-            rounds: [1, 2, 3, 4, 5, 6],
-            minutes: [1, 10, 30],
-            hours: [1, 6, 12],
-            days: [1, 7, 14],
-            permanent: [1]
-        };
-
-        const selectedIndex = durationValue - 1; // Convert to 0-based index
-        let multiplier = parseFloat(durationPart.base_en) || 0;
-
-        console.log(`Calculating duration multiplier for ${durationType}, index ${selectedIndex}`);
-        console.log(`Base multiplier: ${multiplier}`);
-
-        // For index 0: just base_en
-        // For index 1: base_en + op_1_en * 1
-        // For index 2: base_en + op_1_en * 1 + op_2_en * 1
-        // etc.
-
-        if (selectedIndex >= 1 && durationPart.op_1_en !== undefined) {
-            multiplier += parseFloat(durationPart.op_1_en) || 0;
-            console.log(`Added op_1_en: ${durationPart.op_1_en}, new multiplier: ${multiplier}`);
-        }
-        
-        if (selectedIndex >= 2 && durationPart.op_2_en !== undefined) {
-            const op2Levels = selectedIndex - 1; // How many times to add op_2_en
-            const op2Cost = (parseFloat(durationPart.op_2_en) || 0) * op2Levels;
-            multiplier += op2Cost;
-            console.log(`Added op_2_en * ${op2Levels}: ${op2Cost}, new multiplier: ${multiplier}`);
-        }
-
-        console.log(`Final duration multiplier: ${multiplier}`);
-        return multiplier;
-    }
-
     function updateTotalCosts() {
-        console.log("updateTotalCosts called");
         let sumNonPercentage = 0;
         let productPercentage = 1;
         let totalTP = 0;
@@ -334,7 +292,11 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
         let mechanicParts = [];
         const actionType = document.getElementById('actionType').value;
         const reactionChecked = document.getElementById('reactionCheckbox').checked;
-    
+
+        // Helper to find a mechanic part by name
+        // Allow duration parts even if mechanic flag is incorrect in DB
+        const getMechanicPart = (name) => powerParts.find(p => p.name === name && (p.mechanic || p.duration));
+
         if (reactionChecked) {
             const reactionPart = powerParts.find(p => p.name === 'Power Reaction' && p.mechanic);
             if (reactionPart) {
@@ -418,29 +380,99 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
             addDamagePart(damageType2, dieAmount2, dieSize2);
         }
 
+        // Duration mechanic parts (from database)
+        const focusChecked = document.getElementById('focusCheckbox').checked;
+        const noHarmChecked = document.getElementById('noHarmCheckbox').checked;
+        const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked;
+        const sustainValue = parseInt(document.getElementById('sustainValue').value, 10) || 0;
+
+        const durationType = document.getElementById('durationType').value;
+        const durationValue = parseInt(document.getElementById('durationValue').value, 10) || 1;
+        const idx = durationValue - 1; // 0-based index of the selected entry
+
+        // Add toggle-driven duration modifiers
+        if (focusChecked) {
+            const p = getMechanicPart('Focus for Duration');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+        }
+        if (noHarmChecked) {
+            const p = getMechanicPart('No Harm or Adaptation for Duration');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+        }
+        if (endsOnceChecked) {
+            const p = getMechanicPart('Duration Ends On Activation');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+        }
+        if (sustainValue > 0) {
+            const p = getMechanicPart('Sustain for Duration');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, sustainValue - 1), opt2Level: 0, opt3Level: 0 });
+        }
+
+        // Duration base type selection
+        if (durationType === 'permanent') {
+            const p = getMechanicPart('Duration (Permanent)');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+        } else if (durationType === 'days') {
+            const p = getMechanicPart('Duration (Days)');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0 });
+        } else if (durationType === 'hours') {
+            const p = getMechanicPart('Duration (Hour)');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0 });
+        } else if (durationType === 'minutes') {
+            const p = getMechanicPart('Duration (Minute)');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0 });
+        } else if (durationType === 'rounds') {
+            // Only add when > 1 round. For 2 rounds (idx=1) => op1 = 0; 3 rounds (idx=2) => op1 = 1, etc.
+            if (durationValue > 1) {
+                const p = getMechanicPart('Duration (Round)');
+                if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx - 1), opt2Level: 0, opt3Level: 0 });
+            }
+        }
+
+        // NEW: Range as a mechanic part ("Power Range")
+        // First increase (above melee) adds the part at opt1Level 0; each further increase increments opt1Level by 1.
+        const rangeSteps = range; // range 0 = melee; range 1+ = steps beyond melee
+        if (rangeSteps > 0) {
+            const rangePart = powerParts.find(p => p.name === 'Power Range' && p.mechanic);
+            if (rangePart) {
+                mechanicParts.push({
+                    part: rangePart,
+                    opt1Level: Math.max(0, rangeSteps - 1),
+                    opt2Level: 0,
+                    opt3Level: 0
+                });
+            }
+        }
+
+        // Combine selected parts and mechanic parts
         const allParts = [...selectedPowerParts, ...mechanicParts];
     
-        allParts.forEach((partData, partIndex) => {
+        allParts.forEach((partData) => {
             const part = partData.part;
             let partContribution = part.base_en;
             partContribution += (part.op_1_en || 0) * partData.opt1Level;
             partContribution += (part.op_2_en || 0) * partData.opt2Level;
             partContribution += (part.op_3_en || 0) * partData.opt3Level;
-            if (part.percentage) {
+
+            // NEW: Treat duration parts as percentage, even if percentage flag is wrong
+            const isDurationPart = !!part.duration;
+
+            if (part.percentage || isDurationPart) {
                 productPercentage *= partContribution;
             } else {
                 sumNonPercentage += partContribution;
             }
-            // TP calculation
+
+            // TP calculation (unchanged)
             let partTP = part.base_tp;
             totalTP += partTP;
             const opt1TP = (part.op_1_tp || 0) * partData.opt1Level;
             const opt2TP = (part.op_2_tp || 0) * partData.opt2Level;
             const opt3TP = (part.op_3_tp || 0) * partData.opt3Level;
             totalTP += opt1TP + opt2TP + opt3TP;
-            // Round down total TP for this part
+
             const totalPartTP = Math.floor(partTP + opt1TP + opt2TP + opt3TP);
-            totalTP = totalTP - (partTP + opt1TP + opt2TP + opt3TP) + totalPartTP; // Adjust to floored value
+            totalTP = totalTP - (partTP + opt1TP + opt2TP + opt3TP) + totalPartTP;
             if (totalPartTP > 0) {
                 let partSource = `${totalPartTP} TP: ${part.name}`;
                 if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${opt1TP} TP)`;
@@ -450,143 +482,13 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
             }
         });
     
-        console.log("Sum non-percentage after parts:", sumNonPercentage);
-    
-        // Apply range cost
-        const rangeCost = range * rangeCostPerUnit;
-        sumNonPercentage += rangeCost;
-        const tpRange = Math.ceil(range / 4);
-        totalTP += tpRange;
-        if (tpRange > 0) {
-            const displayRange = range === 0 ? 1 : range * 3;
-            tpSources.push(`${tpRange} TP: Range ${displayRange}`);
-        }
-    
-        console.log("Sum non-percentage after range cost:", sumNonPercentage);
-    
-        console.log("Product percentage after area effect:", productPercentage);
-    
-        // Calculate total before duration
         const totalBeforeDuration = sumNonPercentage * productPercentage;
-    
-        console.log("Total before duration:", totalBeforeDuration);
-    
-        // Apply duration multiplier
-        const focusChecked = document.getElementById('focusCheckbox').checked;
-        const noHarmChecked = document.getElementById('noHarmCheckbox').checked;
-        const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked;
-    
-        const durationType = document.getElementById('durationType').value;
-        const durationValue = parseInt(document.getElementById('durationValue').value, 10);
-        let durationMultiplier = calculateDurationMultiplier(durationType, durationValue);
-        
-        if (focusChecked) durationMultiplier /= 2;
-        if (noHarmChecked) durationMultiplier /= 2;
-        if (endsOnceChecked) durationMultiplier /= 2;
-    
-        const sustainValue = parseInt(document.getElementById('sustainValue').value, 10);
-        let sustainReduction = 1 - (sustainBaseReduction + (sustainValue - 1) * sustainStepReduction);
-        if (sustainValue === 0) sustainReduction = 1;
-    
-        console.log("durationMultiplier:", durationMultiplier);
-        console.log("sustainReduction:", sustainReduction);
-    
-        // Apply duration - 1 adjustment only if using rounds
-        const adjustedDuration = durationType === 'rounds' ? durationValue - 1 : durationValue;
-    
-        const durationEnergy = (((((adjustedDuration) * durationMultiplier) * sustainReduction) + 1) * totalBeforeDuration) - totalBeforeDuration;
-    
-        console.log("Final duration energy:", durationEnergy);
-    
-        // Final energy calculation
-        const finalEnergy = totalBeforeDuration + durationEnergy;
-    
-        console.log("Final energy:", finalEnergy);
+        const finalEnergy = totalBeforeDuration;
     
         document.getElementById("totalEnergy").textContent = finalEnergy.toFixed(2);
         document.getElementById("totalTP").textContent = totalTP;
     
         updatePowerSummary();
-    }
-
-    function calculateDurationEnergy(lingerParts, lingerIncreaseParts, lingerDecreaseParts, durationValue) {
-        console.log("calculateDurationEnergy called with duration:", durationValue);
-        let baseDurationEnergy = 0;
-    
-        // Step 1: Calculate base energy parts that linger
-        lingerParts.forEach((partData) => {
-            const part = partData.part;
-            let partEnergy = part.base_en;
-            partEnergy += (part.op_1_en || 0) * partData.opt1Level;
-            partEnergy += (part.op_2_en || 0) * partData.opt2Level;
-            partEnergy += (part.op_3_en || 0) * partData.opt3Level;
-            baseDurationEnergy += partEnergy;
-        });
-    
-        console.log("Base duration energy after base parts:", baseDurationEnergy);
-    
-        const areaLingerCheckbox = document.getElementById('areaLingerCheckbox');
-        if (areaLingerCheckbox && areaLingerCheckbox.checked) {
-            const areaEffect = document.getElementById('areaEffect').value;
-            const areaEffectCost = areaEffectCosts[areaEffect] || 0;
-            baseDurationEnergy *= 1 + (areaEffectLevel * areaEffectCost);
-        }
-    
-        console.log("Base duration energy after area effect cost:", baseDurationEnergy);
-    
-        // Step 2: Apply increase parts that linger
-        let increasedDurationEnergy = baseDurationEnergy;
-        lingerIncreaseParts.forEach((partData) => {
-            const part = partData.part;
-            let partEnergy = increasedDurationEnergy * part.base_en;
-            partEnergy += increasedDurationEnergy * (part.op_1_en || 0) * partData.opt1Level;
-            partEnergy += increasedDurationEnergy * (part.op_2_en || 0) * partData.opt2Level;
-            partEnergy += increasedDurationEnergy * (part.op_3_en || 0) * partData.opt3Level;
-            increasedDurationEnergy += partEnergy;
-        });
-    
-        console.log("Increased duration energy after increase parts:", increasedDurationEnergy);
-    
-        // Step 3: Apply decrease parts that linger
-        let decreasedDurationEnergy = increasedDurationEnergy;
-        lingerDecreaseParts.forEach((partData) => {
-            const part = partData.part;
-            let partEnergy = decreasedDurationEnergy * part.base_en;
-            partEnergy += decreasedDurationEnergy * (part.op_1_en || 0) * partData.opt1Level;
-            partEnergy += decreasedDurationEnergy * (part.op_2_en || 0) * partData.opt2Level;
-            partEnergy += decreasedDurationEnergy * (part.op_3_en || 0) * partData.opt3Level;
-            decreasedDurationEnergy += partEnergy;
-        });
-    
-        console.log("Decreased duration energy after decrease parts:", decreasedDurationEnergy);
-    
-        // Step 4: Apply duration multiplier based on the altered total energy value
-        const focusChecked = document.getElementById('focusCheckbox').checked;
-        const noHarmChecked = document.getElementById('noHarmCheckbox').checked;
-        const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked;
-    
-        const durationType = document.getElementById('durationType').value;
-        let durationMultiplier = calculateDurationMultiplier(durationType, durationValue);
-        
-        if (focusChecked) durationMultiplier /= 2;
-        if (noHarmChecked) durationMultiplier /= 2;
-        if (endsOnceChecked) durationMultiplier /= 2;
-    
-        const sustainValue = parseInt(document.getElementById('sustainValue').value, 10);
-        let sustainReduction = 1 - (sustainBaseReduction + (sustainValue - 1) * sustainStepReduction);
-        if (sustainValue === 0) sustainReduction = 1;
-    
-        console.log("durationMultiplier:", durationMultiplier);
-        console.log("sustainReduction:", sustainReduction);
-    
-        // Apply duration - 1 adjustment only if using rounds
-        const adjustedDuration = durationType === 'rounds' ? durationValue - 1 : durationValue;
-    
-        const durationEnergy = (((((adjustedDuration) * durationMultiplier) * sustainReduction) + 1) * decreasedDurationEnergy) - decreasedDurationEnergy;
-    
-        console.log("Final duration energy:", durationEnergy);
-    
-        return durationEnergy;
     }
 
     function updatePowerSummary() {
@@ -819,7 +721,6 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
 
             alert('Power saved to library');
         } catch (e) {
-            console.error('Error adding document: ', e);
             alert('Error saving power to library');
         }
     }
@@ -846,7 +747,6 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
                 savedPowersList.appendChild(listItem);
             });
         } catch (e) {
-            console.error('Error fetching saved powers: ', e);
             alert('Error fetching saved powers');
         }
     }
@@ -949,11 +849,9 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
             onAuthStateChanged(auth, (user) => {
                 const savePowerButton = document.getElementById('savePowerButton');
                 if (user) {
-                    console.log('User is signed in:', user);
                     savePowerButton.textContent = 'Save Power';
                     savePowerButton.addEventListener('click', () => savePowerToLibrary(functions, user.uid));
                 } else {
-                    console.log('No user is signed in');
                     savePowerButton.textContent = 'Login to Save Powers';
                     savePowerButton.addEventListener('click', () => {
                         window.location.href = '/login.html';
@@ -961,7 +859,6 @@ import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainSte
                 }
             });
         }).catch(error => {
-            console.error('Error fetching Firebase config:', error);
         });
     });
 
