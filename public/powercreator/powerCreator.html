@@ -29,18 +29,12 @@
                             <option value="cone">Cone</option>
                             <option value="line">Line</option>
                             <option value="space">Space</option>
-                            <option value="additionalTarget">Additional Target</option>
-                            <option value="expanding">Expanding</option>
-                            <option value="targetOnly">Target Only</option>
                         </select>
                         <span id="areaEffectLevelValue">1</span>
                         <div id="areaEffectDescription"></div>
                         <div class="area-effect-button-container">
                             <button class="small-button blue-button" onclick="changeAreaEffectLevel(1)">+</button>
                             <button class="small-button blue-button" onclick="changeAreaEffectLevel(-1)">-</button>
-                        </div>
-                        <div class="linger-container">
-                            <label><input type="checkbox" id="areaLingerCheckbox" onclick="updateTotalCosts()"> Does Linger</label>
                         </div>
                     </div>
                 </div>
@@ -100,7 +94,6 @@
                         <input type="number" id="dieAmount1" min="1" max="99" value="" placeholder="Amount"> d 
                         <select id="dieSize1">
                             <option value="" selected disabled>Size</option>
-                            <option value="2">2</option>
                             <option value="4">4</option>
                             <option value="6">6</option>
                             <option value="8">8</option>
@@ -130,9 +123,7 @@
             </div>
         </div>
         <div class="button-row">
-            <button id="addDecreasePartButton">Add % Decrease Part</button>
             <button id="addPowerPartButton">Add Part</button>
-            <button id="addIncreasePartButton">Add % Increase Part</button>
         </div>
         <div id="powerPartsContainer"></div>
         <div id="powerSummary">

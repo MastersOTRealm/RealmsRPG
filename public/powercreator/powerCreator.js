@@ -1,11 +1,10 @@
-import damageTypeValues from './damageTypesData.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
-import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durationMultipliers, actionTypeCosts, rangeCostPerUnit, sustainBaseReduction, sustainStepReduction, reactionCost } from './powerMechanics.js';
+import { durationMultipliers, rangeCostPerUnit, sustainBaseReduction, sustainStepReduction } from './powerMechanics.js';
 
 (() => {
     // const powerParts = powerPartsData;
@@ -64,7 +63,7 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
     function addPowerPart() {
         if (powerParts.length === 0) return; // Wait for data to load
         const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts.filter(part => !part.percentage)[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+        selectedPowerParts.push({ part: powerParts[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
 
         renderPowerParts();
         updateTotalCosts();
@@ -114,10 +113,6 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
                     <p>${part.op_3_desc}</p>
                 </div>` : ''}
             </div>` : ''}
-    
-            <div class="linger-container">
-                <label><input type="checkbox" id="lingerCheckbox-${partIndex}" onclick="updateTotalCosts()"> Does Linger</label>
-            </div>
         `;
     }
 
@@ -127,10 +122,6 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
         selectedPowerParts[index].opt1Level = 0;
         selectedPowerParts[index].opt2Level = 0;
         selectedPowerParts[index].opt3Level = 0;
-
-        // Preserve the selected category
-        const selectedCategory = selectedPowerParts[index].category || 'any';
-        filterPartsByCategory(index, selectedCategory);
 
         renderPowerParts();
         updateTotalCosts();
@@ -211,8 +202,26 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
 
     function updateAreaEffect() {
         const areaEffect = document.getElementById('areaEffect').value;
-        const description = areaEffectDescriptions[areaEffect];
-        document.getElementById('areaEffectDescription').textContent = description;
+        const descElement = document.getElementById('areaEffectDescription');
+        
+        let partName = '';
+        if (areaEffect === 'sphere') partName = 'Sphere of Effect';
+        else if (areaEffect === 'cylinder') partName = 'Cylinder of Effect';
+        else if (areaEffect === 'cone') partName = 'Cone of Effect';
+        else if (areaEffect === 'line') partName = 'Line of Effect';
+        
+        if (partName) {
+            const part = powerParts.find(p => p.name === partName && p.mechanic);
+            if (part) {
+                const opt1Level = areaEffectLevel - 1;
+                descElement.textContent = part.description + (opt1Level > 0 ? ' ' + part.op_1_desc : '');
+            } else {
+                descElement.textContent = "Area of Effect is one target or one space.";
+            }
+        } else {
+            descElement.textContent = "Area of Effect is one target or one space.";
+        }
+        
         updateTotalCosts();
     }
 
@@ -225,40 +234,51 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
     function updateActionType() {
         const actionType = document.getElementById('actionType').value;
         const reactionChecked = document.getElementById('reactionCheckbox').checked;
-        let description = actionTypeDescriptions[actionType];
-        if (reactionChecked) {
-            description += " " + actionTypeDescriptions.reaction;
+        const descElement = document.getElementById('actionTypeDescription');
+        
+        let descriptions = [];
+        
+        // Add action type description
+        if (actionType === 'quick') {
+            const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
+            if (quickFreePart && quickFreePart.description) {
+                descriptions.push(quickFreePart.description);
+            }
+        } else if (actionType === 'free') {
+            const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
+            if (quickFreePart && quickFreePart.op_1_desc) {
+                descriptions.push(quickFreePart.op_1_desc);
+            }
+        } else if (actionType === 'long3') {
+            const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
+            if (longPart && longPart.description) {
+                descriptions.push(longPart.description);
+            }
+        } else if (actionType === 'long4') {
+            const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
+            if (longPart && longPart.op_1_desc) {
+                descriptions.push(longPart.op_1_desc);
+            }
         }
-        document.getElementById('actionTypeDescription').textContent = description;
+        
+        // Add reaction description if checked
+        if (reactionChecked) {
+            const reactionPart = powerParts.find(p => p.name === 'Power Reaction' && p.mechanic);
+            if (reactionPart && reactionPart.description) {
+                descriptions.push(reactionPart.description);
+            }
+        }
+        
+        // Set combined description
+        if (descElement) {
+            descElement.textContent = descriptions.join(' ');
+        }
+        
         updateTotalCosts();
     }
 
     function updateDamageType() {
         updateTotalCosts();
-    }
-
-    function calculateDamageEnergyCost() {
-        let totalDamageEnergy = 0;
-
-        const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
-        const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
-        const damageType1 = document.getElementById('damageType1').value;
-
-        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 !== "none") {
-            const { dieBase: dieBase1, dieIncrease: dieIncrease1 } = damageTypeValues[damageType1];
-            totalDamageEnergy += (((dieAmount1 * dieSize1) / 2) - 1) * dieIncrease1 + dieBase1;
-        }
-
-        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
-        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
-        const damageType2 = document.getElementById('damageType2')?.value;
-
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 !== "none") {
-            const { dieBase: dieBase2, dieIncrease: dieIncrease2 } = damageTypeValues[damageType2];
-            totalDamageEnergy += (((dieAmount2 * dieSize2) / 2) - 1) * dieIncrease2 + dieBase2;
-        }
-
-        return totalDamageEnergy;
     }
 
     function calculateDurationMultiplier(durationType, durationValue) {
@@ -305,58 +325,124 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
 
     function updateTotalCosts() {
         console.log("updateTotalCosts called");
-        let sumBaseEnergy = 0;
+        let sumNonPercentage = 0;
+        let productPercentage = 1;
         let totalTP = 0;
         tpSources = []; // Reset the array each time
     
-        // Separate power parts by type
-        const baseEnergyParts = [];
-        const increaseParts = [];
-        const decreaseParts = [];
-        const lingerParts = [];
-        const lingerIncreaseParts = [];
-        const lingerDecreaseParts = [];
+        // Build mechanic parts based on selections
+        let mechanicParts = [];
+        const actionType = document.getElementById('actionType').value;
+        const reactionChecked = document.getElementById('reactionCheckbox').checked;
     
-        selectedPowerParts.forEach((partData, partIndex) => {
-            const part = partData.part;
-            if (!part.percentage) {
-                baseEnergyParts.push(partData);
-                if (document.getElementById(`lingerCheckbox-${partIndex}`)?.checked) {
-                    lingerParts.push(partData);
-                }
-            } else if (part.percentage && part.base_en > 1) {
-                increaseParts.push(partData);
-                if (document.getElementById(`lingerCheckbox-${partIndex}`)?.checked) {
-                    lingerIncreaseParts.push(partData);
-                } 
-            } else if (part.percentage && part.base_en < 1) {
-                decreaseParts.push(partData);
-                if (document.getElementById(`lingerCheckbox-${partIndex}`)?.checked) {
-                    lingerDecreaseParts.push(partData);
+        if (reactionChecked) {
+            const reactionPart = powerParts.find(p => p.name === 'Power Reaction' && p.mechanic);
+            if (reactionPart) {
+                mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            }
+        }
+    
+        if (actionType === 'quick') {
+            const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
+            if (quickFreePart) {
+                mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            }
+        } else if (actionType === 'free') {
+            const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
+            if (quickFreePart) {
+                mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0 });
+            }
+        } else if (actionType === 'long3') {
+            const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
+            if (longPart) {
+                mechanicParts.push({ part: longPart, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            }
+        } else if (actionType === 'long4') {
+            const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
+            if (longPart) {
+                mechanicParts.push({ part: longPart, opt1Level: 1, opt2Level: 0, opt3Level: 0 });
+            }
+        }
+    
+        // Area effect mechanic parts
+        const areaEffect = document.getElementById('areaEffect').value;
+        let areaPartName = '';
+        if (areaEffect === 'sphere') areaPartName = 'Sphere of Effect';
+        else if (areaEffect === 'cylinder') areaPartName = 'Cylinder of Effect';
+        else if (areaEffect === 'cone') areaPartName = 'Cone of Effect';
+        else if (areaEffect === 'line') areaPartName = 'Line of Effect';
+        else if (areaEffect === 'space') areaPartName = 'Trail of Effect';
+        
+        if (areaPartName) {
+            const areaPart = powerParts.find(p => p.name === areaPartName && p.mechanic);
+            if (areaPart) {
+                mechanicParts.push({ part: areaPart, opt1Level: areaEffectLevel - 1, opt2Level: 0, opt3Level: 0 });
+            }
+        }
+    
+        // Damage mechanic parts - updated logic
+        const addDamagePart = (damageType, dieAmount, dieSize) => {
+            let partName = '';
+            if (damageType === 'magic') partName = 'Magic Damage';
+            else if (damageType === 'light') partName = 'Light Damage';
+            else if (['fire', 'ice', 'acid', 'lightning'].includes(damageType)) partName = 'Elemental Damage';
+            else if (['poison', 'necrotic'].includes(damageType)) partName = 'Poison or Necrotic Damage';
+            else if (damageType === 'sonic') partName = 'Sonic Damage';
+            else if (damageType === 'spiritual') partName = 'Spiritual Damage';
+            else if (damageType === 'psychic') partName = 'Psychic Damage';
+            else if (['blunt', 'piercing', 'slashing'].includes(damageType)) partName = 'Physical Damage';
+
+            if (partName) {
+                const damagePart = powerParts.find(p => p.name === partName && p.mechanic);
+                if (damagePart) {
+                    const totalDamage = dieAmount * dieSize;
+                    const opt1Level = Math.floor((totalDamage - 4) / 2);
+                    mechanicParts.push({ part: damagePart, opt1Level: Math.max(0, opt1Level), opt2Level: 0, opt3Level: 0 });
                 }
             }
-        });
+        };
+
+        // First damage row
+        const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
+        const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
+        const damageType1 = document.getElementById('damageType1').value;
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 !== "none") {
+            addDamagePart(damageType1, dieAmount1, dieSize1);
+        }
+
+        // Second damage row
+        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
+        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
+        const damageType2 = document.getElementById('damageType2')?.value;
+        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 !== "none") {
+            addDamagePart(damageType2, dieAmount2, dieSize2);
+        }
+
+        const allParts = [...selectedPowerParts, ...mechanicParts];
     
-        console.log("Base energy parts:", baseEnergyParts);
-        console.log("Linger parts:", lingerParts);
-    
-        // Step 1: Calculate base energy parts
-        baseEnergyParts.forEach((partData) => {
+        allParts.forEach((partData, partIndex) => {
             const part = partData.part;
-            let partEnergy = part.base_en;
+            let partContribution = part.base_en;
+            partContribution += (part.op_1_en || 0) * partData.opt1Level;
+            partContribution += (part.op_2_en || 0) * partData.opt2Level;
+            partContribution += (part.op_3_en || 0) * partData.opt3Level;
+            if (part.percentage) {
+                productPercentage *= partContribution;
+            } else {
+                sumNonPercentage += partContribution;
+            }
+            // TP calculation
             let partTP = part.base_tp;
-            partEnergy += (part.op_1_en || 0) * partData.opt1Level;
-            partEnergy += (part.op_2_en || 0) * partData.opt2Level;
-            partEnergy += (part.op_3_en || 0) * partData.opt3Level;
-            sumBaseEnergy += partEnergy;
             totalTP += partTP;
-            // Add TP from options
             const opt1TP = (part.op_1_tp || 0) * partData.opt1Level;
             const opt2TP = (part.op_2_tp || 0) * partData.opt2Level;
             const opt3TP = (part.op_3_tp || 0) * partData.opt3Level;
             totalTP += opt1TP + opt2TP + opt3TP;
-            if (partTP > 0 || opt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
-                let partSource = `${partTP} TP: ${part.name}`;
+            // Round down total TP for this part
+            const totalPartTP = Math.floor(partTP + opt1TP + opt2TP + opt3TP);
+            totalTP = totalTP - (partTP + opt1TP + opt2TP + opt3TP) + totalPartTP; // Adjust to floored value
+            if (totalPartTP > 0) {
+                let partSource = `${totalPartTP} TP: ${part.name}`;
                 if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${opt1TP} TP)`;
                 if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.opt2Level}: ${opt2TP} TP)`;
                 if (opt3TP > 0) partSource += ` (Option 3 Level ${partData.opt3Level}: ${opt3TP} TP)`;
@@ -364,121 +450,28 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
             }
         });
     
-        console.log("Sum base energy after base parts:", sumBaseEnergy);
+        console.log("Sum non-percentage after parts:", sumNonPercentage);
     
-        // Apply range cost before any increases or decreases
+        // Apply range cost
         const rangeCost = range * rangeCostPerUnit;
-        sumBaseEnergy += rangeCost;
+        sumNonPercentage += rangeCost;
         const tpRange = Math.ceil(range / 4);
         totalTP += tpRange;
         if (tpRange > 0) {
             const displayRange = range === 0 ? 1 : range * 3;
-            tpSources.push(`${tpRange} TP: Range ${tpRange * 12}`);
+            tpSources.push(`${tpRange} TP: Range ${displayRange}`);
         }
     
-        console.log("Sum base energy after range cost:", sumBaseEnergy);
+        console.log("Sum non-percentage after range cost:", sumNonPercentage);
     
-        // Calculate damage energy cost
-        sumBaseEnergy += calculateDamageEnergyCost();
+        console.log("Product percentage after area effect:", productPercentage);
     
-        // Increase TP if damage type has dice, size, and type selected
-        // Increase TP based on damage dice total value (dieAmount * dieSize / 6, rounded up)
-        const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
-        const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
-        const damageType1 = document.getElementById('damageType1').value;
-        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 !== "none") {
-            const totalValue1 = dieAmount1 * dieSize1;
-            const tp1 = Math.ceil(totalValue1 / 6);
-            totalTP += tp1;
-            let display1 = '';
-            if (tp1 === 1) {
-                display1 = `1d6 ${damageType1}`;
-            } else if (tp1 % 2 === 0) {
-                const y = tp1 / 2;
-                display1 = `${y}d12 ${damageType1}`;
-            } else {
-                const x = (tp1 - 1) / 2;
-                display1 = `${x}d12 & 1d6 ${damageType1}`;
-            }
-            tpSources.push(`${tp1} TP: ${display1}`);
-        }
-
-        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
-        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
-        const damageType2 = document.getElementById('damageType2')?.value;
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 !== "none") {
-            const totalValue2 = dieAmount2 * dieSize2;
-            const tp2 = Math.ceil(totalValue2 / 6);
-            totalTP += tp2;
-            let display2 = '';
-            if (tp2 === 1) {
-                display2 = `1d6 ${damageType2}`;
-            } else if (tp2 % 2 === 0) {
-                const y = tp2 / 2;
-                display2 = `${y}d12 ${damageType2}`;
-            } else {
-                const x = (tp2 - 1) / 2;
-                display2 = `${x}d12 & 1d6 ${damageType2}`;
-            }
-            tpSources.push(`${tp2} TP: ${display2}`);
-        }
+        // Calculate total before duration
+        const totalBeforeDuration = sumNonPercentage * productPercentage;
     
-        console.log("Sum base energy after damage cost:", sumBaseEnergy);
+        console.log("Total before duration:", totalBeforeDuration);
     
-        // Step 2: Apply increase parts
-        let increasedEnergy = sumBaseEnergy;
-        increaseParts.forEach((partData) => {
-            const part = partData.part;
-            let partEnergy = increasedEnergy * part.base_en;
-            partEnergy += increasedEnergy * (part.op_1_en || 0) * partData.opt1Level;
-            partEnergy += increasedEnergy * (part.op_2_en || 0) * partData.opt2Level;
-            partEnergy += increasedEnergy * (part.op_3_en || 0) * partData.opt3Level;
-            increasedEnergy += partEnergy;
-        });
-    
-        console.log("Increased energy after increase parts:", increasedEnergy);
-    
-        // Apply area effect cost
-        const areaEffect = document.getElementById('areaEffect').value;
-        const areaEffectCost = areaEffectCosts[areaEffect] || 0;
-        increasedEnergy *= 1 + (areaEffectLevel * areaEffectCost);
-    
-        console.log("Increased energy after area effect cost:", increasedEnergy);
-    
-        // Apply action type cost (only increases)
-        const actionType = document.getElementById('actionType').value;
-        const reactionChecked = document.getElementById('reactionCheckbox').checked;
-        const actionTypeCost = actionTypeCosts[actionType] || 0;
-        if (actionTypeCost > 0) {
-            increasedEnergy *= 1 + actionTypeCost;
-        }
-        if (reactionChecked) {
-            increasedEnergy *= 1 + reactionCost;
-        }
-    
-        console.log("Increased energy after action type cost:", increasedEnergy);
-    
-        // Step 3: Apply decrease parts
-        let decreasedEnergy = increasedEnergy;
-        decreaseParts.forEach((partData) => {
-            const part = partData.part;
-            let partEnergy = decreasedEnergy * part.base_en;
-            partEnergy += decreasedEnergy * (part.op_1_en || 0) * partData.opt1Level;
-            partEnergy += decreasedEnergy * (part.op_2_en || 0) * partData.opt2Level;
-            partEnergy += decreasedEnergy * (part.op_3_en || 0) * partData.opt3Level;
-            decreasedEnergy += partEnergy;
-        });
-    
-        console.log("Decreased energy after decrease parts:", decreasedEnergy);
-    
-        // Apply action type cost (only decreases)
-        if (actionTypeCost < 0) {
-            decreasedEnergy *= 1 + actionTypeCost;
-        }
-    
-        console.log("Decreased energy after action type cost:", decreasedEnergy);
-    
-        // Step 4: Apply duration multiplier based on the altered total energy value
+        // Apply duration multiplier
         const focusChecked = document.getElementById('focusCheckbox').checked;
         const noHarmChecked = document.getElementById('noHarmCheckbox').checked;
         const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked;
@@ -501,12 +494,12 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
         // Apply duration - 1 adjustment only if using rounds
         const adjustedDuration = durationType === 'rounds' ? durationValue - 1 : durationValue;
     
-        const durationEnergy = (((((adjustedDuration) * durationMultiplier) * sustainReduction) + 1) * decreasedEnergy) - decreasedEnergy;
+        const durationEnergy = (((((adjustedDuration) * durationMultiplier) * sustainReduction) + 1) * totalBeforeDuration) - totalBeforeDuration;
     
         console.log("Final duration energy:", durationEnergy);
     
         // Final energy calculation
-        const finalEnergy = decreasedEnergy + durationEnergy;
+        const finalEnergy = totalBeforeDuration + durationEnergy;
     
         console.log("Final energy:", finalEnergy);
     
@@ -515,7 +508,7 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
     
         updatePowerSummary();
     }
-    
+
     function calculateDurationEnergy(lingerParts, lingerIncreaseParts, lingerDecreaseParts, durationValue) {
         console.log("calculateDurationEnergy called with duration:", durationValue);
         let baseDurationEnergy = 0;
@@ -679,10 +672,6 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
 
         const totalCostsArrow = document.querySelector('#totalCosts .toggle-arrow');
         if (totalCostsArrow) totalCostsArrow.addEventListener('click', toggleTotalCosts);
-
-        document.getElementById("addDecreasePartButton").addEventListener("click", addDecreasePart);
-        document.getElementById("addIncreasePartButton").addEventListener("click", addIncreasePart);
-        document.getElementById('durationType').addEventListener('change', changeDurationType);
     });
 
     function addDamageRow() {
@@ -692,7 +681,6 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
                 <input type="number" id="dieAmount2" min="1" max="99" value="" placeholder="Amount"> d 
                 <select id="dieSize2">
                     <option value="" selected disabled>Size</option>
-                    <option value="2">2</option>
                     <option value="4">4</option>
                     <option value="6">6</option>
                     <option value="8">8</option>
@@ -736,35 +724,12 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
             powerPartSection.id = `powerPart-${partIndex}`;
             powerPartSection.classList.add("power-part-section");
 
-            let filteredParts = [];
-            if (!partData.part.percentage) {
-                filteredParts = powerParts.filter(part => !part.percentage);
-            } else if (partData.part.percentage && partData.part.base_en > 1) {
-                filteredParts = powerParts.filter(part => part.percentage && part.base_en > 1);
-            } else if (partData.part.percentage && partData.part.base_en < 1) {
-                filteredParts = powerParts.filter(part => part.percentage && part.base_en < 1);
-            }
-
-            const selectedCategory = partData.category || 'any';
-            if (selectedCategory !== 'any') {
-                filteredParts = filteredParts.filter(part => part.category === selectedCategory);
-            }
-
-            filteredParts.sort((a, b) => a.name.localeCompare(b.name));
-
-            const categories = [...new Set(powerParts.map(part => part.category))].sort();
-            const categoryOptions = categories.map(category => `<option value="${category}" ${selectedCategory === category ? 'selected' : ''}>${category}</option>`).join('');
+            const sortedParts = [...powerParts].sort((a, b) => a.name.localeCompare(b.name));
 
             powerPartSection.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <select onchange="updateSelectedPart(${partIndex}, this.value)">
-                        ${filteredParts.map((part, index) => `<option value="${powerParts.indexOf(part)}" ${partData.part === part ? 'selected' : ''}>${part.name}</option>`).join('')}
-                    </select>
-                    <select id="categorySelect-${partIndex}" onchange="filterPartsByCategory(${partIndex}, this.value)">
-                        <option value="any" ${selectedCategory === 'any' ? 'selected' : ''}>Any</option>
-                        ${categoryOptions}
-                    </select>
-                </div>
+                <select onchange="updateSelectedPart(${partIndex}, this.value)">
+                    ${sortedParts.map((part, index) => `<option value="${powerParts.indexOf(part)}" ${partData.part === part ? 'selected' : ''}>${part.name}</option>`).join('')}
+                </select>
                 <div id="partContent-${partIndex}">
                     ${generatePartContent(partIndex, partData.part)}
                 </div>
@@ -774,81 +739,15 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
         });
     }
 
-    function filterPartsByCategory(partIndex, category) {
-        let filteredParts = [];
-        const part = selectedPowerParts[partIndex].part;
-    
-        if (!part.percentage) {
-            filteredParts = powerParts.filter(p => !p.percentage);
-        } else if (part.percentage && part.base_en > 1) {
-            filteredParts = powerParts.filter(p => p.percentage && p.base_en > 1);
-        } else if (part.percentage && part.base_en < 1) {
-            filteredParts = powerParts.filter(p => p.percentage && p.base_en < 1);
-        }
-    
-        if (category !== 'any') {
-            filteredParts = filteredParts.filter(part => part.category === category);
-        }
-
-        filteredParts.sort((a, b) => a.name.localeCompare(b.name));
-
-        const selectElement = document.querySelector(`#powerPart-${partIndex} select`);
-        selectElement.innerHTML = filteredParts.map((part, index) => `<option value="${powerParts.indexOf(part)}" ${selectedPowerParts[partIndex].part === part ? 'selected' : ''}>${part.name}</option>`).join('');
-    }
-    
     document.addEventListener("DOMContentLoaded", () => {
-        const addPowerPartButton = document.getElementById("addPowerPartButton");
-        if (addPowerPartButton) addPowerPartButton.addEventListener("click", addPowerPart);
-    
-        const dieAmount1 = document.getElementById('dieAmount1');
-        const dieSize1 = document.getElementById('dieSize1');
-        const damageType1 = document.getElementById('damageType1');
-        const dieAmount2 = document.getElementById('dieAmount2');
-        const dieSize2 = document.getElementById('dieSize2');
-        const damageType2 = document.getElementById('damageType2');
-    
-        if (dieAmount1) dieAmount1.addEventListener('input', updateTotalCosts);
-        if (dieSize1) dieSize1.addEventListener('change', updateTotalCosts);
-        if (damageType1) damageType1.addEventListener('change', updateTotalCosts);
-        if (dieAmount2) dieAmount2.addEventListener('input', updateTotalCosts);
-        if (dieSize2) dieSize2.addEventListener('change', updateTotalCosts);
-        if (damageType2) damageType2.addEventListener('change', updateTotalCosts);
-    
-        const focusCheckbox = document.getElementById('focusCheckbox');
-        const sustainValue = document.getElementById('sustainValue');
-        const noHarmCheckbox = document.getElementById('noHarmCheckbox');
-        const endsOnceCheckbox = document.getElementById('endsOnceCheckbox');
-        const actionType = document.getElementById('actionType');
-        const reactionCheckbox = document.getElementById('reactionCheckbox');
-    
-        if (focusCheckbox) focusCheckbox.addEventListener('change', updatePowerSummary);
-        if (sustainValue) sustainValue.addEventListener('change', updatePowerSummary);
-        if (noHarmCheckbox) noHarmCheckbox.addEventListener('change', updatePowerSummary);
-        if (endsOnceCheckbox) endsOnceCheckbox.addEventListener('change', updatePowerSummary);
-        if (actionType) actionType.addEventListener('change', updatePowerSummary);
-        if (reactionCheckbox) reactionCheckbox.addEventListener('change', updatePowerSummary);
-    
-        const powerName = document.getElementById('powerName');
-        if (powerName) powerName.addEventListener('input', updatePowerSummary);
+        document.getElementById("addPowerPartButton").addEventListener("click", addPowerPart);
+        document.getElementById('dieAmount1').addEventListener('input', updateTotalCosts);
+        document.getElementById('dieSize1').addEventListener('change', updateTotalCosts);
+        document.getElementById('damageType1').addEventListener('change', updateDamageType);
+
+        const totalCostsArrow = document.querySelector('#totalCosts .toggle-arrow');
+        if (totalCostsArrow) totalCostsArrow.addEventListener('click', toggleTotalCosts);
     });
-
-    function addDecreasePart() {
-        if (powerParts.length === 0) return; // Wait for data to load
-        const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts.filter(part => part.percentage && part.base_en < 1)[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
-
-        renderPowerParts();
-        updateTotalCosts();
-    }
-
-    function addIncreasePart() {
-        if (powerParts.length === 0) return; // Wait for data to load
-        const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts.filter(part => part.percentage && part.base_en > 1)[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
-
-        renderPowerParts();
-        updateTotalCosts();
-    }
 
     async function savePowerToLibrary(functions, userId) {
         const powerName = document.getElementById('powerName').value || '';
@@ -877,8 +776,7 @@ import { areaEffectDescriptions, actionTypeDescriptions, areaEffectCosts, durati
             part: partData.part.name,
             opt1Level: partData.opt1Level,
             opt2Level: partData.opt2Level,
-            opt3Level: partData.opt3Level,
-            linger: document.getElementById(`lingerCheckbox-${selectedPowerParts.indexOf(partData)}`)?.checked || false
+            opt3Level: partData.opt3Level
         }));
 
         try {
@@ -1082,9 +980,6 @@ window.updateActionType = updateActionType;
 window.updateDamageType = updateDamageType;
 window.addDamageRow = addDamageRow;
 window.removeDamageRow = removeDamageRow;
-window.addDecreasePart = addDecreasePart;
-window.addIncreasePart = addIncreasePart;
-window.filterPartsByCategory = filterPartsByCategory;
 window.toggleTotalCosts = toggleTotalCosts;
 window.loadSavedPowers = loadSavedPowers;
 window.loadPower = loadPower;
