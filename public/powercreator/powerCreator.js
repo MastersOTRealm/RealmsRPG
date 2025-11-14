@@ -64,7 +64,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     function addPowerPart() {
         if (powerParts.length === 0) return; // Wait for data to load
         const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts[0], opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+        selectedPowerParts.push({ part: powerParts[0], opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // NEW: add applyDuration
 
         renderPowerParts();
         updateTotalCosts();
@@ -114,6 +114,8 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                     <p>${part.op_3_desc}</p>
                 </div>` : ''}
             </div>` : ''}
+            <!-- NEW: Apply Duration checkbox for each power part -->
+            <label><input type="checkbox" id="applyDuration-${partIndex}" onclick="toggleApplyDuration(${partIndex})" ${selectedPowerParts[partIndex].applyDuration ? 'checked' : ''}> Apply Duration</label>
         `;
     }
 
@@ -123,8 +125,14 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         selectedPowerParts[index].opt1Level = 0;
         selectedPowerParts[index].opt2Level = 0;
         selectedPowerParts[index].opt3Level = 0;
+        // Keep applyDuration as is
 
         renderPowerParts();
+        updateTotalCosts();
+    }
+
+    function toggleApplyDuration(index) {
+        selectedPowerParts[index].applyDuration = !selectedPowerParts[index].applyDuration;
         updateTotalCosts();
     }
 
@@ -283,8 +291,11 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     }
 
     function updateTotalCosts() {
-        let sumNonPercentage = 0;
-        let productPercentage = 1;
+        let flatSum = 0; // Sum of flat parts (not percentage, not duration)
+        let percentageProduct = 1; // Product of percentage parts
+        let flatDurationSum = 0; // Sum of flat parts with applyDuration checked
+        let percentageDurationProduct = 1; // Product of percentage parts with applyDuration checked
+        let durationProduct = 1; // Product of duration parts
         let totalTP = 0;
         tpSources = []; // Reset the array each time
     
@@ -300,34 +311,35 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         if (reactionChecked) {
             const reactionPart = powerParts.find(p => p.name === 'Power Reaction' && p.mechanic);
             if (reactionPart) {
-                mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+                mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
             }
         }
     
         if (actionType === 'quick') {
             const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
             if (quickFreePart) {
-                mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+                mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
             }
         } else if (actionType === 'free') {
             const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
             if (quickFreePart) {
-                mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0 });
+                mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
             }
         } else if (actionType === 'long3') {
             const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
             if (longPart) {
-                mechanicParts.push({ part: longPart, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+                mechanicParts.push({ part: longPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
             }
         } else if (actionType === 'long4') {
             const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
             if (longPart) {
-                mechanicParts.push({ part: longPart, opt1Level: 1, opt2Level: 0, opt3Level: 0 });
+                mechanicParts.push({ part: longPart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
             }
         }
     
         // Area effect mechanic parts
         const areaEffect = document.getElementById('areaEffect').value;
+        const areaEffectApplyDuration = document.getElementById('areaEffectApplyDuration').checked; // NEW
         let areaPartName = '';
         if (areaEffect === 'sphere') areaPartName = 'Sphere of Effect';
         else if (areaEffect === 'cylinder') areaPartName = 'Cylinder of Effect';
@@ -338,11 +350,11 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         if (areaPartName) {
             const areaPart = powerParts.find(p => p.name === areaPartName && p.mechanic);
             if (areaPart) {
-                mechanicParts.push({ part: areaPart, opt1Level: areaEffectLevel - 1, opt2Level: 0, opt3Level: 0 });
+                mechanicParts.push({ part: areaPart, opt1Level: areaEffectLevel - 1, opt2Level: 0, opt3Level: 0, applyDuration: areaEffectApplyDuration }); // Checkbox controls
             }
         }
     
-        // Damage mechanic parts - updated logic
+        // Damage mechanic parts - never applied to duration
         const addDamagePart = (damageType, dieAmount, dieSize) => {
             let partName = '';
             if (damageType === 'magic') partName = 'Magic Damage';
@@ -359,7 +371,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                 if (damagePart) {
                     const totalDamage = dieAmount * dieSize;
                     const opt1Level = Math.floor((totalDamage - 4) / 2);
-                    mechanicParts.push({ part: damagePart, opt1Level: Math.max(0, opt1Level), opt2Level: 0, opt3Level: 0 });
+                    mechanicParts.push({ part: damagePart, opt1Level: Math.max(0, opt1Level), opt2Level: 0, opt3Level: 0, applyDuration: false }); // Explicitly never apply to duration
                 }
             }
         };
@@ -429,8 +441,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             }
         }
 
-        // NEW: Range as a mechanic part ("Power Range")
-        // First increase (above melee) adds the part at opt1Level 0; each further increase increments opt1Level by 1.
+        // NEW: Range as a mechanic part ("Power Range") - default unaffected
         const rangeSteps = range; // range 0 = melee; range 1+ = steps beyond melee
         if (rangeSteps > 0) {
             const rangePart = powerParts.find(p => p.name === 'Power Range' && p.mechanic);
@@ -439,7 +450,8 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                     part: rangePart,
                     opt1Level: Math.max(0, rangeSteps - 1),
                     opt2Level: 0,
-                    opt3Level: 0
+                    opt3Level: 0,
+                    applyDuration: false // Default unaffected
                 });
             }
         }
@@ -454,13 +466,23 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             partContribution += (part.op_2_en || 0) * partData.opt2Level;
             partContribution += (part.op_3_en || 0) * partData.opt3Level;
 
-            // NEW: Treat duration parts as percentage, even if percentage flag is wrong
-            const isDurationPart = !!part.duration;
+            const applyToDuration = partData.applyDuration || false;
 
-            if (part.percentage || isDurationPart) {
-                productPercentage *= partContribution;
+            if (part.duration) {
+                // Duration parts: accumulate product
+                durationProduct *= partContribution;
+            } else if (part.percentage) {
+                // Percentage parts
+                percentageProduct *= partContribution;
+                if (applyToDuration) {
+                    percentageDurationProduct *= partContribution;
+                }
             } else {
-                sumNonPercentage += partContribution;
+                // Flat parts
+                flatSum += partContribution;
+                if (applyToDuration) {
+                    flatDurationSum += partContribution;
+                }
             }
 
             // TP calculation (unchanged)
@@ -482,8 +504,20 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             }
         });
     
-        const totalBeforeDuration = sumNonPercentage * productPercentage;
-        const finalEnergy = totalBeforeDuration;
+        // Total non-duration energy: flat sum * percentage product
+        const nonDurationEnergy = flatSum * percentageProduct;
+        
+        // Scaled duration energy: flat duration sum * percentage duration product
+        const scaledDurationEnergy = flatDurationSum * percentageDurationProduct;
+        
+        // Raw duration energy: (duration product + 1) * scaled duration energy
+        const rawDurationEnergy = (durationProduct + 1) * scaledDurationEnergy;
+        
+        // Total duration energy: raw duration energy - scaled duration energy
+        const totalDurationEnergy = rawDurationEnergy - scaledDurationEnergy;
+        
+        // Final energy: non-duration energy + total duration energy
+        const finalEnergy = nonDurationEnergy + totalDurationEnergy;
     
         document.getElementById("totalEnergy").textContent = finalEnergy.toFixed(2);
         document.getElementById("totalTP").textContent = totalTP;
@@ -678,7 +712,8 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             part: partData.part.name,
             opt1Level: partData.opt1Level,
             opt2Level: partData.opt2Level,
-            opt3Level: partData.opt3Level
+            opt3Level: partData.opt3Level,
+            applyDuration: partData.applyDuration // NEW: save applyDuration
         }));
 
         try {
@@ -787,7 +822,8 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                 part,
                 opt1Level: partData.opt1Level,
                 opt2Level: partData.opt2Level,
-                opt3Level: partData.opt3Level
+                opt3Level: partData.opt3Level,
+                applyDuration: partData.applyDuration || false // NEW: load applyDuration
             });
         });
     
@@ -882,5 +918,6 @@ window.loadSavedPowers = loadSavedPowers;
 window.loadPower = loadPower;
 window.openModal = openModal;
 window.closeModal = closeModal;
+window.toggleApplyDuration = toggleApplyDuration; // NEW
 
 })();
