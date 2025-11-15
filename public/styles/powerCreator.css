@@ -587,3 +587,117 @@ button:hover {
     text-decoration: none;
     cursor: pointer;
 }
+
+#generalPowerOptionsContainer.show-advanced .advanced-mechanics {
+    display: block;
+}
+.advanced-mechanics {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+.advanced-mechanics h4 {
+    margin: 6px 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+}
+.advanced-toggle {
+    margin-top: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    padding: 6px 10px;
+    background: #e6f7ff;
+    border-radius: 6px;
+    user-select: none;
+}
+.advanced-toggle .arrow {
+    transition: transform .2s ease;
+    font-size: 14px;
+}
+#generalPowerOptionsContainer.show-advanced .advanced-toggle .arrow {
+    transform: rotate(180deg);
+}
+.advanced-mechanics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr; /* Restriction reserved on the far right */
+    gap: 12px;
+    margin-top: 10px;
+}
+.adv-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.adv-group h4 {
+    margin: 0 0 6px 0;
+}
+.adv-group .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1;
+    border: 1px solid transparent;
+    user-select: none;
+    white-space: nowrap;
+}
+
+/* Category colors */
+.chip.action {
+    background: #e7f0ff;
+    color: #0b5ed7;
+    border-color: #bcd4ff;
+}
+.chip.activation {
+    background: #e6fffa;
+    color: #0f766e;
+    border-color: #b3f0e7;
+}
+.chip.area {
+    background: #eafbe7;
+    color: #166534;
+    border-color: #c7efc1;
+}
+.chip.duration {
+    background: #f3e8ff;
+    color: #6b21a8;
+    border-color: #e3d0ff;
+}
+.chip.target {
+    background: #fff4e5;
+    color: #9a3412;
+    border-color: #ffd8a8;
+}
+.chip.special {
+    background: #fffbe6;
+    color: #854d0e;
+    border-color: #ffe58f;
+}
+.chip.restriction {
+    background: #ffe5e5;
+    color: #b91c1c;
+    border-color: #ffb3b3;
+}
+
+/* Responsive layout */
+@media (max-width: 1000px) {
+    .advanced-mechanics-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+@media (max-width: 640px) {
+    .advanced-mechanics-grid {
+        grid-template-columns: 1fr;
+    }
+}

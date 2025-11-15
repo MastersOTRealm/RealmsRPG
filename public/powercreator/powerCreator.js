@@ -291,11 +291,12 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     }
 
     function updateTotalCosts() {
-        let flatSum = 0; // Sum of flat parts (not percentage, not duration)
-        let percentageProduct = 1; // Product of percentage parts
-        let flatDurationSum = 0; // Sum of flat parts with applyDuration checked
-        let percentageDurationProduct = 1; // Product of percentage parts with applyDuration checked
-        let durationProduct = 1; // Product of duration parts
+        let flat_normal = 0; // Sum of all flat parts (regardless of applyDuration)
+        let flat_duration = 0; // Sum of flat parts with applyDuration checked only
+        let perc_all = 1; // Product of all percentage parts (regardless of applyDuration)
+        let perc_dur = 1; // Product of percentage parts with applyDuration checked only
+        let dur_all = 1; // Product of all duration parts (start at 1 for multiplication)
+        let hasDurationParts = false; // Track if any duration parts are added
         let totalTP = 0;
         tpSources = []; // Reset the array each time
     
@@ -459,6 +460,12 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         // Combine selected parts and mechanic parts
         const allParts = [...selectedPowerParts, ...mechanicParts];
     
+        // Temporary console log: Show all current parts with option levels
+        console.log('Current parts in power:');
+        allParts.forEach(partData => {
+            console.log(`${partData.part.name}: opt1=${partData.opt1Level}, opt2=${partData.opt2Level}, opt3=${partData.opt3Level}, applyDuration=${partData.applyDuration || false}`);
+        });
+    
         allParts.forEach((partData) => {
             const part = partData.part;
             let partContribution = part.base_en;
@@ -468,20 +475,22 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
 
             const applyToDuration = partData.applyDuration || false;
 
-            if (part.duration) {
+            // NEW: Accumulate new variables for the updated equation
+            if (part.duration || ['Focus for Duration', 'No Harm or Adaptation for Duration', 'Duration Ends On Activation', 'Sustain for Duration'].includes(part.name)) {
                 // Duration parts: accumulate product
-                durationProduct *= partContribution;
+                dur_all *= partContribution;
+                hasDurationParts = true; // Mark that we have duration parts
             } else if (part.percentage) {
-                // Percentage parts
-                percentageProduct *= partContribution;
+                // Percentage parts: accumulate for all and duration-specific
+                perc_all *= partContribution;
                 if (applyToDuration) {
-                    percentageDurationProduct *= partContribution;
+                    perc_dur *= partContribution;
                 }
             } else {
-                // Flat parts
-                flatSum += partContribution;
+                // Flat parts: accumulate for all and duration-specific
+                flat_normal += partContribution;
                 if (applyToDuration) {
-                    flatDurationSum += partContribution;
+                    flat_duration += partContribution;
                 }
             }
 
@@ -504,22 +513,15 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             }
         });
     
-        // Total non-duration energy: flat sum * percentage product
-        const nonDurationEnergy = flatSum * percentageProduct;
-        
-        // Scaled duration energy: flat duration sum * percentage duration product
-        const scaledDurationEnergy = flatDurationSum * percentageDurationProduct;
-        
-        // Raw duration energy: (duration product + 1) * scaled duration energy
-        const rawDurationEnergy = (durationProduct + 1) * scaledDurationEnergy;
-        
-        // Total duration energy: raw duration energy - scaled duration energy
-        const totalDurationEnergy = rawDurationEnergy - scaledDurationEnergy;
-        
-        // Final energy: non-duration energy + total duration energy
-        const finalEnergy = nonDurationEnergy + totalDurationEnergy;
+        // If no duration parts were added, set dur_all to 0
+        if (!hasDurationParts) {
+            dur_all = 0;
+        }
     
-        document.getElementById("totalEnergy").textContent = finalEnergy.toFixed(2);
+        // NEW: Calculate PowerEnergy using the updated equation
+        const PowerEnergy = (flat_normal * perc_all) + ((dur_all + 1) * flat_duration * perc_dur) - (flat_duration * perc_dur);
+    
+        document.getElementById("totalEnergy").textContent = PowerEnergy.toFixed(2);
         document.getElementById("totalTP").textContent = totalTP;
     
         updatePowerSummary();
@@ -598,6 +600,12 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         totalCosts.classList.toggle('collapsed');
         const arrow = document.querySelector('#totalCosts .toggle-arrow');
         arrow.textContent = totalCosts.classList.contains('collapsed') ? '>' : '<';
+    }
+    // NEW: define toggleAdvancedMechanics
+    function toggleAdvancedMechanics() {
+        const c = document.getElementById('generalPowerOptionsContainer');
+        if (!c) return;
+        c.classList.toggle('show-advanced');
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -919,5 +927,6 @@ window.loadPower = loadPower;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.toggleApplyDuration = toggleApplyDuration; // NEW
+window.toggleAdvancedMechanics = toggleAdvancedMechanics; // NEW
 
 })();
