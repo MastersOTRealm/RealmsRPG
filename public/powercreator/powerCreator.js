@@ -18,6 +18,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     let durationType = 'rounds'; // Default duration type
     let tpSources = []; // New global array to track TP sources
 
+    // NEW: State for selected advanced mechanic parts
+    const selectedAdvancedParts = [];
+
     async function fetchPowerParts(database) {
         const powerPartsRef = ref(database, 'parts');
         const snapshot = await get(powerPartsRef);
@@ -458,7 +461,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         }
 
         // Combine selected parts and mechanic parts
-        const allParts = [...selectedPowerParts, ...mechanicParts];
+        const allParts = [...selectedPowerParts, ...mechanicParts, ...selectedAdvancedParts];
     
         // Temporary console log: Show all current parts with option levels
         console.log('Current parts in power:');
@@ -575,13 +578,11 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             const part = partData.part;
             const partElement = document.createElement('div');
             partElement.innerHTML = `
-                <h4>${part.name}</h4>
-                <p>Energy: ${part.base_en}</p>
-                <p>Training Points: ${part.base_tp}</p>
+                <h4>${part.name} <strong style="margin-right: 10px;">Energy:</strong> ${part.base_en} <strong style="margin-right: 10px;">Training Points:</strong> ${part.base_tp}</h4>
                 <p>${part.description}</p>
-                ${part.op_1_desc ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.opt1Level})</p>` : ''}
-                ${part.op_2_desc ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.opt2Level})</p>` : ''}
-                ${part.op_3_desc ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.opt3Level})</p>` : ''}
+                ${part.op_1_desc && partData.opt1Level > 0 ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.opt1Level})</p>` : ''}
+                ${part.op_2_desc && partData.opt2Level > 0 ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.opt2Level})</p>` : ''}
+                ${part.op_3_desc && partData.opt3Level > 0 ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.opt3Level})</p>` : ''}
             `;
             summaryPartsContainer.appendChild(partElement);
         });
@@ -606,17 +607,235 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         const c = document.getElementById('generalPowerOptionsContainer');
         if (!c) return;
         c.classList.toggle('show-advanced');
+        const collapsedChips = document.getElementById('collapsedAddedChips');
+        const classMap = {
+            'Action': 'action',
+            'Activation': 'activation',
+            'Area of Effect': 'area',
+            'Duration': 'duration',
+            'Target': 'target',
+            'Special': 'special',
+            'Restriction': 'restriction'
+        };
+        if (c.classList.contains('show-advanced')) {
+            collapsedChips.style.display = 'none';
+        } else {
+            // Populate with chips
+            collapsedChips.innerHTML = '';
+            selectedAdvancedParts.forEach(partData => {
+                const chip = document.createElement('span');
+                chip.className = 'chip ' + (classMap[partData.part.category] || 'special');
+                chip.textContent = partData.part.name;
+                collapsedChips.appendChild(chip);
+            });
+            collapsedChips.style.display = 'inline-block';
+        }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("addPowerPartButton").addEventListener("click", addPowerPart);
-        document.getElementById('dieAmount1').addEventListener('input', updateTotalCosts);
-        document.getElementById('dieSize1').addEventListener('change', updateTotalCosts);
-        document.getElementById('damageType1').addEventListener('change', updateDamageType);
+    // NEW: Set of excluded parts (those handled in basic mechanics)
+    const excludedParts = new Set([
+        'Power Quick or Free Action',
+        'Power Long Action',
+        'Power Reaction',
+        'Sphere of Effect',
+        'Cylinder of Effect',
+        'Cone of Effect',
+        'Line of Effect',
+        'Trail of Effect',
+        'Magic Damage',
+        'Light Damage',
+        'Elemental Damage',
+        'Poison or Necrotic Damage',
+        'Sonic Damage',
+        'Spiritual Damage',
+        'Psychic Damage',
+        'Physical Damage',
+        'Duration (Round)',
+        'Duration (Minute)',
+        'Duration (Hour)',
+        'Duration (Days)',
+        'Duration (Permanent)',
+        'Focus for Duration',
+        'No Harm or Adaptation for Duration',
+        'Duration Ends On Activation',
+        'Sustain for Duration',
+        'Power Range'
+    ]);
 
-        const totalCostsArrow = document.querySelector('#totalCosts .toggle-arrow');
-        if (totalCostsArrow) totalCostsArrow.addEventListener('click', toggleTotalCosts);
-    });
+    // NEW: Function to populate advanced mechanics chips dynamically
+    function populateAdvancedMechanics() {
+        const categories = ['Action', 'Activation', 'Area of Effect', 'Duration', 'Target', 'Special', 'Restriction'];
+        const classMap = {
+            'Action': 'action',
+            'Activation': 'activation',
+            'Area of Effect': 'area',
+            'Duration': 'duration',
+            'Target': 'target',
+            'Special': 'special',
+            'Restriction': 'restriction'
+        };
+        const colorMap = {
+            'Action': '#0b5ed7',
+            'Activation': '#0f766e',
+            'Area of Effect': '#166534',
+            'Duration': '#6b21a8',
+            'Target': '#9a3412',
+            'Special': '#854d0e',
+            'Restriction': '#b91c1c'
+        };
+
+        categories.forEach(cat => {
+            const advGroup = Array.from(document.querySelectorAll('.adv-group')).find(group => group.querySelector('h4').textContent === cat);
+            if (advGroup) {
+                const chipsContainer = advGroup.querySelector('.chips');
+                if (chipsContainer) {
+                    chipsContainer.innerHTML = ''; // Clear any existing content
+                    const parts = powerParts.filter(p => p.mechanic && p.category === cat && !excludedParts.has(p.name));
+                    parts.forEach(part => {
+                        const chip = document.createElement('span');
+                        chip.className = 'chip ' + classMap[cat];
+                        chip.textContent = part.name;
+
+                        // Add + button with matching color
+                        const addBtn = document.createElement('button');
+                        addBtn.className = 'chip-add-button';
+                        addBtn.textContent = '+';
+                        addBtn.style.color = colorMap[cat] || 'black'; // Set color to match chip
+                        addBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            addAdvancedPart(part);
+                        };
+                        chip.appendChild(addBtn);
+
+                        // Create expandable description div
+                        const descDiv = document.createElement('div');
+                        descDiv.className = 'chip-description';
+                        descDiv.style.display = 'none'; // Initially hidden
+                        descDiv.innerHTML = `
+                            <p>${part.description || 'No description available.'}</p>
+                            ${part.op_1_desc ? `<p>Option 1: ${part.op_1_desc}</p>` : ''}
+                            ${part.op_2_desc ? `<p>Option 2: ${part.op_2_desc}</p>` : ''}
+                            ${part.op_3_desc ? `<p>Option 3: ${part.op_3_desc}</p>` : ''}
+                        `;
+
+                        // Add click event to toggle description
+                        chip.addEventListener('click', () => {
+                            descDiv.style.display = descDiv.style.display === 'none' ? 'block' : 'none';
+                        });
+
+                        chip.appendChild(descDiv);
+                        chipsContainer.appendChild(chip);
+                    });
+                }
+            }
+        });
+    }
+
+    // NEW: Function to add an advanced mechanic part
+    function addAdvancedPart(part) {
+        const existing = selectedAdvancedParts.find(ap => ap.part.name === part.name);
+        if (!existing) {
+            selectedAdvancedParts.push({ part, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            renderAddedAdvancedParts();
+            updateTotalCosts();
+        }
+    }
+
+    // NEW: Function to render added advanced parts as chips
+    function renderAddedAdvancedParts() {
+        const container = document.getElementById('addedAdvancedPartsContainer');
+        container.innerHTML = '';
+        const chipsDiv = document.createElement('div');
+        chipsDiv.className = 'chips';
+        const classMap = {
+            'Action': 'action',
+            'Activation': 'activation',
+            'Area of Effect': 'area',
+            'Duration': 'duration',
+            'Target': 'target',
+            'Special': 'special',
+            'Restriction': 'restriction'
+        };
+        selectedAdvancedParts.forEach((partData, idx) => {
+            const part = partData.part;
+            const chip = document.createElement('span');
+            chip.className = 'chip ' + (classMap[part.category] || 'special'); // Use classMap for accurate mapping
+            chip.textContent = part.name;
+
+            // Add remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-advanced-part';
+            removeBtn.textContent = '✕';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeAdvancedPart(idx);
+            };
+            chip.appendChild(removeBtn);
+
+            // Create expandable description div with options
+            const descDiv = document.createElement('div');
+            descDiv.className = 'chip-description';
+            descDiv.style.display = 'none'; // Initially hidden
+            descDiv.innerHTML = `
+                <p>${part.description}</p>
+                ${part.op_1_desc ? `
+                <div class="option-container">
+                    <div class="option-box">
+                        <h4>Energy: ${part.op_1_en >= 0 ? '+' : ''}${part.op_1_en} Training Points: ${part.op_1_tp >= 0 ? '+' : ''}${part.op_1_tp}</h4>
+                        <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt1', 1)">+</button>
+                        <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt1', -1)">-</button>
+                        <span>Level: <span id="adv-opt1Level-${idx}">${partData.opt1Level}</span></span>
+                        <p>${part.op_1_desc}</p>
+                    </div>
+                </div>` : ''}
+                ${part.op_2_desc ? `
+                <div class="option-container">
+                    <div class="option-box">
+                        <h4>Energy: ${part.op_2_en >= 0 ? '+' : ''}${part.op_2_en} Training Points: ${part.op_2_tp >= 0 ? '+' : ''}${part.op_2_tp}</h4>
+                        <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt2', 1)">+</button>
+                        <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt2', -1)">-</button>
+                        <span>Level: <span id="adv-opt2Level-${idx}">${partData.opt2Level}</span></span>
+                        <p>${part.op_2_desc}</p>
+                    </div>
+                </div>` : ''}
+                ${part.op_3_desc ? `
+                <div class="option-container">
+                    <div class="option-box">
+                        <h4>Energy: ${part.op_3_en >= 0 ? '+' : ''}${part.op_3_en} Training Points: ${part.op_3_tp >= 0 ? '+' : ''}${part.op_3_tp}</h4>
+                        <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt3', 1)">+</button>
+                        <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt3', -1)">-</button>
+                        <span>Level: <span id="adv-opt3Level-${idx}">${partData.opt3Level}</span></span>
+                        <p>${part.op_3_desc}</p>
+                    </div>
+                </div>` : ''}
+            `;
+
+            // Add click event to toggle description
+            chip.addEventListener('click', () => {
+                descDiv.style.display = descDiv.style.display === 'none' ? 'block' : 'none';
+            });
+
+            chip.appendChild(descDiv);
+            chipsDiv.appendChild(chip);
+        });
+        container.appendChild(chipsDiv);
+    }
+
+    // NEW: Function to change option level for advanced parts
+    function changeAdvancedOptionLevel(idx, option, delta) {
+        const partData = selectedAdvancedParts[idx];
+        const levelKey = `${option}Level`;
+        partData[levelKey] = Math.max(0, partData[levelKey] + delta);
+        document.getElementById(`adv-${levelKey}-${idx}`).textContent = partData[levelKey];
+        updateTotalCosts();
+    }
+
+    // NEW: Function to remove advanced part
+    function removeAdvancedPart(idx) {
+        selectedAdvancedParts.splice(idx, 1);
+        renderAddedAdvancedParts();
+        updateTotalCosts();
+    }
 
     function addDamageRow() {
         const additionalDamageRow = document.getElementById('additionalDamageRow');
@@ -693,35 +912,198 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         if (totalCostsArrow) totalCostsArrow.addEventListener('click', toggleTotalCosts);
     });
 
-    async function savePowerToLibrary(functions, userId) {
-        const powerName = document.getElementById('powerName').value || '';
-        const powerDescription = document.getElementById('powerDescription').value || '';
-        const totalEnergy = document.getElementById('totalEnergy').textContent || '0';
-        const totalTP = document.getElementById('totalTP').textContent || '0';
-        const range = document.getElementById('rangeValue').textContent || '1';
-        const areaEffect = document.getElementById('areaEffect').value || 'none';
-        const areaEffectLevel = document.getElementById('areaEffectLevelValue').textContent || '1';
-        const duration = document.getElementById('durationValue').value || '1';
-        const durationType = document.getElementById('durationType').value || 'rounds';
-        const actionType = document.getElementById('actionType').value || 'basic';
-        const reactionChecked = document.getElementById('reactionCheckbox').checked || false;
-        const focusChecked = document.getElementById('focusCheckbox').checked || false;
-        const sustainValue = document.getElementById('sustainValue').value || '0';
-        const noHarmChecked = document.getElementById('noHarmCheckbox').checked || false;
-        const endsOnceChecked = document.getElementById('endsOnceCheckbox').checked || false;
-        const damageType1 = document.getElementById('damageType1').value || 'none';
-        const dieAmount1 = document.getElementById('dieAmount1').value || '0';
-        const dieSize1 = document.getElementById('dieSize1').value || '0';
-        const damageType2 = document.getElementById('damageType2')?.value || 'none';
-        const dieAmount2 = document.getElementById('dieAmount2')?.value || '0';
-        const dieSize2 = document.getElementById('dieSize2')?.value || '0';
+    // Helper: build mechanic parts for save (similar to technique creator)
+    function buildMechanicPartsForSave() {
+        const mechanicParts = [];
+        const actionType = document.getElementById('actionType')?.value;
+        const reactionChecked = document.getElementById('reactionCheckbox')?.checked;
 
-        const powerParts = selectedPowerParts.map(partData => ({
-            part: partData.part.name,
-            opt1Level: partData.opt1Level,
-            opt2Level: partData.opt2Level,
-            opt3Level: partData.opt3Level,
-            applyDuration: partData.applyDuration // NEW: save applyDuration
+        // Reaction
+        if (reactionChecked) {
+            const reactionPart = powerParts.find(p => p.name === 'Power Reaction' && p.mechanic);
+            if (reactionPart) mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        }
+
+        // Action Type
+        if (actionType === 'quick') {
+            const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
+            if (quickFreePart) mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        } else if (actionType === 'free') {
+            const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
+            if (quickFreePart) mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        } else if (actionType === 'long3') {
+            const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
+            if (longPart) mechanicParts.push({ part: longPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        } else if (actionType === 'long4') {
+            const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
+            if (longPart) mechanicParts.push({ part: longPart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        }
+
+        // Area of Effect
+        const areaEffect = document.getElementById('areaEffect')?.value;
+        const areaEffectApplyDuration = document.getElementById('areaEffectApplyDuration')?.checked || false;
+        let areaPartName = '';
+        if (areaEffect === 'sphere') areaPartName = 'Sphere of Effect';
+        else if (areaEffect === 'cylinder') areaPartName = 'Cylinder of Effect';
+        else if (areaEffect === 'cone') areaPartName = 'Cone of Effect';
+        else if (areaEffect === 'line') areaPartName = 'Line of Effect';
+        else if (areaEffect === 'space') areaPartName = 'Trail of Effect';
+        
+        if (areaPartName) {
+            const areaPart = powerParts.find(p => p.name === areaPartName && p.mechanic);
+            if (areaPart) {
+                mechanicParts.push({ part: areaPart, opt1Level: areaEffectLevel - 1, opt2Level: 0, opt3Level: 0, applyDuration: areaEffectApplyDuration });
+            }
+        }
+
+        // Damage (both rows, but never apply to duration)
+        const addDamagePart = (damageType, dieAmount, dieSize) => {
+            let partName = '';
+            if (damageType === 'magic') partName = 'Magic Damage';
+            else if (damageType === 'light') partName = 'Light Damage';
+            else if (['fire', 'ice', 'acid', 'lightning'].includes(damageType)) partName = 'Elemental Damage';
+            else if (['poison', 'necrotic'].includes(damageType)) partName = 'Poison or Necrotic Damage';
+            else if (damageType === 'sonic') partName = 'Sonic Damage';
+            else if (damageType === 'spiritual') partName = 'Spiritual Damage';
+            else if (damageType === 'psychic') partName = 'Psychic Damage';
+            else if (['blunt', 'piercing', 'slashing'].includes(damageType)) partName = 'Physical Damage';
+
+            if (partName) {
+                const damagePart = powerParts.find(p => p.name === partName && p.mechanic);
+                if (damagePart) {
+                    const totalDamage = dieAmount * dieSize;
+                    const opt1Level = Math.floor((totalDamage - 4) / 2);
+                    mechanicParts.push({ part: damagePart, opt1Level: Math.max(0, opt1Level), opt2Level: 0, opt3Level: 0, applyDuration: false });
+                }
+            }
+        };
+
+        const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
+        const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
+        const damageType1 = document.getElementById('damageType1')?.value;
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 && damageType1 !== "none") {
+            addDamagePart(damageType1, dieAmount1, dieSize1);
+        }
+
+        const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
+        const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
+        const damageType2 = document.getElementById('damageType2')?.value;
+        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 && damageType2 !== "none") {
+            addDamagePart(damageType2, dieAmount2, dieSize2);
+        }
+
+        // Duration parts
+        const focusChecked = document.getElementById('focusCheckbox')?.checked;
+        const noHarmChecked = document.getElementById('noHarmCheckbox')?.checked;
+        const endsOnceChecked = document.getElementById('endsOnceCheckbox')?.checked;
+        const sustainValue = parseInt(document.getElementById('sustainValue')?.value, 10) || 0;
+        const durationType = document.getElementById('durationType')?.value;
+        const durationValue = parseInt(document.getElementById('durationValue')?.value, 10) || 1;
+        const idx = durationValue - 1;
+
+        const getMechanicPart = (name) => powerParts.find(p => p.name === name && (p.mechanic || p.duration));
+
+        if (focusChecked) {
+            const p = getMechanicPart('Focus for Duration');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        }
+        if (noHarmChecked) {
+            const p = getMechanicPart('No Harm or Adaptation for Duration');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        }
+        if (endsOnceChecked) {
+            const p = getMechanicPart('Duration Ends On Activation');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        }
+        if (sustainValue > 0) {
+            const p = getMechanicPart('Sustain for Duration');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, sustainValue - 1), opt2Level: 0, opt3Level: 0, applyDuration: false });
+        }
+
+        if (durationType === 'permanent') {
+            const p = getMechanicPart('Duration (Permanent)');
+            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+        } else if (durationType === 'days') {
+            const p = getMechanicPart('Duration (Days)');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0, applyDuration: false });
+        } else if (durationType === 'hours') {
+            const p = getMechanicPart('Duration (Hour)');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0, applyDuration: false });
+        } else if (durationType === 'minutes') {
+            const p = getMechanicPart('Duration (Minute)');
+            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0, applyDuration: false });
+        } else if (durationType === 'rounds') {
+            if (durationValue > 1) {
+                const p = getMechanicPart('Duration (Round)');
+                if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx - 1), opt2Level: 0, opt3Level: 0, applyDuration: false });
+            }
+        }
+
+        // Range
+        const rangeSteps = range;
+        if (rangeSteps > 0) {
+            const rangePart = powerParts.find(p => p.name === 'Power Range' && p.mechanic);
+            if (rangePart) {
+                mechanicParts.push({ part: rangePart, opt1Level: Math.max(0, rangeSteps - 1), opt2Level: 0, opt3Level: 0, applyDuration: false });
+            }
+        }
+
+        return mechanicParts;
+    }
+
+    async function savePowerToLibrary(functions, userId) {
+        const powerName = document.getElementById('powerName').value?.trim();
+        if (!powerName) {
+            alert('Please enter a power name');
+            return;
+        }
+        const powerDescription = document.getElementById('powerDescription').value || '';
+
+        // Build damage array
+        const damageArray = [];
+        const dieAmount1 = document.getElementById('dieAmount1')?.value || '';
+        const dieSize1 = document.getElementById('dieSize1')?.value || '';
+        const damageType1 = document.getElementById('damageType1')?.value || 'none';
+        if (dieAmount1 && dieSize1 && damageType1 !== 'none') {
+            damageArray.push({ amount: dieAmount1, size: dieSize1, type: damageType1 });
+        }
+
+        const dieAmount2 = document.getElementById('dieAmount2')?.value || '';
+        const dieSize2 = document.getElementById('dieSize2')?.value || '';
+        const damageType2 = document.getElementById('damageType2')?.value || 'none';
+        if (dieAmount2 && dieSize2 && damageType2 !== 'none') {
+            damageArray.push({ amount: dieAmount2, size: dieSize2, type: damageType2 });
+        }
+
+        // Build mechanic parts
+        const mechanicParts = buildMechanicPartsForSave();
+        
+        // Combine user-selected parts and mechanic parts
+        const allParts = [
+            ...selectedPowerParts.map(p => ({
+                part: p.part,
+                opt1Level: p.opt1Level,
+                opt2Level: p.opt2Level,
+                opt3Level: p.opt3Level,
+                applyDuration: p.applyDuration || false
+            })),
+            ...mechanicParts,
+            ...selectedAdvancedParts.map(p => ({
+                part: p.part,
+                opt1Level: p.opt1Level,
+                opt2Level: p.opt2Level,
+                opt3Level: p.opt3Level,
+                applyDuration: false // Advanced parts default to false
+            }))
+        ];
+
+        // Map to compact structure
+        const partsPayload = allParts.map(p => ({
+            name: p.part.name,
+            op_1_lvl: p.opt1Level || 0,
+            op_2_lvl: p.opt2Level || 0,
+            op_3_lvl: p.opt3Level || 0,
+            applyDuration: p.applyDuration || false
         }));
 
         try {
@@ -741,29 +1123,14 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             await setDoc(docRef, {
                 name: powerName,
                 description: powerDescription,
-                totalEnergy,
-                totalTP,
-                range,
-                areaEffect,
-                areaEffectLevel,
-                duration,
-                durationType,
-                actionType,
-                reactionChecked,
-                focusChecked,
-                sustainValue,
-                noHarmChecked,
-                endsOnceChecked,
-                damage: [
-                    { type: damageType1, amount: dieAmount1, size: dieSize1 },
-                    { type: damageType2, amount: dieAmount2, size: dieSize2 }
-                ],
-                powerParts,
+                parts: partsPayload,
+                damage: damageArray,
                 timestamp: new Date()
             });
 
             alert('Power saved to library');
         } catch (e) {
+            console.error('Error saving power:', e);
             alert('Error saving power to library');
         }
     }
@@ -795,48 +1162,54 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     }
     
     function loadPower(power) {
-        document.getElementById('powerName').value = power.name;
-        document.getElementById('powerDescription').value = power.description;
-        document.getElementById('totalEnergy').textContent = power.totalEnergy;
-        document.getElementById('totalTP').textContent = power.totalTP;
-        document.getElementById('rangeValue').textContent = power.range;
-        document.getElementById('areaEffect').value = power.areaEffect;
-        document.getElementById('areaEffectLevelValue').textContent = power.areaEffectLevel;
-        document.getElementById('durationValue').value = power.duration;
-        document.getElementById('durationType').value = power.durationType;
-        document.getElementById('actionType').value = power.actionType;
-        document.getElementById('reactionCheckbox').checked = power.reactionChecked;
-        document.getElementById('focusCheckbox').checked = power.focusChecked;
-        document.getElementById('sustainValue').value = power.sustainValue;
-        document.getElementById('noHarmCheckbox').checked = power.noHarmChecked;
-        document.getElementById('endsOnceCheckbox').checked = power.endsOnceChecked;
-    
-        // Load damage values
-        document.getElementById('damageType1').value = power.damage[0].type;
-        document.getElementById('dieAmount1').value = power.damage[0].amount;
-        document.getElementById('dieSize1').value = power.damage[0].size;
-        if (power.damage[1]) {
-            addDamageRow();
-            document.getElementById('damageType2').value = power.damage[1].type;
-            document.getElementById('dieAmount2').value = power.damage[1].amount;
-            document.getElementById('dieSize2').value = power.damage[1].size;
+        document.getElementById('powerName').value = power.name || '';
+        document.getElementById('powerDescription').value = power.description || '';
+
+        // Handle damage (new format: array of objects with amount, size, type)
+        const damageData = power.damage || [];
+        if (damageData.length > 0) {
+            const dmg1 = damageData[0];
+            document.getElementById('dieAmount1').value = dmg1.amount || '';
+            document.getElementById('dieSize1').value = dmg1.size || '';
+            document.getElementById('damageType1').value = dmg1.type || 'none';
+        } else {
+            document.getElementById('dieAmount1').value = '';
+            document.getElementById('dieSize1').value = '';
+            document.getElementById('damageType1').value = 'none';
         }
-    
-        // Load power parts
-        selectedPowerParts.length = 0; // Clear existing parts
-        power.powerParts.forEach(partData => {
-            const part = powerParts.find(p => p.name === partData.part);
-            selectedPowerParts.push({
-                part,
-                opt1Level: partData.opt1Level,
-                opt2Level: partData.opt2Level,
-                opt3Level: partData.opt3Level,
-                applyDuration: partData.applyDuration || false // NEW: load applyDuration
-            });
+
+        if (damageData.length > 1) {
+            addDamageRow();
+            const dmg2 = damageData[1];
+            document.getElementById('dieAmount2').value = dmg2.amount || '';
+            document.getElementById('dieSize2').value = dmg2.size || '';
+            document.getElementById('damageType2').value = dmg2.type || 'none';
+        }
+
+        // Load parts (new key: parts; fallback to legacy powerParts)
+        const savedParts = power.parts || power.powerParts || [];
+        selectedPowerParts.length = 0;
+        selectedAdvancedParts.length = 0;
+
+        savedParts.forEach(p => {
+            const partObj = powerParts.find(pp => pp.name === p.name || pp.name === p.part);
+            if (partObj) {
+                // Skip mechanic parts - they'll be recreated from UI state
+                if (partObj.mechanic || partObj.duration) return;
+
+                selectedPowerParts.push({
+                    part: partObj,
+                    opt1Level: p.op_1_lvl ?? p.opt1Level ?? 0,
+                    opt2Level: p.op_2_lvl ?? p.opt2Level ?? 0,
+                    opt3Level: p.op_3_lvl ?? p.opt3Level ?? 0,
+                    applyDuration: p.applyDuration || false
+                });
+            }
         });
-    
+
         renderPowerParts();
-        updateTotalCosts();
+        renderAddedAdvancedParts();
+        updateTotalCosts(); // Recalculate from current definitions
     }
     
     function openModal() {
@@ -890,12 +1263,17 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             // Fetch power parts from Realtime Database
             await fetchPowerParts(database);
 
+            // NEW: Populate advanced mechanics chips after fetching parts
+            populateAdvancedMechanics();
+
             onAuthStateChanged(auth, (user) => {
                 const savePowerButton = document.getElementById('savePowerButton');
                 if (user) {
+                    console.log('User is signed in:', user);
                     savePowerButton.textContent = 'Save Power';
                     savePowerButton.addEventListener('click', () => savePowerToLibrary(functions, user.uid));
                 } else {
+                    console.log('No user is signed in');
                     savePowerButton.textContent = 'Login to Save Powers';
                     savePowerButton.addEventListener('click', () => {
                         window.location.href = '/login.html';
@@ -903,6 +1281,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                 }
             });
         }).catch(error => {
+            console.error('Error fetching Firebase config:', error);
         });
     });
 
@@ -928,5 +1307,7 @@ window.openModal = openModal;
 window.closeModal = closeModal;
 window.toggleApplyDuration = toggleApplyDuration; // NEW
 window.toggleAdvancedMechanics = toggleAdvancedMechanics; // NEW
+window.changeAdvancedOptionLevel = changeAdvancedOptionLevel; // NEW
+window.populateAdvancedMechanics = populateAdvancedMechanics; // NEW
 
 })();

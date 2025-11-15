@@ -124,90 +124,63 @@
             </div>
             <div class="advanced-toggle" onclick="toggleAdvancedMechanics()">
                 <span class="arrow">&#9660;</span> Advanced Power Mechanics
+                <div class="collapsed-added-chips" id="collapsedAddedChips"></div>
             </div>
             <div class="advanced-mechanics">
-                <!-- Grid of headers across the top with chips -->
-                <div class="advanced-mechanics-grid">
-                    <!-- Column 1: Action + Activation -->
-                    <div class="adv-col">
-                        <div class="adv-group">
-                            <h4>Action</h4>
-                            <div class="chips">
-                                <span class="chip action">Rite</span>
-                                <span class="chip action">Long Rite</span>
+                <div class="added-advanced-parts">
+                    <h4>Added Advanced Mechanics</h4>
+                    <div id="addedAdvancedPartsContainer"></div>
+                </div>
+                <div class="advanced-mechanics-content">
+                    <div class="chips-section">
+                        <!-- Grid of headers across the top with chips -->
+                        <div class="advanced-mechanics-grid">
+                            <!-- Column 1: Action + Activation -->
+                            <div class="adv-col">
+                                <div class="adv-group">
+                                    <h4>Action</h4>
+                                    <div class="chips">
+                                    </div>
+                                </div>
+                                <div class="adv-group">
+                                    <h4>Activation</h4>
+                                    <div class="chips">
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="adv-group">
-                            <h4>Activation</h4>
-                            <div class="chips">
-                                <span class="chip activation">Trigger on Condition</span>
-                                <span class="chip activation">Delayed Effect</span>
+                            <!-- Column 2: Area of Effect + Duration -->
+                            <div class="adv-col">
+                                <div class="adv-group">
+                                    <h4>Area of Effect</h4>
+                                    <div class="chips">
+                                    </div>
+                                </div>
+                                <div class="adv-group">
+                                    <h4>Duration</h4>
+                                    <div class="chips">
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <!-- Column 2: Area of Effect + Duration -->
-                    <div class="adv-col">
-                        <div class="adv-group">
-                            <h4>Area of Effect</h4>
-                            <div class="chips">
-                                <span class="chip area">Pierce Targets on Path</span>
-                                <span class="chip area">Add Multiple Targets</span>
-                                <span class="chip area">Expanding Area of Effect</span>
-                                <span class="chip area">Target One in an Area of Effect</span>
-                                <span class="chip area">Exclude Area</span>
+                            <!-- Column 3: Target + Special -->
+                            <div class="adv-col">
+                                <div class="adv-group">
+                                    <h4>Target</h4>
+                                    <div class="chips">
+                                    </div>
+                                </div>
+                                <div class="adv-group">
+                                    <h4>Special</h4>
+                                    <div class="chips">
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="adv-group">
-                            <h4>Duration</h4>
-                            <div class="chips">
-                                <span class="chip duration">Use Power Again on Overcome</span>
-                                <span class="chip duration">Still Affects on Overcome</span>
-                                <span class="chip duration">Different Effects Each Round</span>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Column 3: Target + Special -->
-                    <div class="adv-col">
-                        <div class="adv-group">
-                            <h4>Target</h4>
-                            <div class="chips">
-                                <span class="chip target">No Sightline Required</span>
-                                <span class="chip target">Multiple Overcome(s) Required</span>
-                                <span class="chip target">Specified Exceptions</span>
-                                <span class="chip target">Specialized</span>
-                                <span class="chip target">Alternate Targeted Defense</span>
-                            </div>
-                        </div>
-                        <div class="adv-group">
-                            <h4>Special</h4>
-                            <div class="chips">
-                                <span class="chip special">Wish</span>
-                                <span class="chip special">Dispell Immune</span>
-                                <span class="chip special">Password</span>
-                                <span class="chip special">Choice</span>
-                                <span class="chip special">Split Power Parts into Groups</span>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Column 4: Restriction (its own column on the far right) -->
-                    <div class="adv-col restriction-col">
-                        <div class="adv-group">
-                            <h4>Restriction</h4>
-                            <div class="chips">
-                                <span class="chip restriction">Requires Materials</span>
-                                <span class="chip restriction">Ends on Effect/Damage Threshold</span>
-                                <span class="chip restriction">Deadly Contingency</span>
-                                <span class="chip restriction">Immune to Effect on Overcome</span>
-                                <span class="chip restriction">Reverse Effects</span>
-                                <span class="chip restriction">Stipulation</span>
-                                <span class="chip restriction">Not Activated until Target Moves</span>
-                                <span class="chip restriction">One Round Adaptation</span>
-                                <span class="chip restriction">Targets Additional Defense</span>
-                                <span class="chip restriction">Proximity Requirement</span>
-                                <span class="chip restriction">Murged Potency</span>
-                                <span class="chip restriction">Transfered Effect</span>
-                                <span class="chip restriction">Target's Possession</span>
-                                <span class="chip restriction">Requires Skill Roll</span>
+                            <!-- Column 4: Restriction (its own column on the far right) -->
+                            <div class="adv-col restriction-col">
+                                <div class="adv-group">
+                                    <h4>Restriction</h4>
+                                    <div class="chips">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

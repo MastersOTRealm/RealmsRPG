@@ -442,6 +442,19 @@ button:hover {
     padding: 5px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
     flex: 1 1 30%;
+    margin-bottom: 5px; /* Reduced spacing by 75% from typical default */
+}
+
+#summaryParts div h4 {
+    margin-bottom: 4px; /* Reduced from default ~16px */
+}
+
+#summaryParts div p {
+    margin-bottom: 4px; /* Reduced from default ~16px */
+}
+
+#summaryProficiencies p {
+    margin-bottom: 4px; /* Reduced from default ~16px */
 }
 
 .power-summary-description {
@@ -644,13 +657,16 @@ button:hover {
 .chip {
     display: inline-flex;
     align-items: center;
+    justify-content: space-between; /* Position text left, button right */
     padding: 4px 8px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 14px; /* Increased from 12px */
     line-height: 1;
     border: 1px solid transparent;
     user-select: none;
-    white-space: nowrap;
+    cursor: pointer; /* Indicate clickable */
+    overflow-wrap: break-word; /* Allow text to wrap */
+    max-width: 100%; /* Prevent expansion beyond column */
 }
 
 /* Category colors */
@@ -688,6 +704,177 @@ button:hover {
     background: #ffe5e5;
     color: #b91c1c;
     border-color: #ffb3b3;
+}
+
+.chip-description {
+    margin-top: 5px;
+    padding: 5px;
+    border-radius: 1px; /* Reduced from 4px for minor corner curving */
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* New styles for advanced mechanics layout */
+.advanced-mechanics-content {
+    gap: 20px;
+}
+
+.chips-section {
+    flex: 1;
+}
+
+.added-advanced-parts {
+    margin-bottom: 10px; /* Space above the chips */
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.added-advanced-parts h4 {
+    margin: 0 0 10px 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+}
+
+.added-advanced-parts .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.added-advanced-parts .chip {
+    /* Same as regular chips */
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between; /* Position text left, button right */
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 14px; /* Increased from 12px */
+    line-height: 1;
+    border: 1px solid #ccc; /* Default border to ensure visibility */
+    user-select: none;
+    cursor: pointer;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    position: relative; /* For positioning remove button */
+}
+
+.added-advanced-parts .chip .remove-advanced-part {
+    margin-left: 5px;
+    padding: 2px 4px;
+    font-size: 15px; /* Increased by 1.5x from 10px */
+    background-color: transparent;
+    color: inherit; /* Match chip color */
+    border: none;
+    cursor: pointer;
+}
+
+.chip-add-button {
+    margin-left: 5px;
+    padding: 2px 4px;
+    font-size: 15px; /* Increased by 1.5x from 10px */
+    background-color: transparent; /* Remove green background */
+    color: inherit; /* Will be set dynamically */
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.chip-add-button:hover {
+    background-color: rgba(0, 0, 0, 0.05); /* Very light shade for hover */
+}
+
+/* Style option buttons in chip descriptions */
+.chip-description button {
+    background-color: transparent;
+    color: inherit; /* Match chip color */
+    border: 1px solid currentColor; /* Faint border matching chip color */
+    padding: 2px 5px;
+    cursor: pointer;
+    font-size: 18px; /* Increased by 1.5x from 12px */
+}
+
+/* Remove white background from option boxes */
+.chip-description .option-box {
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 5px 0;
+}
+
+/* Add aesthetic horizontal lines */
+.chip-description .option-container {
+    border-top: 1px solid currentColor; /* Matches chip color */
+    margin-top: 5px;
+    padding-top: 5px;
+}
+
+.chip-description .option-container + .option-container {
+    border-top: 1px solid currentColor; /* Separate options */
+    margin-top: 5px;
+    padding-top: 5px;
+}
+
+/* Update chip-description for added parts to match chip colors */
+.added-advanced-parts .chip-description {
+    /* Same as before */
+    margin-top: 5px;
+    padding: 5px;
+    border-radius: 1px;
+    font-size: 14px; /* Increased font size */
+    line-height: 1.4;
+}
+
+/* Ensure option-container in added parts matches */
+.added-advanced-parts .option-container {
+    margin-top: 8px;
+}
+
+/* Category colors for added parts */
+.added-advanced-parts .chip.action {
+    background: #e7f0ff;
+    color: #0b5ed7;
+    border-color: #bcd4ff;
+}
+.added-advanced-parts .chip.activation {
+    background: #e6fffa;
+    color: #0f766e;
+    border-color: #b3f0e7;
+}
+.added-advanced-parts .chip.area {
+    background: #eafbe7;
+    color: #166534;
+    border-color: #c7efc1;
+}
+.added-advanced-parts .chip.duration {
+    background: #f3e8ff;
+    color: #6b21a8;
+    border-color: #e3d0ff;
+}
+.added-advanced-parts .chip.target {
+    background: #fff4e5;
+    color: #9a3412;
+    border-color: #ffd8a8;
+}
+.added-advanced-parts .chip.special {
+    background: #fffbe6;
+    color: #854d0e;
+    border-color: #ffe58f;
+}
+.added-advanced-parts .chip.restriction {
+    background: #ffe5e5;
+    color: #b91c1c;
+    border-color: #ffb3b3;
+}
+
+.collapsed-added-chips {
+    display: none;
+    margin-left: 10px;
+}
+
+.collapsed-added-chips .chip {
+    font-size: 12px; /* Smaller for collapsed view */
+    margin-right: 5px;
 }
 
 /* Responsive layout */

@@ -63,50 +63,53 @@ exports.updateUserEmail = onCall(async (data, context) => {
 });
 
 exports.savePowerToLibrary = onCall(async (data, context) => {
-    const { powerName, powerDescription, totalEnergy, totalTP, range, areaEffect, areaEffectLevel, duration, durationType, actionType, reactionChecked, focusChecked, sustainValue, noHarmChecked, endsOnceChecked, damage, powerParts } = data;
+    const { powerName, powerDescription, parts, damage } = data;
     const uid = context.auth.uid;
 
     if (!uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
-    if (!(typeof powerName === "string") || powerName.length === 0) {
+    // Validate required fields
+    if (!(typeof powerName === "string") || powerName.trim().length === 0) {
         throw new HttpsError("invalid-argument", "The function must be called with a valid 'powerName'.");
+    }
+    if (!Array.isArray(parts)) {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'parts' array.");
+    }
+    if (!Array.isArray(damage)) {
+        throw new HttpsError("invalid-argument", "Missing or invalid 'damage' array.");
     }
 
     try {
         const db = getFirestore();
-        const docRef = await db.collection('users').doc(uid).collection('library').add({
+        // Overwrite if name exists, else add new
+        const powersRef = db.collection('users').doc(uid).collection('library');
+        const querySnap = await powersRef.where('name', '==', powerName).get();
+        let docRef;
+        if (!querySnap.empty) {
+            docRef = powersRef.doc(querySnap.docs[0].id);
+        } else {
+            docRef = powersRef.doc();
+        }
+        await docRef.set({
             name: powerName,
-            description: powerDescription,
-            totalEnergy,
-            totalTP,
-            range,
-            areaEffect,
-            areaEffectLevel,
-            duration,
-            durationType,
-            actionType,
-            reactionChecked,
-            focusChecked,
-            sustainValue,
-            noHarmChecked,
-            endsOnceChecked,
+            description: powerDescription || "",
+            parts,
             damage,
-            powerParts,
             timestamp: new Date()
         });
-        logger.info('Document written with ID: ', docRef.id);
+        logger.info('Power document written with ID: ', docRef.id);
         return { message: 'Power saved to library', docId: docRef.id };
     } catch (error) {
-        logger.error('Error adding document: ', error);
+        logger.error('Error adding power document: ', error);
         throw new HttpsError('internal', 'Error saving power to library');
     }
 });
 
 exports.savePowerToLibrary = onRequest((req, res) => {
     cors(req, res, async () => {
-        const { powerName, powerDescription, totalEnergy, totalTP, range, areaEffect, areaEffectLevel, duration, durationType, actionType, reactionChecked, focusChecked, sustainValue, noHarmChecked, endsOnceChecked, damage, powerParts } = req.body;
+        const { powerName, powerDescription, parts, damage } = req.body;
         
         // Verify the ID token from the Authorization header
         const idToken = req.headers.authorization?.split('Bearer ')[1];
@@ -119,36 +122,41 @@ exports.savePowerToLibrary = onRequest((req, res) => {
             const decodedToken = await admin.auth().verifyIdToken(idToken);
             const uid = decodedToken.uid;
 
-            if (!(typeof powerName === "string") || powerName.length === 0) {
+            // Validate required fields
+            if (!(typeof powerName === "string") || powerName.trim().length === 0) {
                 res.status(400).json({ error: "The function must be called with a valid 'powerName'." });
+                return;
+            }
+            if (!Array.isArray(parts)) {
+                res.status(400).json({ error: "Missing or invalid 'parts' array." });
+                return;
+            }
+            if (!Array.isArray(damage)) {
+                res.status(400).json({ error: "Missing or invalid 'damage' array." });
                 return;
             }
 
             const db = getFirestore();
-            const docRef = await db.collection('users').doc(uid).collection('library').add({
+            // Overwrite if name exists, else add new
+            const powersRef = db.collection('users').doc(uid).collection('library');
+            const querySnap = await powersRef.where('name', '==', powerName).get();
+            let docRef;
+            if (!querySnap.empty) {
+                docRef = powersRef.doc(querySnap.docs[0].id);
+            } else {
+                docRef = powersRef.doc();
+            }
+            await docRef.set({
                 name: powerName,
-                description: powerDescription,
-                totalEnergy,
-                totalTP,
-                range,
-                areaEffect,
-                areaEffectLevel,
-                duration,
-                durationType,
-                actionType,
-                reactionChecked,
-                focusChecked,
-                sustainValue,
-                noHarmChecked,
-                endsOnceChecked,
+                description: powerDescription || "",
+                parts,
                 damage,
-                powerParts,
                 timestamp: new Date()
             });
-            logger.info('Document written with ID: ', docRef.id);
+            logger.info('Power document written with ID: ', docRef.id);
             res.status(200).json({ message: 'Power saved to library', docId: docRef.id });
         } catch (error) {
-            logger.error('Error adding document: ', error);
+            logger.error('Error adding power document: ', error);
             res.status(500).json({ error: 'Error saving power to library' });
         }
     });
