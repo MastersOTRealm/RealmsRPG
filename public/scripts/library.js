@@ -38,117 +38,6 @@ function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-async function showSavedPowers(db, userId) {
-    const powersList = document.getElementById('powersList');
-    powersList.innerHTML = '';
-
-    try {
-        const querySnapshot = await getDocs(collection(db, 'users', userId, 'library'));
-        let powers = [];
-        
-        querySnapshot.forEach((docSnapshot) => {
-            const power = docSnapshot.data();
-            powers.push({ ...power, docId: docSnapshot.id });
-        });
-
-        // Sort powers
-        sortItems(powers, sortState.powers);
-
-        // Render powers
-        powers.forEach(power => {
-            const card = createPowerCard(power, db, userId);
-            powersList.appendChild(card);
-        });
-
-        if (powers.length === 0) {
-            powersList.innerHTML = '<div class="no-results">No saved powers found.</div>';
-        }
-    } catch (e) {
-        console.error('Error fetching saved powers: ', e);
-        powersList.innerHTML = '<div class="no-results">Error fetching saved powers</div>';
-    }
-}
-
-function createPowerCard(power, db, userId) {
-    const card = document.createElement('div');
-    card.className = 'library-card';
-
-    const header = document.createElement('div');
-    header.className = 'library-header';
-    header.onclick = () => toggleExpand(card);
-
-    const energy = Math.ceil(power.totalEnergy) || 1;
-    const duration = power.duration ? `${power.duration} ${capitalize(power.durationType)}` : '1 round';
-    const areaEffect = power.areaEffect === 'none (1)' ? '1 target' : capitalize(`${power.areaEffect} (${power.areaEffectLevel})`);
-
-    header.innerHTML = `
-        <div class="col">${power.name}</div>
-        <div class="col">${energy}</div>
-        <div class="col">${formatActionType(power.actionType, power.reactionChecked)}</div>
-        <div class="col">${duration}</div>
-        <div class="col">${power.range}</div>
-        <div class="col">${areaEffect}</div>
-        <div class="col">${power.targets}</div>
-        <span class="expand-icon">▼</span>
-    `;
-
-    const body = document.createElement('div');
-    body.className = 'library-body';
-
-    if (power.description) {
-        body.innerHTML += `<div class="library-description">${power.description}</div>`;
-    }
-
-    const detailsHTML = `
-        <div class="library-details">
-            <div class="detail-field">
-                <label>Training Points:</label>
-                <span>${power.totalTP}</span>
-            </div>
-            ${power.focusChecked ? '<div class="detail-field"><label>Focus:</label><span>Required</span></div>' : ''}
-            ${power.sustainValue > 0 ? `<div class="detail-field"><label>Sustain:</label><span>${power.sustainValue} AP</span></div>` : ''}
-            ${formatDamage(power.damage) ? `<div class="detail-field"><label>Damage:</label><span>${formatDamage(power.damage)}</span></div>` : ''}
-        </div>
-    `;
-    body.innerHTML += detailsHTML;
-
-    if (power.powerParts && power.powerParts.length > 0) {
-        const partsHTML = `
-            <div class="library-parts">
-                ${power.powerParts.sort((a, b) => a.part.localeCompare(b.part)).map(part => {
-                    let text = part.part;
-                    if (part.opt1Level) text += ` Opt 1: (${part.opt1Level})`;
-                    if (part.opt2Level) text += ` Opt 2: (${part.opt2Level})`;
-                    if (part.opt3Level) text += ` Opt 3: (${part.opt3Level})`;
-                    return `<div class="part-chip">${text}</div>`;
-                }).join('')}
-            </div>
-        `;
-        body.innerHTML += partsHTML;
-    }
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-button';
-    deleteBtn.textContent = 'Delete Power';
-    deleteBtn.onclick = async (e) => {
-        e.stopPropagation();
-        if (confirm(`Are you sure you want to delete ${power.name}?`)) {
-            try {
-                await deleteDoc(doc(db, 'users', userId, 'library', power.docId));
-                card.remove();
-            } catch (error) {
-                console.error('Error deleting power: ', error);
-                alert('Error deleting power');
-            }
-        }
-    };
-    body.appendChild(deleteBtn);
-
-    card.appendChild(header);
-    card.appendChild(body);
-    return card;
-}
-
 // Load properties from Realtime Database
 let itemPropertiesCache = null;
 async function loadItemProperties(database) {
@@ -180,6 +69,304 @@ async function loadItemProperties(database) {
         console.error('Error loading properties:', error);
     }
     return [];
+}
+
+// NEW: Fetch power parts from Realtime Database (similar to technique parts)
+let powerPartsCache = null;
+async function fetchPowerParts(database) {
+    if (powerPartsCache) return powerPartsCache;
+    
+    try {
+        const partsRef = ref(database, 'parts');
+        const snapshot = await get(partsRef);
+        
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            powerPartsCache = Object.entries(data)
+                .filter(([id, part]) => part.type && part.type.toLowerCase() === 'power')
+                .map(([id, part]) => ({
+                    id: id,
+                    name: part.name || '',
+                    description: part.description || '',
+                    category: part.category || '',
+                    base_en: parseFloat(part.base_en) || 0,
+                    base_tp: parseFloat(part.base_tp) || 0,
+                    op_1_desc: part.op_1_desc || '',
+                    op_1_en: parseFloat(part.op_1_en) || 0,
+                    op_1_tp: parseFloat(part.op_1_tp) || 0,
+                    op_2_desc: part.op_2_desc || '',
+                    op_2_en: parseFloat(part.op_2_en) || 0,
+                    op_2_tp: parseFloat(part.op_2_tp) || 0,
+                    op_3_desc: part.op_3_desc || '',
+                    op_3_en: parseFloat(part.op_3_en) || 0,
+                    op_3_tp: parseFloat(part.op_3_tp) || 0,
+                    type: part.type || 'power',
+                    mechanic: part.mechanic === 'true' || part.mechanic === true,
+                    percentage: part.percentage === 'true' || part.percentage === true,
+                    duration: part.duration === 'true' || part.duration === true
+                }));
+            console.log(`Loaded ${powerPartsCache.length} power parts from database`);
+            return powerPartsCache;
+        }
+    } catch (error) {
+        console.error('Error loading power parts:', error);
+    }
+    return [];
+}
+
+// NEW: Calculate power costs dynamically (matching powerCreator logic)
+function calculatePowerCosts(parts, powerPartsDb) {
+    let flat_normal = 0;
+    let flat_duration = 0;
+    let perc_all = 1;
+    let perc_dur = 1;
+    let dur_all = 1;
+    let hasDurationParts = false;
+    let totalTP = 0;
+    let tpSources = [];
+
+    parts.forEach((partData) => {
+        const part = powerPartsDb.find(p => p.name === partData.name);
+        if (!part) return;
+        
+        let partContribution = part.base_en + (part.op_1_en * (partData.op_1_lvl || 0)) + (part.op_2_en * (partData.op_2_lvl || 0)) + (part.op_3_en * (partData.op_3_lvl || 0));
+        const applyToDuration = partData.applyDuration || false;
+
+        if (part.duration) {
+            dur_all *= partContribution;
+            hasDurationParts = true;
+        } else if (part.percentage) {
+            perc_all *= partContribution;
+            if (applyToDuration) perc_dur *= partContribution;
+        } else {
+            flat_normal += partContribution;
+            if (applyToDuration) flat_duration += partContribution;
+        }
+
+        // TP calculation (matching powerCreator)
+        let partTP = part.base_tp;
+        totalTP += partTP;
+        const opt1TP = (part.op_1_tp || 0) * (partData.op_1_lvl || 0);
+        const opt2TP = (part.op_2_tp || 0) * (partData.op_2_lvl || 0);
+        const opt3TP = (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
+        totalTP += opt1TP + opt2TP + opt3TP;
+        const totalPartTP = Math.floor(partTP + opt1TP + opt2TP + opt3TP);
+        totalTP = totalTP - (partTP + opt1TP + opt2TP + opt3TP) + totalPartTP;
+        if (totalPartTP > 0) {
+            let partSource = `${totalPartTP} TP: ${part.name}`;
+            if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.op_1_lvl}: ${opt1TP} TP)`;
+            if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.op_2_lvl}: ${opt2TP} TP)`;
+            if (opt3TP > 0) partSource += ` (Option 3 Level ${partData.op_3_lvl}: ${opt3TP} TP)`;
+            tpSources.push(partSource);
+        }
+    });
+
+    if (!hasDurationParts) dur_all = 0;
+    const PowerEnergy = (flat_normal * perc_all) + ((dur_all + 1) * flat_duration * perc_dur) - (flat_duration * perc_dur);
+
+    return {
+        totalEnergy: PowerEnergy,
+        totalTP,
+        tpSources
+    };
+}
+
+// NEW: Compute action type from parts (similar to technique)
+function computeActionTypeForPower(parts) {
+    let actionType = 'Basic';
+    let isReaction = false;
+    for (let p of parts) {
+        if (p.name === 'Power Reaction') isReaction = true;
+        if (p.name === 'Power Quick or Free Action') {
+            if (p.op_1_lvl == 0) actionType = 'Quick';
+            else actionType = 'Free';
+        }
+        if (p.name === 'Power Long Action') {
+            if (p.op_1_lvl == 0) actionType = 'Long (3)';
+            else actionType = 'Long (4)';
+        }
+    }
+    return isReaction ? `${actionType} Reaction` : `${actionType} Action`;
+}
+
+async function showSavedPowers(db, userId) {
+    const powersList = document.getElementById('powersList');
+    powersList.innerHTML = '';
+
+    // NEW: Fetch power parts for calculation
+    const database = getDatabase();
+    const powerPartsDb = await fetchPowerParts(database);
+
+    try {
+        const querySnapshot = await getDocs(collection(db, 'users', userId, 'library'));
+        let powers = [];
+        
+        querySnapshot.forEach((docSnapshot) => {
+            const power = docSnapshot.data();
+            powers.push({ ...power, docId: docSnapshot.id });
+        });
+
+        // Sort powers
+        sortItems(powers, sortState.powers);
+
+        // Render powers with dynamic calculation
+        powers.forEach(power => {
+            const card = createPowerCard(power, db, userId, powerPartsDb);
+            powersList.appendChild(card);
+        });
+
+        if (powers.length === 0) {
+            powersList.innerHTML = '<div class="no-results">No saved powers found.</div>';
+        }
+    } catch (e) {
+        console.error('Error fetching saved powers: ', e);
+        powersList.innerHTML = '<div class="no-results">Error fetching saved powers</div>';
+    }
+}
+
+function createPowerCard(power, db, userId, powerPartsDb) {
+    // NEW: Calculate costs dynamically
+    const calc = calculatePowerCosts(power.parts || [], powerPartsDb);
+    const energy = Math.ceil(calc.totalEnergy) || 1;
+
+    const card = document.createElement('div');
+    card.className = 'library-card';
+
+    const header = document.createElement('div');
+    header.className = 'library-header';
+    header.onclick = () => toggleExpand(card);
+
+    // NEW: Use computed action type
+    const actionType = computeActionTypeForPower(power.parts || []);
+
+    // NEW: Derive range from 'Power Range' part
+    let rangeStr = '1 space';
+    const rangePart = (power.parts || []).find(p => p.name === 'Power Range');
+    if (rangePart) {
+        const lvl = rangePart.op_1_lvl || 0;
+        const spaces = 3 + (3 * lvl);
+        rangeStr = `${spaces} spaces`;
+    }
+
+    // NEW: Derive area from area effect parts
+    let areaStr = '1 target';
+    const areaParts = ['Sphere of Effect', 'Cylinder of Effect', 'Cone of Effect', 'Line of Effect', 'Trail of Effect'];
+    for (const areaName of areaParts) {
+        if ((power.parts || []).some(p => p.name === areaName)) {
+            areaStr = areaName.split(' ')[0]; // e.g., "Sphere"
+            break;
+        }
+    }
+
+    // NEW: Derive duration from duration parts
+    let durationStr = '1 round';
+    const durationParts = (power.parts || []);
+    const roundPart = durationParts.find(p => p.name === 'Duration (Round)');
+    const minutePart = durationParts.find(p => p.name === 'Duration (Minute)');
+    const hourPart = durationParts.find(p => p.name === 'Duration (Hour)');
+    const dayPart = durationParts.find(p => p.name === 'Duration (Days)');
+    const permanentPart = durationParts.find(p => p.name === 'Duration (Permanent)');
+    
+    if (permanentPart) {
+        durationStr = 'Permanent';
+    } else if (roundPart) {
+        const lvl = roundPart.op_1_lvl || 0;
+        const rounds = 2 + lvl;
+        durationStr = `${rounds} rounds`;
+    } else if (minutePart) {
+        const lvl = minutePart.op_1_lvl || 0;
+        const minutes = [1, 10, 30][lvl] || 1;
+        durationStr = `${minutes} minute${minutes > 1 ? 's' : ''}`;
+    } else if (hourPart) {
+        const lvl = hourPart.op_1_lvl || 0;
+        const hours = [1, 6, 12][lvl] || 1;
+        durationStr = `${hours} hour${hours > 1 ? 's' : ''}`;
+    } else if (dayPart) {
+        const lvl = dayPart.op_1_lvl || 0;
+        const days = [1, 10, 20, 30][lvl] || 1;
+        durationStr = `${days} day${days > 1 ? 's' : ''}`;
+    }
+
+    header.innerHTML = `
+        <div class="col">${power.name}</div>
+        <div class="col">${energy}</div>
+        <div class="col">${actionType}</div>
+        <div class="col">${durationStr}</div>
+        <div class="col">${rangeStr}</div>
+        <div class="col">${areaStr}</div>
+        <div class="col">-</div> <!-- Target placeholder -->
+        <span class="expand-icon">▼</span>
+    `;
+
+    const body = document.createElement('div');
+    body.className = 'library-body';
+
+    if (power.description) {
+        body.innerHTML += `<div class="library-description">${power.description}</div>`;
+    }
+
+    const detailsHTML = `
+        <div class="library-details">
+            <div class="detail-field">
+                <label>Training Points:</label>
+                <span>${calc.totalTP}</span>
+            </div>
+        </div>
+    `;
+    body.innerHTML += detailsHTML;
+
+    if (power.parts && power.parts.length > 0) {
+        const partsHTML = `
+            <div class="library-parts">
+                ${power.parts.map(partData => {
+                    const part = powerPartsDb.find(p => p.name === partData.name);
+                    if (!part) return '';
+                    // Calculate TP for display
+                    const tp = part.base_tp + (part.op_1_tp * (partData.op_1_lvl || 0)) + (part.op_2_tp * (partData.op_2_lvl || 0)) + (part.op_3_tp * (partData.op_3_lvl || 0));
+                    let text = part.name;
+                    if (partData.op_1_lvl > 0) text += ` (Opt 1: ${partData.op_1_lvl})`;
+                    if (partData.op_2_lvl > 0) text += ` (Opt 2: ${partData.op_2_lvl})`;
+                    if (partData.op_3_lvl > 0) text += ` (Opt 3: ${partData.op_3_lvl})`;
+                    if (tp > 0) text += ` | TP: ${tp}`;
+                    const chipClass = tp > 0 ? 'part-chip proficiency-chip' : 'part-chip';
+                    return `<div class="${chipClass}" title="${part.description}">${text}</div>`;
+                }).join('')}
+            </div>
+        `;
+        body.innerHTML += partsHTML;
+    }
+
+    // NEW: Add proficiencies section
+    if (calc.tpSources.length > 0) {
+        const profHTML = `
+            <div class="power-summary-proficiencies">
+                <h4>Proficiencies:</h4>
+                <div>${calc.tpSources.map(source => `<p>${source}</p>`).join('')}</div>
+            </div>
+        `;
+        body.innerHTML += profHTML;
+    }
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-button';
+    deleteBtn.textContent = 'Delete Power';
+    deleteBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (confirm(`Are you sure you want to delete ${power.name}?`)) {
+            try {
+                await deleteDoc(doc(db, 'users', userId, 'library', power.docId));
+                card.remove();
+            } catch (error) {
+                console.error('Error deleting power: ', error);
+                alert('Error deleting power');
+            }
+        }
+    };
+    body.appendChild(deleteBtn);
+
+    card.appendChild(header);
+    card.appendChild(body);
+    return card;
 }
 
 async function showSavedItems(db, userId, database) {
