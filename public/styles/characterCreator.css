@@ -1,0 +1,939 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&family=Nova+Flat:wght@400&display=swap');
+
+body {
+    background: #f7f7f7;
+    color: #053357;
+    font-family: 'Nunito', sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+    padding: 40px 96px;
+    max-width: 1440px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.creator-container {
+    background: #fff;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    margin-bottom: 40px;
+}
+
+.tab-bar {
+    display: flex;
+    background: #f0f0f0;
+    border-radius: 16px;
+    padding: 6px;
+    margin-bottom: 32px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tab {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #053357;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab.active {
+    background: #053357;
+    color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.tab:hover:not(.active) {
+    background: #e0e0e0;
+}
+
+h1 {
+    font-family: 'Nova Flat', cursive;
+    font-size: 28px;
+    color: #053357;
+    text-align: center;
+    margin: 0 0 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.description {
+    text-align: center;
+    font-size: 16px;
+    color: #555;
+    max-width: 720px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+}
+
+.description button {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.2s;
+}
+
+.description button:hover {
+    background: #0a4a7a;
+}
+
+.archetypes {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.archetype-btn {
+    background: #001f3f;
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 20px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    min-width: 160px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.archetype-btn:hover {
+    background: #003366;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.archetype-btn.active {
+    background: #0a4a7a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(10, 74, 122, 0.3);
+}
+
+.archetype-confirm {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#confirm-archetype {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#confirm-archetype:hover {
+    background: #0a4a7a;
+}
+
+.archetype-locked {
+    text-align: center;
+    margin-top: 20px;
+    padding: 16px;
+    background: #f0f8ff;
+    border-radius: 12px;
+    border: 1px solid #053357;
+}
+
+.archetype-locked h3 {
+    margin: 0 0 8px;
+    color: #053357;
+}
+
+.archetype-locked p {
+    margin: 0;
+    color: #555;
+}
+
+.dropdown {
+    display: none;
+    position: absolute;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    z-index: 100;
+    padding: 16px 0;
+    min-width: 160px;
+    top: calc(100% + 12px);
+    left: 0;
+    border: 1px solid #ddd;
+}
+
+.dropdown::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid white;
+}
+
+.dropdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dropdown li {
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #053357;
+    transition: background 0.2s ease;
+    text-align: center;
+}
+
+.dropdown li:hover {
+    background: #f0f8ff;
+}
+
+.dropdown li.selected {
+    background: #053357;
+    color: white;
+    font-weight: 600;
+}
+
+.dropdown.powered-martial {
+    display: none;
+    flex-direction: row;
+    padding: 16px;
+    gap: 16px;
+    min-width: 340px;
+    top: calc(100% + 12px);
+    left: 0;
+    border: 1px solid #ddd;
+}
+
+.dropdown.powered-martial::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid white;
+}
+
+.column {
+    flex: 1;
+    min-width: 140px;
+}
+
+.column h3 {
+    font-family: 'Nova Flat', cursive;
+    font-size: 16px;
+    color: #0a4a7a;
+    text-align: center;
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.content {
+    display: none;
+}
+
+.content.active {
+    display: block;
+}
+
+.placeholder-content {
+    text-align: center;
+    padding: 60px 20px;
+    color: #777;
+    font-size: 18px;
+}
+
+.placeholder-content h2 {
+    font-family: 'Nova Flat', cursive;
+    color: #053357;
+    margin-bottom: 16px;
+}
+
+.logo-footer {
+    text-align: center;
+    padding: 20px;
+    color: #888;
+    font-size: 14px;
+}
+
+/* -------------------------------------------------
+   Ancestry Page – layout & cards
+   ------------------------------------------------- */
+.ancestry-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 32px;
+    justify-items: center;
+    margin-top: 40px;
+}
+.species-card {
+    position: relative;
+    width: 180px;
+    text-align: center;
+    cursor: pointer;
+}
+.species-img {
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 4px solid #ddd;
+    transition: border 0.2s ease;
+}
+.species-card:hover .species-img { border-color: #053357; }
+
+.species-name {
+    font-family: 'Nova Flat', cursive;
+    font-size: 20px;
+    color: #053357;
+    margin: 0 0 8px;
+}
+.species-btn {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #053357;
+    cursor: pointer;
+}
+
+/* -------------------------------------------------
+   Modal
+   ------------------------------------------------- */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal.hidden { display: none; }
+.modal-content {
+    background: #fff;
+    border-radius: 24px;
+    max-width: 720px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 32px;
+    position: relative;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 28px;
+    color: #aaa;
+    cursor: pointer;
+}
+.modal-close:hover { color: #333; }
+
+.modal-header {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    align-items: flex-start;
+}
+.modal-species-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+.modal-info h2 {
+    margin: 0 0 12px;
+    font-family: 'Nova Flat', cursive;
+    font-size: 26px;
+    color: #053357;
+}
+.modal-info p {
+    margin: 0 0 16px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #555;
+}
+.truncated-description {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.show-more-btn {
+    background: none;
+    border: none;
+    color: #053357;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: underline;
+    margin-top: -8px;
+    display: block;
+}
+.show-more-btn:hover {
+    color: #0a4a7a;
+}
+.modal-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+.modal-stats > div { flex: 1 1 200px; }
+
+.modal-section {
+    margin-bottom: 28px;
+}
+.modal-section h4 {
+    font-family: 'Nova Flat', cursive;
+    font-size: 18px;
+    color: #0a4a7a;
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.traits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+.trait-item {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+}
+.trait-item strong {
+    display: block;
+    color: #053357;
+    margin-bottom: 4px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+}
+.modal-choose, .modal-nah {
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.modal-choose {
+    background: #053357;
+    color: #fff;
+}
+.modal-choose:hover { background: #0a4a7a; }
+.modal-nah {
+    background: #eee;
+    color: #555;
+}
+.modal-nah:hover { background: #ddd; }
+
+/* -------------------------------------------------
+   Ancestry – Part 2 (trait selection)
+   ------------------------------------------------- */
+#ancestry-part-2 {
+    margin-top: 40px;
+}
+.species-details-section {
+    background: #f5f5f5;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.species-header {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+.species-img-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 4px solid #ddd;
+    flex-shrink: 0;
+}
+.species-info h2 {
+    margin: 0 0 12px;
+    font-family: 'Nova Flat', cursive;
+    font-size: 24px;
+    color: #053357;
+}
+.species-info p {
+    margin: 0 0 16px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #555;
+}
+.species-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+.stat-item {
+    background: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.ancestry-trait-section {
+    background: #f5f5f5;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #e0e7ed;
+    padding: 12px 20px;
+    cursor: pointer;
+    user-select: none;
+}
+.section-header h3 {
+    margin: 0;
+    font-family: 'Nova Flat', cursive;
+    font-size: 18px;
+    color: #053357;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.section-note {
+    color: #888;
+    font-size: 14px;
+    font-weight: normal;
+    text-transform: none;
+}
+.toggle-arrow {
+    font-size: 20px;
+    transition: transform 0.2s ease;
+    transform: rotate(180deg);    /* added to show open state by default */
+}
+
+.section-body {
+    padding: 16px 20px;
+    background: #fff;
+    display: block;               /* changed from none to block for open by default */
+}
+.section-body.open { display: block; }
+
+.trait-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.trait-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.trait-list li:hover { background: #f0f8ff; }
+.trait-list li.selected {
+    background: #053357;
+    color: #fff;
+    font-weight: 600;
+}
+.trait-list li .trait-content {
+    flex: 1;
+}
+.trait-list li .trait-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.trait-list li .trait-desc {
+    font-size: 14px;
+    color: #666;
+}
+.trait-list li.selected .trait-desc {
+    color: #ddd;
+}
+.trait-list li .add-btn {
+    background: #053357;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.trait-list li .add-btn:hover { background: #0a4a7a; }
+.trait-list li.selected .add-btn {
+    background: #fff;
+    color: #053357;
+}
+
+.trait-definition {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: #eef2f7;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    display: none;
+}
+.trait-definition.show { display: block; }
+
+.ancestry-actions {
+    text-align: center;
+    margin-top: 32px;
+}
+#ancestry-continue {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#ancestry-continue:hover { background: #0a4a7a; }
+
+/* -------------------------------------------------
+   Abilities Page
+   ------------------------------------------------- */
+.ability-points {
+    background: #e0e7ed;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #053357;
+    text-align: center;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.abilities-controls {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    background: #e0e7ed;
+    padding: 12px;
+    border-radius: 12px 12px 0 0;
+    text-align: center;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #053357;
+}
+
+.abilities-controls .ability-name.selected-ability {
+    font-weight: bold;
+}
+
+.abilities-values {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 0 0 12px 12px;
+    margin-bottom: 32px;
+}
+
+.control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.dec, .inc {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dec {
+    border-radius: 8px 0 0 8px;
+}
+
+.inc {
+    border-radius: 0 8px 8px 0;
+}
+
+.dec:hover, .inc:hover {
+    background: #0a4a7a;
+}
+
+.value {
+    padding: 8px 16px;
+    font-weight: 600;
+    color: #053357;
+    min-width: 40px;
+    text-align: center;
+}
+
+.abilities-descriptions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.desc {
+    background: #f5f5f5;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.desc h4 {
+    font-family: 'Nova Flat', cursive;
+    font-size: 18px;
+    color: #053357;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+}
+
+.desc p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+    margin: 0;
+}
+
+/* -------------------------------------------------
+   Feats Page – similar to ancestry traits
+   ------------------------------------------------- */
+.feats-section {
+    background: #f5f5f5;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    font-size: 15px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: #053357;
+}
+
+.feats-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feat-item {
+    border-bottom: 1px dashed #053357;
+}
+
+.feat-item:last-child {
+    border-bottom: none;
+}
+
+.feat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: #f8f9fa;
+    transition: background 0.2s ease;
+}
+
+.feat-header:hover {
+    background: #f0f8ff;
+}
+
+.feat-header h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #053357;
+    font-weight: 600;
+}
+
+.feat-arrow {
+    font-size: 18px;
+    color: #053357;
+    transition: transform 0.2s ease;
+}
+
+.feat-arrow.open {
+    transform: rotate(180deg);
+}
+
+.feat-body {
+    display: none;
+    padding: 0 16px 16px;
+    background: #eef2f7;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+}
+
+.feat-body.open {
+    display: block;
+}
+
+.feat-select-btn {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.feat-select-btn:hover {
+    background: #0a4a7a;
+}
+
+.feat-select-btn.selected {
+    background: #fff;
+    color: #053357;
+    border: 1px solid #053357;
+}
+
+#feats-continue {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#feats-continue:hover {
+    background: #0a4a7a;
+}
+
+.selected-feat {
+    background: #e0f0ff;
+    border-left: 4px solid #053357;
+}
+
+.dropdown-confirm {
+    text-align: center;
+    padding: 12px;
+    border-top: 1px solid #ddd;
+}
+
+.dropdown-confirm button {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dropdown-confirm button:hover:not(:disabled) {
+    background: #0a4a7a;
+}
+
+.dropdown-confirm button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.archetype-locked button {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background 0.2s;
+}
+
+.archetype-locked button:hover {
+    background: #0a4a7a;
+}
+
+@media (max-width: 768px) {
+    main {
+        padding: 24px;
+    }
+    .archetypes {
+        flex-direction: column;
+        align-items: center;
+    }
+    .archetype-btn {
+        width: 100%;
+        max-width: 300px;
+    }
+    .dropdown.powered-martial {
+        width: 90vw;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}

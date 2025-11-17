@@ -11,23 +11,30 @@
     <main>
         <section id="characters-section">
             <h2>Characters</h2>
-            <div class="character-slots">
-                <div class="character-slot" id="slot1">
-                    <div class="add-character">
-                        <a href="/character/characterSheet.html" class="sample-character-link">Sample Character</a>
+
+            <div class="character-grid">
+                <!-- ==== SLOT 1 – Sample Character ==== -->
+                <a href="/character/characterSheet.html" class="character-card sample">
+                    <div class="portrait">
+                        <img src="/images/sample-paris.jpg" alt="Paris Capaxiah">
                     </div>
+                    <p class="name">PARIS CAPAXIAH</p>
+                </a>
+
+                <!-- ==== SLOT 2 – Existing Character (example) ==== -->
+                <div class="character-card">
+                    <div class="portrait">
+                        <img src="/images/sleek.jpg" alt="Sleek">
+                    </div>
+                    <p class="name">SLEEK</p>
                 </div>
-                <div class="character-slot" id="slot2">
-                    <div class="add-character">
-                        <span class="plus-icon">+</span>
-                        <span class="add-text">Add Character</span>
+
+                <!-- ==== SLOT 3 – Add New ==== -->
+                <div class="character-card add-new" id="add-character-slot">
+                    <div class="portrait placeholder">
+                        <span class="plus">+</span>
                     </div>
-                </div>
-                <div class="character-slot" id="slot3">
-                    <div class="add-character">
-                        <span class="plus-icon">+</span>
-                        <span class="add-text">Add Character</span>
-                    </div>
+                    <p class="name add-text">Add Character</p>
                 </div>
             </div>
         </section>
@@ -48,20 +55,45 @@
       }
       loadHeaderFooter();
 
-      document.addEventListener('DOMContentLoaded', async function() {
+      document.addEventListener('DOMContentLoaded', async () => {
         const { auth, db } = await initializeFirebase();
         handleAuthStateChange(auth, db);
 
-        const characterSlots = document.querySelectorAll('.character-slot');
-        characterSlots.forEach(slot => {
-          slot.addEventListener('click', () => {
-            if (auth.currentUser) {
-              window.location.href = '/characterCreator.html';
-            } else {
-              alert('Login to create a character!');
-            }
-          });
+        const grid = document.querySelector('.character-grid');
+        const addSlot = document.getElementById('add-character-slot');
+
+        // ---- Click on “Add” → go to creator ----
+        addSlot.addEventListener('click', () => {
+          window.location.href = '/characterCreator.html';
         });
+
+        // ---- Load user characters from Firestore ----
+        if (auth.currentUser) {
+          const uid = auth.currentUser.uid;
+          const snap = await db.collection('users').doc(uid).collection('characters')
+                        .orderBy('createdAt', 'desc').get();
+
+          // Remove placeholder cards except the “add” one
+          grid.innerHTML = '';
+          grid.appendChild(addSlot);   // keep the + at the end
+
+          snap.forEach(doc => {
+            const data = doc.data();
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.innerHTML = `
+              <div class="portrait">
+                <img src="${data.portrait || '/images/default-avatar.png'}" alt="${data.name}">
+              </div>
+              <p class="name">${(data.name || 'Unnamed').toUpperCase()}</p>
+            `;
+            // Click → open character sheet
+            card.addEventListener('click', () => {
+              window.location.href = `/character/${doc.id}/sheet.html`;
+            });
+            grid.insertBefore(card, addSlot);   // insert before the + slot
+          });
+        }
       });
     </script>
 </body>

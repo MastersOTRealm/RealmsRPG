@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Creator - Realms: The Freeform Roleplaying Game</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/characterCreator.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&family=Nova+Flat:wght@400&display=swap" rel="stylesheet">
+    <!-- update the version number as needed -->
+    <script defer src="/__/firebase/11.3.0/firebase-app-compat.js"></script>
+    <!-- include only the Firebase features as you need -->
+    <script defer src="/__/firebase/11.3.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-database-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-functions-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-messaging-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-storage-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-analytics-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-remote-config-compat.js"></script>
+    <script defer src="/__/firebase/11.3.0/firebase-performance-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+</head>
+<body>
+    <header id="header"></header>
+
+    <main>
+        <div class="creator-container">
+            <div class="tab-bar">
+                <div class="tab active" data-tab="archetype">1. Archetype</div>
+                <div class="tab" data-tab="species">2. Species</div>
+                <div class="tab" data-tab="ancestry">3. Ancestry</div>
+                <div class="tab" data-tab="abilities">4. Abilities</div>
+                <div class="tab" data-tab="skills">5. Skills</div>
+                <div class="tab" data-tab="feats">6. Feats</div>
+                <div class="tab" data-tab="equipment">7. Equipment</div>
+            </div>
+
+            <!-- Archetype Tab -->
+            <div id="content-archetype" class="content active">
+                <h1>Choose Your Archetype</h1>
+                <p class="description">
+                    Thrilling! Now you must pick your Power Ability. These reflect your character's physical combat style and approach to challenges as well as your connection to supernatural, magical, or extraordinary abilities.
+                </p>
+
+                <div class="archetypes">
+                    <button class="archetype-btn" id="power">Power</button>
+                    <button class="archetype-btn" id="powered-martial">Powered-Martial</button>
+                    <button class="archetype-btn" id="martial">Martial</button>
+                </div>
+
+                <!-- Power Dropdown -->
+                <div id="dropdown-power" class="dropdown">
+                    <ul>
+                        <li>Strength</li>
+                        <li>Vitality</li>
+                        <li>Agility</li>
+                        <li>Acuity</li>
+                        <li>Intelligence</li>
+                        <li>Charisma</li>
+                    </ul>
+                    <div class="dropdown-confirm">
+                        <button id="confirm-power" disabled>Confirm Archetype</button>
+                    </div>
+                </div>
+
+                <!-- Martial Dropdown -->
+                <div id="dropdown-martial" class="dropdown">
+                    <ul>
+                        <li>Strength</li>
+                        <li>Vitality</li>
+                        <li>Agility</li>
+                        <li>Acuity</li>
+                        <li>Intelligence</li>
+                        <li>Charisma</li>
+                    </ul>
+                    <div class="dropdown-confirm">
+                        <button id="confirm-martial" disabled>Confirm Archetype</button>
+                    </div>
+                </div>
+
+                <!-- Powered-Martial Dropdown -->
+                <div id="dropdown-powered-martial" class="dropdown powered-martial">
+                    <div class="column">
+                        <h3>Power</h3>
+                        <ul>
+                            <li>Strength</li>
+                            <li>Vitality</li>
+                            <li>Agility</li>
+                            <li>Acuity</li>
+                            <li>Intelligence</li>
+                            <li>Charisma</li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>Martial</h3>
+                        <ul>
+                            <li>Strength</li>
+                            <li>Vitality</li>
+                            <li>Agility</li>
+                            <li>Acuity</li>
+                            <li>Intelligence</li>
+                            <li>Charisma</li>
+                        </ul>
+                    </div>
+                    <div class="dropdown-confirm">
+                        <button id="confirm-powered-martial" disabled>Confirm Archetype</button>
+                    </div>
+                </div>
+
+                <div class="archetype-locked" id="archetype-locked" style="display: none;">
+                    <h3>Archetype: <span id="locked-archetype"></span></h3>
+                    <p>Ability: <span id="locked-ability"></span></p>
+                    <button id="change-archetype">Choose a Different Archetype</button>
+                </div>
+            </div>
+
+            <!-- Species Tab (formerly Ancestry) -->
+            <div id="content-species" class="content">
+                <h1>Choose Your Species</h1>
+                <p class="description">
+                    Your character’s Species and Ancestry define their genetic predispositions and inherent qualities. 
+                    The Species represents a broad classification, while Ancestry delves into the specific traits and attributes passed down through generations.
+                </p>
+
+                <!-- ==== PART 1 – Species grid + modal ==== -->
+                <div id="species-part-1">
+                    <div class="ancestry-grid" id="ancestry-grid"><!-- filled by JS --></div>
+
+                    <!-- Modal (hidden by default) -->
+                    <div id="ancestry-modal" class="modal hidden">
+                        <div class="modal-content">
+                            <span class="modal-close">×</span>
+
+                            <div class="modal-header">
+                                <div class="modal-info">
+                                    <h2 class="modal-species-name"></h2>
+                                    <p id="modal-species-description" class="truncated-description"></p>
+                                    <button id="show-more-desc" class="show-more-btn">Show More</button>
+                                    <div class="modal-stats">
+                                        <div><strong>Average Height:</strong> <span class="stat-height"></span></div>
+                                        <div><strong>Average Weight:</strong> <span class="stat-weight"></span></div>
+                                        <div><strong>Species Type:</strong> <span class="stat-type"></span></div>
+                                    </div>
+                                    <div class="modal-stats">
+                                        <div><strong>Skills:</strong> <span class="stat-skills"></span></div>
+                                        <div><strong>Adulthood:</strong> <span class="stat-adulthood"></span></div>
+                                        <div><strong>Languages:</strong> <span class="stat-languages"></span></div>
+                                    </div>
+                                    <div class="modal-stats">
+                                        <div><strong>Max Age:</strong> <span class="stat-maxage"></span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-section">
+                                <h4>Species Traits</h4>
+                                <div class="traits-grid" id="species-traits"></div>
+                            </div>
+
+                            <div class="modal-section">
+                                <h4>Ancestry Traits</h4>
+                                <div class="traits-grid" id="ancestry-traits"></div>
+                            </div>
+
+                            <div class="modal-section">
+                                <h4>Characteristics</h4>
+                                <div class="traits-grid" id="characteristics"></div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button class="modal-choose">Choose Me!</button>
+                                <button class="modal-nah">Nah</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ancestry Tab (new, for trait selection) -->
+            <div id="content-ancestry" class="content">
+                <h1>Customize Ancestry</h1>
+                <p class="description">
+                    You gain all species traits, one ancestry trait (or two if you pick a flaw) and a characteristic.
+                </p>
+
+                <!-- Species Details -->
+                <div class="species-details-section">
+                    <div class="species-header">
+                        <div class="species-img-large" id="selected-species-img"></div>
+                        <div class="species-info">
+                            <h2 id="selected-species-name"></h2>
+                            <p id="selected-species-description"></p>
+                            <div class="species-stats">
+                                <div class="stat-item"><strong>Average Height:</strong> <span id="selected-stat-height"></span></div>
+                                <div class="stat-item"><strong>Average Weight:</strong> <span id="selected-stat-weight"></span></div>
+                                <div class="stat-item"><strong>Species Type:</strong> <span id="selected-stat-type"></span></div>
+                                <div class="stat-item"><strong>Skills:</strong> <span id="selected-stat-skills"></span></div>
+                                <div class="stat-item"><strong>Adulthood:</strong> <span id="selected-stat-adulthood"></span></div>
+                                <div class="stat-item"><strong>Languages:</strong> <span id="selected-stat-languages"></span></div>
+                                <div class="stat-item"><strong>Max Age:</strong> <span id="selected-stat-maxage"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ancestry-trait-section">
+                    <div class="section-header" data-section="species">
+                        <h3>Species Traits <span class="section-note">(You gain all of these!)</span></h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="species-section-body"></div>
+                </div>
+
+                <div class="ancestry-trait-section">
+                    <div class="section-header" data-section="ancestry">
+                        <h3>Ancestry Trait <span class="section-note">(Choose one; or two if you choose a flaw!)</span></h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="ancestry-section-body"></div>
+                    <div class="trait-definition" id="ancestry-definition"></div>
+                </div>
+
+                <div class="ancestry-trait-section">
+                    <div class="section-header" data-section="characteristic">
+                        <h3>Characteristic <span class="section-note">(Choose one)</span></h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="characteristic-section-body"></div>
+                    <div class="trait-definition" id="characteristic-definition"></div>
+                </div>
+
+                <div class="ancestry-trait-section">
+                    <div class="section-header" data-section="flaw">
+                        <h3>Flaws <span class="section-note">(Optionally choose one)</span></h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="flaw-section-body"></div>
+                </div>
+
+                <div class="ancestry-actions">
+                    <button id="ancestry-continue">Continue to Abilities</button>
+                </div>
+            </div>
+
+            <!-- Abilities Tab -->
+            <div id="content-abilities" class="content">
+                <h1>CHOOSE YOUR ABILITIES</h1>
+                <p class="description">These Abilities form the foundation of your character's physical and mental capabilities and will influence their role in Combat, exploration, and interactions.</p>
+
+                <div class="ability-points">Ability Points: <span id="ability-points">7</span></div>
+
+                <div class="abilities-controls">
+                    <div class="ability-name">STRENGTH</div>
+                    <div class="ability-name">VITALITY</div>
+                    <div class="ability-name">AGILITY</div>
+                    <div class="ability-name">ACUITY</div>
+                    <div class="ability-name">INTELLIGENCE</div>
+                    <div class="ability-name">CHARISMA</div>
+                </div>
+
+                <div class="abilities-values">
+                    <div class="control">
+                        <button class="dec">-</button>
+                        <span class="value">0</span>
+                        <button class="inc">+</button>
+                    </div>
+                    <div class="control">
+                        <button class="dec">-</button>
+                        <span class="value">0</span>
+                        <button class="inc">+</button>
+                    </div>
+                    <div class="control">
+                        <button class="dec">-</button>
+                        <span class="value">0</span>
+                        <button class="inc">+</button>
+                    </div>
+                    <div class="control">
+                        <button class="dec">-</button>
+                        <span class="value">0</span>
+                        <button class="inc">+</button>
+                    </div>
+                    <div class="control">
+                        <button class="dec">-</button>
+                        <span class="value">0</span>
+                        <button class="inc">+</button>
+                    </div>
+                    <div class="control">
+                        <button class="dec">-</button>
+                        <span class="value">0</span>
+                        <button class="inc">+</button>
+                    </div>
+                </div>
+
+                <div class="abilities-descriptions">
+                    <div class="desc">
+                        <h4>Strength</h4>
+                        <p>Measures your physical power, affecting melee combat, carrying capacity, and athletic feats like climbing or breaking objects.</p>
+                    </div>
+                    <div class="desc">
+                        <h4>Vitality</h4>
+                        <p>Represents endurance and health, influencing resistance to poisons, diseases, and fatigue, as well as overall stamina.</p>
+                    </div>
+                    <div class="desc">
+                        <h4>Agility</h4>
+                        <p>Determines speed, reflexes, and coordination, used for dodging attacks, acrobatics, and precise movements.</p>
+                    </div>
+                    <div class="desc">
+                        <h4>Acuity</h4>
+                        <p>Reflects perception and awareness, aiding in spotting hidden dangers, understanding motives, and sensing the environment.</p>
+                    </div>
+                    <div class="desc">
+                        <h4>Intelligence</h4>
+                        <p>Gauges knowledge, reasoning, and learning ability, crucial for problem-solving, crafting, and arcane spellcasting.</p>
+                    </div>
+                    <div class="desc">
+                        <h4>Charisma</h4>
+                        <p>Indicates presence, persuasion, and leadership, affecting social interactions, intimidation, and commanding allies.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skills Tab -->
+            <div id="content-skills" class="content">
+                <div class="placeholder-content">
+                    <h2>Pick Skills</h2>
+                    <p>Gain proficiency in areas like stealth, persuasion, or arcane knowledge.</p>
+                </div>
+                <div class="ancestry-actions">
+                    <button id="skills-continue">Continue to Feats</button>
+                </div>
+            </div>
+
+            <!-- Feats Tab -->
+            <div id="content-feats" class="content">
+                <h1>CHOOSE YOUR FEATS</h1>
+                <div class="description">
+                    <p id="feats-description">Based on your Archetype, choose Feats that best fit your character idea.</p>
+                    <button id="open-codex">Open Codex in New Tab</button>
+                </div>
+
+                <div class="feats-section">
+                    <div class="section-header" data-section="archetype">
+                        <h3>Archetype Feats</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="archetype-feats-body">
+                        <input type="text" id="archetype-search" class="search-input" placeholder="Search feats...">
+                        <div class="feats-list" id="archetype-feats-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feats-section">
+                    <div class="section-header" data-section="character">
+                        <h3>Character Feats</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="character-feats-body">
+                        <input type="text" id="character-search" class="search-input" placeholder="Search feats...">
+                        <div class="feats-list" id="character-feats-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ancestry-actions">
+                    <button id="feats-continue">Continue to Equipment</button>
+                </div>
+            </div>
+
+            <!-- Equipment Tab -->
+            <div id="content-equipment" class="content">
+                <div class="placeholder-content">
+                    <h2>Equip Your Hero</h2>
+                    <p>Choose weapons, armor, tools, and magical items to prepare for adventure.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer id="footer"></footer>
+
+    <script type="module" src="/scripts/characterCreator.js"></script>
+</body>
+</html>
