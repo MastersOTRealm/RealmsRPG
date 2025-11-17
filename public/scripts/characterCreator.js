@@ -1010,6 +1010,13 @@ function populateSkills() {
         // If it's a base skill, deselect associated sub-skills
         const subSkills = allSkills.filter(s => s.base_skill === name).map(s => s.name);
         selectedSkills = selectedSkills.filter(n => !subSkills.includes(n));
+
+        // NEW: clear skill values for deselected skills and their sub-skills
+        if (!window.character) window.character = {};
+        window.character.skillVals = window.character.skillVals || {};
+        delete window.character.skillVals[name];
+        subSkills.forEach(sk => delete window.character.skillVals[sk]);
+
         btn.textContent = 'Select';
         btn.classList.remove('selected');
         item.classList.remove('selected-feat');
@@ -1028,10 +1035,20 @@ function populateSkills() {
   });
 }
 
+// Compute remaining skill points based on selected skills and per-skill values
+function getSkillValsTotal() {
+  const vals = (window.character && window.character.skillVals) || {};
+  return selectedSkills.reduce((sum, s) => sum + Math.max(0, parseInt(vals[s]) || 0), 0);
+}
+function getRemainingSkillPoints() {
+  return 5 - selectedSkills.length - getSkillValsTotal();
+}
+
 function updateSkillPoints() {
-  const points = 5 - selectedSkills.length;
+  // NEW: points = 5 - selected skills - sum of all skill values
+  const points = 5 - selectedSkills.length - getSkillValsTotal();
   document.getElementById('skill-points').textContent = points;
-  updateSkillsBonusDisplay(); // NEW: Update bonus display
+  updateSkillsBonusDisplay(); // keep refreshing the display
 }
 
 // NEW: Function to update skills bonus display
@@ -1040,6 +1057,15 @@ function updateSkillsBonusDisplay() {
   const char = window.character || {};
   if (!window.character) window.character = {};
   window.character.skillAbilities = window.character.skillAbilities || {};
+  window.character.skillVals = window.character.skillVals || {};
+
+  const fmt = (n) => (n >= 0 ? `+${n}` : `${n}`);
+  const controlsHtml = (skillName) => `
+    <div class="skill-val-controls" title="Adjust skill value">
+      <button type="button" class="skill-val-btn dec" data-skill="${skillName}" aria-label="Decrease">-</button>
+      <button type="button" class="skill-val-btn inc" data-skill="${skillName}" aria-label="Increase">+</button>
+    </div>
+  `;
 
   const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
   const speciesSkills = species ? species.skills : [];
@@ -1063,16 +1089,21 @@ function updateSkillsBonusDisplay() {
     const abilList = (skillObj && Array.isArray(skillObj.ability)) ? skillObj.ability : [];
     let chosenAbility;
 
+    // READ skill-specific value
+    const skill_val = Math.max(0, parseInt(window.character.skillVals[skillName]) || 0);
+
     if (abilList.length === 1) {
       chosenAbility = abilList[0];
       window.character.skillAbilities[skillName] = chosenAbility;
       const abilKey = chosenAbility.toLowerCase();
       const rawVal = abilityVals[abilKey] ?? 0;
-      const displayVal = rawVal >= 0 ? `+${rawVal}` : rawVal;
+      const totalVal = rawVal + skill_val;
+      const displayVal = fmt(totalVal);
       return `
         <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
           <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
           <span class="skill-fixed-ability">${chosenAbility}</span>
+          ${controlsHtml(skillName)}
           <span class="skill-bonus-value">${displayVal}</span>
         </div>
       `;
@@ -1085,7 +1116,8 @@ function updateSkillsBonusDisplay() {
       }
       const abilKey = chosenAbility.toLowerCase();
       const rawVal = abilityVals[abilKey] ?? 0;
-      const displayVal = rawVal >= 0 ? `+${rawVal}` : rawVal;
+      const totalVal = rawVal + skill_val;
+      const displayVal = fmt(totalVal);
       const selectHtml = `<select class="skill-ability-select" data-skill="${skillName}">
         ${abilList.map(a => `<option value="${a}" ${a === chosenAbility ? 'selected' : ''}>${a}</option>`).join('')}
       </select>`;
@@ -1093,17 +1125,20 @@ function updateSkillsBonusDisplay() {
         <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
           <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
           ${selectHtml}
+          ${controlsHtml(skillName)}
           <span class="skill-bonus-value">${displayVal}</span>
         </div>
       `;
     }
 
     // No abilities listed
-    const displayVal = '+0';
+    const totalVal = 0 + skill_val;
+    const displayVal = fmt(totalVal);
     return `
       <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
         <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
         <span class="skill-fixed-ability">—</span>
+        ${controlsHtml(skillName)}
         <span class="skill-bonus-value">${displayVal}</span>
       </div>
     `;
@@ -1121,8 +1156,33 @@ document.addEventListener('change', (e) => {
     window.character.skillAbilities = window.character.skillAbilities || {};
     window.character.skillAbilities[skill] = val;
     saveCharacter();
-    updateSkillsBonusDisplay(); // NEW
+    updateSkillsBonusDisplay();
   }
+});
+
+// NEW: Delegate clicks for + / - skill value buttons
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.skill-val-btn');
+  if (!btn) return;
+  const skill = btn.dataset.skill;
+  if (!skill) return;
+
+  if (!window.character) window.character = {};
+  window.character.skillVals = window.character.skillVals || {};
+  const current = Math.max(0, parseInt(window.character.skillVals[skill]) || 0);
+
+  if (btn.classList.contains('inc')) {
+    // Prevent increasing if no points remain
+    if (getRemainingSkillPoints() <= 0) return;
+    window.character.skillVals[skill] = current + 1;
+  } else {
+    // Decrease (min 0)
+    if (current <= 0) return;
+    window.character.skillVals[skill] = current - 1;
+  }
+
+  saveCharacter();
+  updateSkillPoints(); // updates points and refreshes bonus display
 });
 
 // Initialize skills tab

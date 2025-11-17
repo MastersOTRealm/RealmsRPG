@@ -1049,6 +1049,30 @@ h1 {
     min-width: 0;
 }
 
+.skill-val-controls {
+    display: flex;
+    gap: 4px;
+    flex: 0 0 auto;
+    align-items: center;
+}
+
+.skill-val-btn {
+    background: #053357;
+    color: #fff;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.2s ease;
+}
+
+.skill-val-btn:hover {
+    background: #0a4a7a;
+}
+
 @media (max-width: 768px) {
     main {
         padding: 24px;
@@ -1086,5 +1110,9 @@ h1 {
         flex: 0 0 40px;
         width: 40px;
         font-size: 14px;
+    }
+    .skill-val-btn {
+        padding: 3px 6px;
+        font-size: 11px;
     }
 }
