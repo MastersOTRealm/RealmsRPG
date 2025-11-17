@@ -391,6 +391,7 @@ h1 {
 .truncated-description {
     display: -webkit-box;
     -webkit-line-clamp: 4;
+    line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -560,7 +561,7 @@ h1 {
 .section-body {
     padding: 16px 20px;
     background: #fff;
-    display: block;               /* changed from none to block for open by default */
+    display: none;               /* set to none by default */
 }
 .section-body.open { display: block; }
 
@@ -646,6 +647,18 @@ h1 {
    Abilities Page
    ------------------------------------------------- */
 .ability-points {
+    background: #e0e7ed;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #053357;
+    text-align: center;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.skill-points {
     background: #e0e7ed;
     border-radius: 12px;
     padding: 12px 20px;

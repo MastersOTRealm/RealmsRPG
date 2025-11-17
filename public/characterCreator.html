@@ -324,10 +324,27 @@
 
             <!-- Skills Tab -->
             <div id="content-skills" class="content">
-                <div class="placeholder-content">
-                    <h2>Pick Skills</h2>
-                    <p>Gain proficiency in areas like stealth, persuasion, or arcane knowledge.</p>
+                <h1>CHOOSE YOUR SKILLS</h1>
+                <div class="description">
+                    <p id="skills-description">Now you can choose your skills. Picking a new skill grants you proficiency, while allocating more points to a skill you have increases its bonus!</p>
+                    <button id="open-codex-skills">Open Codex in New Tab</button>
                 </div>
+
+                <div class="skill-points">Skill Points: <span id="skill-points">5</span></div>
+
+                <div class="feats-section">
+                    <div class="section-header" data-section="skills">
+                        <h3>Skills</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="skills-body">
+                        <input type="text" id="skills-search" class="search-input" placeholder="Search skills...">
+                        <div class="feats-list" id="skills-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <div class="ancestry-actions">
                     <button id="skills-continue">Continue to Feats</button>
                 </div>

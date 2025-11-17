@@ -177,6 +177,9 @@ let selectedCharacterFeats = [];
 let featsInitialized = false;
 let traitsLoaded = false;
 let speciesLoaded = false;
+let allSkills = [];
+let selectedSkills = [];
+let skillsInitialized = false;
 
 // Load traits
 async function loadTraits() {
@@ -751,4 +754,150 @@ document.querySelector('.tab[data-tab="feats"]').addEventListener('click', async
 // Add continue button for skills tab
 document.getElementById('skills-continue').addEventListener('click', () => {
   document.querySelector('.tab[data-tab="feats"]').click();
+});
+
+// Load skills
+async function loadSkills() {
+  if (allSkills.length > 0) return;
+  console.log('Loading skills...');
+  const snap = await get(ref(db, 'skills'));
+  const data = snap.val();
+  if (data) {
+    allSkills = Object.values(data).map(s => ({
+      ...s,
+      ability: typeof s.ability === 'string' ? s.ability.split(',').map(a => a.trim()).filter(a => a) : (Array.isArray(s.ability) ? s.ability : []),
+    }));
+    console.log(`✓ Loaded ${allSkills.length} skills`);
+  }
+}
+
+// Function to populate skills
+function populateSkills() {
+  const list = document.getElementById('skills-list');
+  list.innerHTML = '';
+  const searchTerm = document.getElementById('skills-search').value.toLowerCase();
+  const char = window.character || {};
+  const species = char.species || {};
+  const speciesSkills = species.skills || [];
+
+  let filteredSkills = allSkills.filter(skill => {
+    if (searchTerm && !skill.name.toLowerCase().includes(searchTerm) && !(skill.description && skill.description.toLowerCase().includes(searchTerm))) return false;
+    // Filter out sub-skills unless base skill is selected
+    if (skill.base_skill && !selectedSkills.includes(skill.base_skill)) return false;
+    return true;
+  });
+
+  filteredSkills.forEach(skill => {
+    const item = document.createElement('div');
+    item.className = 'feat-item';
+    if (selectedSkills.includes(skill.name)) {
+      item.classList.add('selected-feat');
+    }
+    const selected = selectedSkills.includes(skill.name);
+    const abilitiesText = skill.ability.length ? ` (${skill.ability.join(', ')})` : '';
+    item.innerHTML = `
+      <div class="feat-header">
+        <h4>${skill.name}<span style="font-weight: normal; font-size: 14px; color: #888;">${abilitiesText}</span></h4>
+        <span class="feat-arrow">▼</span>
+      </div>
+      <div class="feat-body">
+        <p>${skill.description || 'No description'}</p>
+        <button class="feat-select-btn ${selected ? 'selected' : ''}" data-name="${skill.name}" data-type="skill">${selected ? 'Deselect' : 'Select'}</button>
+      </div>
+    `;
+    list.appendChild(item);
+
+    // Toggle expansion
+    const header = item.querySelector('.feat-header');
+    header.addEventListener('click', () => {
+      const body = header.nextElementSibling;
+      const arrow = header.querySelector('.feat-arrow');
+      body.classList.toggle('open');
+      arrow.classList.toggle('open');
+    });
+
+    // Select button
+    const btn = item.querySelector('.feat-select-btn');
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      if (selectedSkills.includes(name)) {
+        // Prevent deselection of species skills
+        if (speciesSkills.includes(name)) return;
+        selectedSkills = selectedSkills.filter(n => n !== name);
+        // If it's a base skill, deselect associated sub-skills
+        const subSkills = allSkills.filter(s => s.base_skill === name).map(s => s.name);
+        selectedSkills = selectedSkills.filter(n => !subSkills.includes(n));
+        btn.textContent = 'Select';
+        btn.classList.remove('selected');
+        item.classList.remove('selected-feat');
+      } else {
+        selectedSkills.push(name);
+        btn.textContent = 'Deselect';
+        btn.classList.add('selected');
+        item.classList.add('selected-feat');
+      }
+      updateSkillPoints();
+      // Store in character
+      if (!window.character) window.character = {};
+      window.character.skills = selectedSkills;
+    });
+  });
+}
+
+function updateSkillPoints() {
+  const points = 5 - selectedSkills.length;
+  document.getElementById('skill-points').textContent = points;
+}
+
+function initSkills() {
+  if (!skillsInitialized) {
+    // Accordion for skills
+    document.querySelector('#content-skills .section-header').addEventListener('click', () => {
+      const body = document.getElementById('skills-body');
+      const arrow = document.querySelector('#content-skills .toggle-arrow');
+      body.classList.toggle('open');
+      arrow.classList.toggle('open');
+    });
+
+    // Search functionality
+    document.getElementById('skills-search').addEventListener('keyup', populateSkills);
+
+    // Open Codex button
+    document.getElementById('open-codex-skills').addEventListener('click', () => {
+      window.open('/codex.html', '_blank');
+    });
+
+    // Continue button
+    document.getElementById('skills-continue').addEventListener('click', () => {
+      document.querySelector('.tab[data-tab="feats"]').click();
+    });
+
+    skillsInitialized = true;
+  }
+
+  // Set accordion open by default
+  const body = document.getElementById('skills-body');
+  const arrow = document.querySelector('#content-skills .toggle-arrow');
+  body.classList.add('open');
+  arrow.classList.add('open');
+
+  // Update description based on species
+  const char = window.character || {};
+  const species = char.species || {};
+  const speciesSkills = species.skills || [];
+  const skillsText = speciesSkills.length ? speciesSkills.join(', ') : 'None';
+  const descEl = document.getElementById('skills-description');
+  descEl.innerHTML = `Now you can choose your skills. Picking a new skill grants you proficiency, while allocating more points to a skill you have increases its bonus!<br><strong>Species Skills: ${skillsText}</strong>`;
+
+  // Auto-select species skills
+  selectedSkills = [...speciesSkills];
+  updateSkillPoints();
+
+  populateSkills();
+}
+
+// Initialize when skills tab is activated
+document.querySelector('.tab[data-tab="skills"]').addEventListener('click', async () => {
+  await loadSkills();
+  initSkills();
 });
