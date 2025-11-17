@@ -1124,3 +1124,46 @@ h1 {
         font-size: 11px;
     }
 }
+
+/* -------------------------------------------------
+   Equipment Resources
+   ------------------------------------------------- */
+.equipment-resources {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin: 32px 0;
+}
+
+.resource-box {
+    background: #e0e7ed;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.resource-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: #053357;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-height: 2.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.resource-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #0a4a7a;
+}
+
+@media (max-width: 768px) {
+    .equipment-resources {
+        grid-template-columns: 1fr;
+    }
+}

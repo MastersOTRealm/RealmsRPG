@@ -931,6 +931,61 @@ document.querySelector('.tab[data-tab="feats"]').addEventListener('click', async
   initFeats();
 });
 
+// Initialize when skills tab is activated
+document.querySelector('.tab[data-tab="skills"]').addEventListener('click', async () => {
+  await loadSkills();
+  initSkills();
+});
+
+// NEW: Initialize equipment tab
+document.querySelector('.tab[data-tab="equipment"]').addEventListener('click', () => {
+  initEquipment();
+});
+
+function initEquipment() {
+  const char = window.character || {};
+  const abilities = char.abilities || {
+    strength: 0, vitality: 0, agility: 0,
+    acuity: 0, intelligence: 0, charisma: 0
+  };
+  
+  // Calculate Training Points = 22 + archetype ability
+  let trainingPoints = 22;
+  if (char.archetype) {
+    const archetypeAbilities = char.archetype.abilities;
+    if (typeof archetypeAbilities === 'string') {
+      // Single ability (power or martial)
+      const abilityKey = archetypeAbilities.toLowerCase();
+      trainingPoints += abilities[abilityKey] || 0;
+    } else if (typeof archetypeAbilities === 'object') {
+      // Powered-martial: get the higher of the two
+      const powerAbil = archetypeAbilities.power ? archetypeAbilities.power.toLowerCase() : '';
+      const martialAbil = archetypeAbilities.martial ? archetypeAbilities.martial.toLowerCase() : '';
+      const powerVal = abilities[powerAbil] || 0;
+      const martialVal = abilities[martialAbil] || 0;
+      trainingPoints += Math.max(powerVal, martialVal);
+    }
+  }
+  
+  // Currency is always 200
+  const currency = 200;
+  
+  // Armament Proficiency Max based on archetype
+  let armamentMax = 4; // default
+  if (char.archetype) {
+    if (char.archetype.type === 'powered-martial') {
+      armamentMax = 8;
+    } else if (char.archetype.type === 'martial') {
+      armamentMax = 16;
+    }
+  }
+  
+  // Update display
+  document.getElementById('training-points').textContent = trainingPoints;
+  document.getElementById('currency').textContent = currency;
+  document.getElementById('armament-max').textContent = armamentMax;
+}
+
 // Add continue button for skills tab
 document.getElementById('skills-continue').addEventListener('click', () => {
   document.querySelector('.tab[data-tab="feats"]').click();
