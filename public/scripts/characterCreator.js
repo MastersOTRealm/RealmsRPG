@@ -180,6 +180,7 @@ let speciesLoaded = false;
 let allSkills = [];
 let selectedSkills = [];
 let skillsInitialized = false;
+let accordionInitialized = false; // Add this new flag
 
 // Load traits
 async function loadTraits() {
@@ -365,31 +366,47 @@ function populateFeatsSection(sectionId, feats, isArchetype) {
 // Setup feats tab
 function initFeats() {
   if (!featsInitialized) {
-    // Accordion for main sections
+    // Accordion for main sections - only initialize once
     document.querySelectorAll('#content-feats .section-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const body = header.nextElementSibling;
-        const arrow = header.querySelector('.toggle-arrow');
-        body.classList.toggle('open');
-        arrow.classList.toggle('open');
+      // Remove any existing listeners by cloning
+      const newHeader = header.cloneNode(true);
+      header.parentNode.replaceChild(newHeader, header);
+      
+      newHeader.addEventListener('click', () => {
+        const body = newHeader.nextElementSibling;
+        const arrow = newHeader.querySelector('.toggle-arrow');
+        if (body && arrow) {
+          body.classList.toggle('open');
+          arrow.classList.toggle('open');
+        }
       });
     });
 
-    // Search functionality for each section
+    // Search functionality for each section - only initialize once
     document.querySelectorAll('#content-feats .search-input').forEach(input => {
-      input.addEventListener('keyup', () => {
-        const sectionId = input.id.replace('-search', '');
+      // Remove existing listeners by cloning
+      const newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+      
+      newInput.addEventListener('keyup', () => {
+        const sectionId = newInput.id.replace('-search', '');
         populateFeatsSection(sectionId, sectionId === 'archetype' ? archetypeFeats : characterFeats, sectionId === 'archetype');
       });
     });
 
-    // Continue button
-    document.getElementById('feats-continue').addEventListener('click', () => {
+    // Continue button - only initialize once
+    const continueBtn = document.getElementById('feats-continue');
+    const newContinueBtn = continueBtn.cloneNode(true);
+    continueBtn.parentNode.replaceChild(newContinueBtn, continueBtn);
+    newContinueBtn.addEventListener('click', () => {
       document.querySelector('.tab[data-tab="equipment"]').click();
     });
 
-    // Open Codex button
-    document.getElementById('open-codex').addEventListener('click', () => {
+    // Open Codex button - only initialize once
+    const codexBtn = document.getElementById('open-codex');
+    const newCodexBtn = codexBtn.cloneNode(true);
+    codexBtn.parentNode.replaceChild(newCodexBtn, codexBtn);
+    newCodexBtn.addEventListener('click', () => {
       window.open('/codex.html', '_blank');
     });
 
@@ -417,6 +434,14 @@ function initFeats() {
 
   populateFeatsSection('archetype', archetypeFeats, true);
   populateFeatsSection('character', characterFeats, false);
+  
+  // Ensure sections are open by default
+  document.querySelectorAll('#content-feats .section-body').forEach(body => {
+    body.classList.add('open');
+  });
+  document.querySelectorAll('#content-feats .toggle-arrow').forEach(arrow => {
+    arrow.classList.add('open');
+  });
 }
 
 // Initialize and load data
@@ -851,24 +876,39 @@ function updateSkillPoints() {
 
 function initSkills() {
   if (!skillsInitialized) {
-    // Accordion for skills
-    document.querySelector('#content-skills .section-header').addEventListener('click', () => {
+    // Accordion for skills - only initialize once
+    const skillsHeader = document.querySelector('#content-skills .section-header');
+    const newSkillsHeader = skillsHeader.cloneNode(true);
+    skillsHeader.parentNode.replaceChild(newSkillsHeader, skillsHeader);
+    
+    newSkillsHeader.addEventListener('click', () => {
       const body = document.getElementById('skills-body');
-      const arrow = document.querySelector('#content-skills .toggle-arrow');
-      body.classList.toggle('open');
-      arrow.classList.toggle('open');
+      const arrow = newSkillsHeader.querySelector('.toggle-arrow');
+      if (body && arrow) {
+        body.classList.toggle('open');
+        arrow.classList.toggle('open');
+      }
     });
 
-    // Search functionality
-    document.getElementById('skills-search').addEventListener('keyup', populateSkills);
+    // Search functionality - only initialize once
+    const searchInput = document.getElementById('skills-search');
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+    newSearchInput.addEventListener('keyup', populateSkills);
 
-    // Open Codex button
-    document.getElementById('open-codex-skills').addEventListener('click', () => {
+    // Open Codex button - only initialize once
+    const codexBtn = document.getElementById('open-codex-skills');
+    const newCodexBtn = codexBtn.cloneNode(true);
+    codexBtn.parentNode.replaceChild(newCodexBtn, codexBtn);
+    newCodexBtn.addEventListener('click', () => {
       window.open('/codex.html', '_blank');
     });
 
-    // Continue button
-    document.getElementById('skills-continue').addEventListener('click', () => {
+    // Continue button - only initialize once
+    const continueBtn = document.getElementById('skills-continue');
+    const newContinueBtn = continueBtn.cloneNode(true);
+    continueBtn.parentNode.replaceChild(newContinueBtn, continueBtn);
+    newContinueBtn.addEventListener('click', () => {
       document.querySelector('.tab[data-tab="feats"]').click();
     });
 
@@ -878,8 +918,8 @@ function initSkills() {
   // Set accordion open by default
   const body = document.getElementById('skills-body');
   const arrow = document.querySelector('#content-skills .toggle-arrow');
-  body.classList.add('open');
-  arrow.classList.add('open');
+  if (body) body.classList.add('open');
+  if (arrow) arrow.classList.add('open');
 
   // Update description based on species
   const char = window.character || {};
