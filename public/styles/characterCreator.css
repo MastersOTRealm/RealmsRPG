@@ -950,6 +950,10 @@ h1 {
     background: #0a4a7a;
 }
 
+#clear-progress-btn:hover {
+    background: #c9302c;
+}
+
 @media (max-width: 768px) {
     main {
         padding: 24px;

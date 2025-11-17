@@ -7,6 +7,35 @@ async function loadHeaderFooter() {
 }
 loadHeaderFooter();
 
+// ========== NEW: localStorage helpers ==========
+function saveCharacter() {
+    if (window.character) {
+        localStorage.setItem('characterCreator_draft', JSON.stringify(window.character));
+        console.log('Character saved:', window.character);
+    }
+}
+
+function loadCharacter() {
+    const saved = localStorage.getItem('characterCreator_draft');
+    if (saved) {
+        try {
+            window.character = JSON.parse(saved);
+            console.log('Character loaded:', window.character);
+            return true;
+        } catch (e) {
+            console.error('Error loading saved character:', e);
+        }
+    }
+    return false;
+}
+
+function clearCharacter() {
+    localStorage.removeItem('characterCreator_draft');
+    window.character = {};
+    location.reload(); // Refresh page to reset UI
+}
+// ========== END localStorage helpers ==========
+
 // Tab System
 const tabs = document.querySelectorAll('.tab');
 const contents = document.querySelectorAll('.content');
@@ -108,6 +137,7 @@ function confirmArchetype() {
     // Lock in
     window.character = window.character || {};
     window.character.archetype = { type: selectedArchetype.id, abilities: selectedAbility };
+    saveCharacter(); // NEW: Save to localStorage
 
     // Update UI
     document.querySelectorAll('.archetype-btn').forEach(btn => btn.style.display = 'none');
@@ -359,6 +389,7 @@ function populateFeatsSection(sectionId, feats, isArchetype) {
         archetype: selectedArchetypeFeats,
         character: selectedCharacterFeats
       };
+      saveCharacter(); // NEW: Ensure this line exists
     });
   });
 }
@@ -450,8 +481,55 @@ function initFeats() {
   await loadTraits();
   await loadSpecies();
   await loadFeats();
+  await loadSkills(); // NEW: Load skills early
   populateAncestryGrid();
+  
+  // NEW: Restore saved character state
+  const hasData = loadCharacter();
+  if (hasData && window.character) {
+    restoreCharacterState();
+  }
 })();
+
+// NEW: Function to restore UI from saved data
+function restoreCharacterState() {
+  const char = window.character;
+  if (!char) return;
+  
+  // Restore archetype
+  if (char.archetype) {
+    const archetypeBtn = document.getElementById(char.archetype.type);
+    if (archetypeBtn) {
+      selectedArchetype = archetypeBtn;
+      selectedAbility = char.archetype.abilities;
+      archetypeBtn.classList.add('selected');
+      
+      // Show locked state
+      document.querySelectorAll('.archetype-btn').forEach(btn => btn.style.display = 'none');
+      document.querySelectorAll('.dropdown').forEach(d => d.style.display = 'none');
+      const lockedDiv = document.getElementById('archetype-locked');
+      lockedDiv.style.display = 'block';
+      document.getElementById('locked-archetype').textContent = archetypeBtn.textContent;
+      const abilityText = typeof selectedAbility === 'string' ? selectedAbility : Object.values(selectedAbility).join(' / ');
+      document.getElementById('locked-ability').textContent = abilityText;
+    }
+  }
+  
+  // Restore selected feats
+  if (char.feats) {
+    selectedArchetypeFeats = char.feats.archetype || [];
+    selectedCharacterFeats = char.feats.character || [];
+  }
+  
+  // Restore selected skills
+  if (char.skills) {
+    selectedSkills = char.skills;
+  }
+  
+  // Note: Species traits are restored when the Ancestry tab is activated
+  
+  console.log('Character state restored');
+}
 
 // Populate ancestry grid dynamically
 function populateAncestryGrid() {
@@ -548,9 +626,10 @@ function setupModal() {
     const chosenSpecies = allSpecies.find(s => s.name === chosenName);
     if (!chosenSpecies) return;
 
-    // Store globally
+    // Store globally - only save species name, not full object
     window.character = window.character || {};
-    window.character.species = chosenSpecies;
+    window.character.speciesName = chosenSpecies.name;
+    saveCharacter();
 
     closeModal();
     // Switch to Ancestry tab
@@ -620,8 +699,10 @@ function selectTrait(type, trait, li, hasLimit) {
 
   if (type === 'ancestry') {
     selected = char.ancestryTraits ? char.ancestryTraits.find(t => t.name === trait.name) : null;
-  } else {
-    selected = char[`${type}Trait`];
+  } else if (type === 'characteristic') {
+    selected = char.characteristicTrait;
+  } else if (type === 'flaw') {
+    selected = char.flawTrait;
   }
 
   if (selected && selected.name === trait.name) {
@@ -629,14 +710,13 @@ function selectTrait(type, trait, li, hasLimit) {
     li.classList.remove('selected');
     if (type === 'ancestry') {
       char.ancestryTraits = char.ancestryTraits.filter(t => t.name !== trait.name);
-    } else {
-      delete char[`${type}Trait`];
-    }
-
-    // Special handling for flaw deselection
-    if (type === 'flaw') {
+    } else if (type === 'characteristic') {
+      delete char.characteristicTrait;
+    } else if (type === 'flaw') {
+      delete char.flawTrait;
+      // Special handling for flaw deselection - remove excess ancestry trait if exists
       if (char.ancestryTraits && char.ancestryTraits.length > 1) {
-        char.ancestryTraits.pop(); // Remove excess ancestry trait
+        char.ancestryTraits.pop();
       }
     }
   } else {
@@ -647,16 +727,21 @@ function selectTrait(type, trait, li, hasLimit) {
         const limit = flawSelected ? 2 : 1;
         if (char.ancestryTraits && char.ancestryTraits.length >= limit) return;
       } else if (type === 'characteristic' && char.characteristicTrait) return;
+      else if (type === 'flaw' && char.flawTrait) return;
     }
 
     li.classList.add('selected');
     if (type === 'ancestry') {
       if (!char.ancestryTraits) char.ancestryTraits = [];
-      char.ancestryTraits.push(trait);
-    } else {
-      char[`${type}Trait`] = trait;
+      char.ancestryTraits.push({ name: trait.name, desc: trait.desc });
+    } else if (type === 'characteristic') {
+      char.characteristicTrait = { name: trait.name, desc: trait.desc };
+    } else if (type === 'flaw') {
+      char.flawTrait = { name: trait.name, desc: trait.desc };
     }
   }
+
+  saveCharacter();
 }
 
 function showTraitSelection(species) {
@@ -696,16 +781,60 @@ function showTraitSelection(species) {
 
 // Call showTraitSelection when Ancestry tab is activated, if species is chosen
 document.querySelector('.tab[data-tab="ancestry"]').addEventListener('click', () => {
-  if (window.character && window.character.species) {
-    showTraitSelection(window.character.species);
+  if (window.character && window.character.speciesName) {
+    // Find species by name from loaded data
+    const species = allSpecies.find(s => s.name === window.character.speciesName);
+    if (species) {
+      showTraitSelection(species);
+      
+      // Restore selected traits if they exist
+      restoreTraitSelections();
+    }
   }
 });
+
+// NEW: Function to restore trait selections
+function restoreTraitSelections() {
+  const char = window.character;
+  if (!char) return;
+  
+  // Restore ancestry traits
+  if (char.ancestryTraits && char.ancestryTraits.length > 0) {
+    char.ancestryTraits.forEach(trait => {
+      const li = Array.from(document.querySelectorAll('#ancestry-section-body .trait-list li')).find(
+        item => item.querySelector('.trait-name').textContent === trait.name
+      );
+      if (li) li.classList.add('selected');
+    });
+  }
+  
+  // Restore characteristic
+  if (char.characteristicTrait) {
+    const li = Array.from(document.querySelectorAll('#characteristic-section-body .trait-list li')).find(
+      item => item.querySelector('.trait-name').textContent === char.characteristicTrait.name
+    );
+    if (li) li.classList.add('selected');
+  }
+  
+  // Restore flaw
+  if (char.flawTrait) {
+    const li = Array.from(document.querySelectorAll('#flaw-section-body .trait-list li')).find(
+      item => item.querySelector('.trait-name').textContent === char.flawTrait.name
+    );
+    if (li) li.classList.add('selected');
+  }
+}
 
 // Abilities Initialization
 function initAbilities() {
   const abilities = ['strength', 'vitality', 'agility', 'acuity', 'intelligence', 'charisma'];
   let values = new Array(6).fill(0);
   const pointsSpan = document.getElementById('ability-points');
+
+  // NEW: Load saved values if they exist
+  if (window.character && window.character.abilityValues) {
+    values = [...window.character.abilityValues];
+  }
 
   function updateDisplay() {
     const sum = values.reduce((a, b) => a + b, 0);
@@ -715,6 +844,19 @@ function initAbilities() {
       const v = values[i];
       span.textContent = v > 0 ? `+${v}` : v;
     });
+    
+    // NEW: Save ability values
+    if (!window.character) window.character = {};
+    window.character.abilityValues = values;
+    window.character.abilities = {
+      strength: values[0],
+      vitality: values[1],
+      agility: values[2],
+      acuity: values[3],
+      intelligence: values[4],
+      charisma: values[5]
+    };
+    saveCharacter();
   }
 
   // Bold selected abilities from archetype
@@ -865,6 +1007,7 @@ function populateSkills() {
       // Store in character
       if (!window.character) window.character = {};
       window.character.skills = selectedSkills;
+      saveCharacter(); // NEW: Ensure this line exists
     });
   });
 }
@@ -941,3 +1084,18 @@ document.querySelector('.tab[data-tab="skills"]').addEventListener('click', asyn
   await loadSkills();
   initSkills();
 });
+
+// NEW: Clear progress button
+document.getElementById('clear-progress-btn').addEventListener('click', () => {
+  if (confirm('Are you sure you want to clear all progress? This cannot be undone.')) {
+    clearCharacter();
+  }
+});
+
+// Save character on selection changes
+document.addEventListener('change', (e) => {
+  if (e.target.matches('.archetype-btn, .dropdown ul li, .feat-select-btn, .ability-control')) {
+    saveCharacter();
+  }
+});
+
