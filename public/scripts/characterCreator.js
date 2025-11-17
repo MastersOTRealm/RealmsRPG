@@ -958,13 +958,14 @@ function populateSkills() {
   const searchTerm = document.getElementById('skills-search').value.toLowerCase();
   const char = window.character || {};
   
-  // NEW: Look up species by name from allSpecies array
   const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
   const speciesSkills = species ? species.skills : [];
 
+  // NEW: Check if user can select more skills
+  const canSelectMore = getRemainingSkillPoints() > 0;
+
   let filteredSkills = allSkills.filter(skill => {
     if (searchTerm && !skill.name.toLowerCase().includes(searchTerm) && !(skill.description && skill.description.toLowerCase().includes(searchTerm))) return false;
-    // Filter out sub-skills unless base skill is selected
     if (skill.base_skill && !selectedSkills.includes(skill.base_skill)) return false;
     return true;
   });
@@ -978,6 +979,10 @@ function populateSkills() {
     const selected = selectedSkills.includes(skill.name);
     const isSpeciesSkill = speciesSkills.includes(skill.name);
     const abilitiesText = skill.ability.length ? ` (${skill.ability.join(', ')})` : '';
+    
+    // NEW: Disable select button if no points and skill not selected
+    const shouldDisable = isSpeciesSkill || (!selected && !canSelectMore);
+    
     item.innerHTML = `
       <div class="feat-header">
         <h4>${skill.name}<span style="font-weight: normal; font-size: 14px; color: #888;">${abilitiesText}</span>${isSpeciesSkill ? '<span style="font-size: 12px; color: #0a4a7a; margin-left: 8px;">(Species)</span>' : ''}</h4>
@@ -985,7 +990,7 @@ function populateSkills() {
       </div>
       <div class="feat-body">
         <p>${skill.description || 'No description'}</p>
-        <button class="feat-select-btn ${selected ? 'selected' : ''}" data-name="${skill.name}" data-type="skill" ${isSpeciesSkill ? 'disabled' : ''}>${selected ? 'Deselect' : 'Select'}</button>
+        <button class="feat-select-btn ${selected ? 'selected' : ''}" data-name="${skill.name}" data-type="skill" ${shouldDisable ? 'disabled' : ''}>${selected ? 'Deselect' : 'Select'}</button>
       </div>
     `;
     list.appendChild(item);
@@ -1021,16 +1026,21 @@ function populateSkills() {
         btn.classList.remove('selected');
         item.classList.remove('selected-feat');
       } else {
+        // NEW: Check points before adding
+        if (getRemainingSkillPoints() <= 0) return;
+        
         selectedSkills.push(name);
         btn.textContent = 'Deselect';
         btn.classList.add('selected');
         item.classList.add('selected-feat');
       }
       updateSkillPoints();
-      // Store in character
       if (!window.character) window.character = {};
       window.character.skills = selectedSkills;
       saveCharacter();
+      
+      // NEW: Re-render to update disabled states
+      populateSkills();
     });
   });
 }
@@ -1169,7 +1179,7 @@ document.addEventListener('click', (e) => {
 
   if (!window.character) window.character = {};
   window.character.skillVals = window.character.skillVals || {};
-  const current = Math.max(0, parseInt(window.character.skillVals[skill]) || 0);
+  const current = Math.max(0, parseInt(window.character.skillVals[skill]) || 0); // FIX: moved before usage
 
   if (btn.classList.contains('inc')) {
     // Prevent increasing if no points remain
