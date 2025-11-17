@@ -29,6 +29,7 @@
       <button class="tab-button" onclick="openTab(event, 'species')">Species</button>
       <button class="tab-button" onclick="openTab(event, 'parts')">Power &<br>Technique Parts</button>
       <button class="tab-button" onclick="openTab(event, 'properties')">Armament<br>Properties</button>
+      <button class="tab-button" onclick="openTab(event, 'equipment')">Equipment</button>
     </div>
     <div id="feats" class="tab-content active-tab">
       <div class="search-bar">
@@ -353,6 +354,64 @@
 
       <div id="propertyList" class="property-list">
         <div class="no-results">Loading properties...</div>
+      </div>
+    </div>
+    <div id="equipment" class="tab-content">
+      <div class="search-bar">
+        <input type="text" id="equipmentSearch" placeholder="Search names, descriptions...">
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label for="equipmentCategorySelect">Category</label>
+          <select id="equipmentCategorySelect">
+            <option value="">Choose category</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="equipmentRaritySelect">Rarity</label>
+          <select id="equipmentRaritySelect">
+            <option value="">Choose rarity</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="equipment-headers">
+        <div class="col" data-col="name">
+          NAME
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="description">
+          DESCRIPTION
+        </div>
+        <div class="col" data-col="category">
+          CATEGORY
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+        <div class="col" data-col="currency">
+          CURRENCY
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">0-10</span>
+            <span class="sort desc" data-dir="desc">10-0</span>
+          </div>
+        </div>
+        <div class="col" data-col="rarity">
+          RARITY
+          <div class="sort-group">
+            <span class="sort asc" data-dir="asc">A-Z</span>
+            <span class="sort desc" data-dir="desc">Z-A</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="equipmentList" class="equipment-list">
+        <div class="no-results">Loading equipment...</div>
       </div>
     </div>
   </div>
