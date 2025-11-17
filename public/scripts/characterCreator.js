@@ -727,7 +727,15 @@ function selectTrait(type, trait, li, hasLimit) {
         const limit = flawSelected ? 2 : 1;
         if (char.ancestryTraits && char.ancestryTraits.length >= limit) return;
       } else if (type === 'characteristic' && char.characteristicTrait) return;
-      else if (type === 'flaw' && char.flawTrait) return;
+      else if (type === 'flaw' && char.flawTrait) return; // Only allow one flaw
+    }
+
+    // For flaw: deselect any previously selected flaw first
+    if (type === 'flaw') {
+      // Remove 'selected' class from all flaw list items
+      document.querySelectorAll('#flaw-section-body .trait-list li').forEach(item => {
+        item.classList.remove('selected');
+      });
     }
 
     li.classList.add('selected');
@@ -761,7 +769,7 @@ function showTraitSelection(species) {
   fillTraitSection('species', species.species_traits, false, false, false); // Read-only
   fillTraitSection('ancestry', species.ancestry_traits, true, true, true); // Selectable, with limit
   fillTraitSection('characteristic', species.characteristics, true, true, true); // Selectable, with limit
-  fillTraitSection('flaw', species.flaws, false, true, false); // Optional, no limit shown
+  fillTraitSection('flaw', species.flaws, false, true, true); // NEW: Changed to true for hasLimit
 
   // Accordion toggles
   document.querySelectorAll('.section-header').forEach(header => {
@@ -944,8 +952,10 @@ function populateSkills() {
   list.innerHTML = '';
   const searchTerm = document.getElementById('skills-search').value.toLowerCase();
   const char = window.character || {};
-  const species = char.species || {};
-  const speciesSkills = species.skills || [];
+  
+  // NEW: Look up species by name from allSpecies array
+  const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
+  const speciesSkills = species ? species.skills : [];
 
   let filteredSkills = allSkills.filter(skill => {
     if (searchTerm && !skill.name.toLowerCase().includes(searchTerm) && !(skill.description && skill.description.toLowerCase().includes(searchTerm))) return false;
@@ -961,15 +971,16 @@ function populateSkills() {
       item.classList.add('selected-feat');
     }
     const selected = selectedSkills.includes(skill.name);
+    const isSpeciesSkill = speciesSkills.includes(skill.name);
     const abilitiesText = skill.ability.length ? ` (${skill.ability.join(', ')})` : '';
     item.innerHTML = `
       <div class="feat-header">
-        <h4>${skill.name}<span style="font-weight: normal; font-size: 14px; color: #888;">${abilitiesText}</span></h4>
+        <h4>${skill.name}<span style="font-weight: normal; font-size: 14px; color: #888;">${abilitiesText}</span>${isSpeciesSkill ? '<span style="font-size: 12px; color: #0a4a7a; margin-left: 8px;">(Species)</span>' : ''}</h4>
         <span class="feat-arrow">▼</span>
       </div>
       <div class="feat-body">
         <p>${skill.description || 'No description'}</p>
-        <button class="feat-select-btn ${selected ? 'selected' : ''}" data-name="${skill.name}" data-type="skill">${selected ? 'Deselect' : 'Select'}</button>
+        <button class="feat-select-btn ${selected ? 'selected' : ''}" data-name="${skill.name}" data-type="skill" ${isSpeciesSkill ? 'disabled' : ''}>${selected ? 'Deselect' : 'Select'}</button>
       </div>
     `;
     list.appendChild(item);
@@ -1007,7 +1018,7 @@ function populateSkills() {
       // Store in character
       if (!window.character) window.character = {};
       window.character.skills = selectedSkills;
-      saveCharacter(); // NEW: Ensure this line exists
+      saveCharacter();
     });
   });
 }
@@ -1015,8 +1026,77 @@ function populateSkills() {
 function updateSkillPoints() {
   const points = 5 - selectedSkills.length;
   document.getElementById('skill-points').textContent = points;
+  updateSkillsBonusDisplay(); // NEW: Update bonus display
 }
 
+// NEW: Function to update skills bonus display
+function updateSkillsBonusDisplay() {
+  const bonusList = document.getElementById('skills-bonus-list');
+  const char = window.character || {};
+  if (!window.character) window.character = {};
+  window.character.skillAbilities = window.character.skillAbilities || {};
+
+  const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
+  const speciesSkills = species ? species.skills : [];
+  
+  if (selectedSkills.length === 0) {
+    bonusList.innerHTML = '<p class="no-skills-message">No skills selected yet</p>';
+    return;
+  }
+  const skillCounts = {};
+  selectedSkills.forEach(skill => {
+    skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+  });
+  const sortedSkills = Object.keys(skillCounts).sort();
+
+  bonusList.innerHTML = sortedSkills.map(skillName => {
+    const count = skillCounts[skillName];
+    const bonus = count;
+    const isSpeciesSkill = speciesSkills.includes(skillName);
+    const skillObj = allSkills.find(s => s.name === skillName);
+    const abilList = (skillObj && Array.isArray(skillObj.ability)) ? skillObj.ability : [];
+    let abilityControl = '';
+    if (abilList.length === 1) {
+      // Single ability: display static label
+      const onlyAbil = abilList[0];
+      window.character.skillAbilities[skillName] = onlyAbil;
+      abilityControl = `<span class="skill-fixed-ability">${onlyAbil}</span>`;
+    } else if (abilList.length > 1) {
+      const savedChoice = window.character.skillAbilities[skillName] || abilList[0] || '';
+      abilityControl = `<select class="skill-ability-select" data-skill="${skillName}">
+        ${abilList.map(a => `<option value="${a}" ${a === savedChoice ? 'selected' : ''}>${a}</option>`).join('')}
+      </select>`;
+      // Persist default if not set
+      if (!window.character.skillAbilities[skillName] && savedChoice) {
+        window.character.skillAbilities[skillName] = savedChoice;
+      }
+    } else {
+      abilityControl = `<span class="skill-fixed-ability">—</span>`;
+    }
+    return `
+      <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
+        <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
+        ${abilityControl}
+        <span class="skill-bonus-value">+${bonus}</span>
+      </div>
+    `;
+  }).join('');
+  saveCharacter();
+}
+
+// Delegate ability select changes
+document.addEventListener('change', (e) => {
+  if (e.target.matches('.skill-ability-select')) {
+    const skill = e.target.dataset.skill;
+    const val = e.target.value;
+    if (!window.character) window.character = {};
+    window.character.skillAbilities = window.character.skillAbilities || {};
+    window.character.skillAbilities[skill] = val;
+    saveCharacter();
+  }
+});
+
+// Initialize skills tab
 function initSkills() {
   if (!skillsInitialized) {
     // Accordion for skills - only initialize once
@@ -1064,19 +1144,21 @@ function initSkills() {
   if (body) body.classList.add('open');
   if (arrow) arrow.classList.add('open');
 
-  // Update description based on species
+  // Update description based on species - NEW: Look up species by name
   const char = window.character || {};
-  const species = char.species || {};
-  const speciesSkills = species.skills || [];
+  const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
+  const speciesSkills = species ? species.skills : [];
   const skillsText = speciesSkills.length ? speciesSkills.join(', ') : 'None';
   const descEl = document.getElementById('skills-description');
   descEl.innerHTML = `Now you can choose your skills. Picking a new skill grants you proficiency, while allocating more points to a skill you have increases its bonus!<br><strong>Species Skills: ${skillsText}</strong>`;
 
-  // Auto-select species skills
-  selectedSkills = [...speciesSkills];
+  // Auto-select species skills - only if not already in selectedSkills
+  const skillsToAdd = speciesSkills.filter(skill => !selectedSkills.includes(skill));
+  selectedSkills = [...selectedSkills, ...skillsToAdd];
   updateSkillPoints();
 
   populateSkills();
+  updateSkillsBonusDisplay(); // NEW: Initial display of bonus section
 }
 
 // Initialize when skills tab is activated
