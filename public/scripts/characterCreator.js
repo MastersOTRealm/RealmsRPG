@@ -865,6 +865,11 @@ function initAbilities() {
       charisma: values[5]
     };
     saveCharacter();
+
+    // NEW: refresh skill bonus values after ability changes
+    if (document.getElementById('skills-bonus-list')) {
+      updateSkillsBonusDisplay();
+    }
   }
 
   // Bold selected abilities from archetype
@@ -1043,44 +1048,67 @@ function updateSkillsBonusDisplay() {
     bonusList.innerHTML = '<p class="no-skills-message">No skills selected yet</p>';
     return;
   }
-  const skillCounts = {};
-  selectedSkills.forEach(skill => {
-    skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-  });
-  const sortedSkills = Object.keys(skillCounts).sort();
+
+  // Ensure abilities object exists
+  const abilityVals = (char.abilities) ? char.abilities : {
+    strength: 0, vitality: 0, agility: 0,
+    acuity: 0, intelligence: 0, charisma: 0
+  };
+
+  const sortedSkills = [...selectedSkills].sort();
 
   bonusList.innerHTML = sortedSkills.map(skillName => {
-    const count = skillCounts[skillName];
-    const bonus = count;
     const isSpeciesSkill = speciesSkills.includes(skillName);
     const skillObj = allSkills.find(s => s.name === skillName);
     const abilList = (skillObj && Array.isArray(skillObj.ability)) ? skillObj.ability : [];
-    let abilityControl = '';
+    let chosenAbility;
+
     if (abilList.length === 1) {
-      // Single ability: display static label
-      const onlyAbil = abilList[0];
-      window.character.skillAbilities[skillName] = onlyAbil;
-      abilityControl = `<span class="skill-fixed-ability">${onlyAbil}</span>`;
-    } else if (abilList.length > 1) {
-      const savedChoice = window.character.skillAbilities[skillName] || abilList[0] || '';
-      abilityControl = `<select class="skill-ability-select" data-skill="${skillName}">
-        ${abilList.map(a => `<option value="${a}" ${a === savedChoice ? 'selected' : ''}>${a}</option>`).join('')}
-      </select>`;
-      // Persist default if not set
-      if (!window.character.skillAbilities[skillName] && savedChoice) {
-        window.character.skillAbilities[skillName] = savedChoice;
-      }
-    } else {
-      abilityControl = `<span class="skill-fixed-ability">—</span>`;
+      chosenAbility = abilList[0];
+      window.character.skillAbilities[skillName] = chosenAbility;
+      const abilKey = chosenAbility.toLowerCase();
+      const rawVal = abilityVals[abilKey] ?? 0;
+      const displayVal = rawVal >= 0 ? `+${rawVal}` : rawVal;
+      return `
+        <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
+          <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
+          <span class="skill-fixed-ability">${chosenAbility}</span>
+          <span class="skill-bonus-value">${displayVal}</span>
+        </div>
+      `;
     }
+
+    if (abilList.length > 1) {
+      chosenAbility = window.character.skillAbilities[skillName] || abilList[0];
+      if (!window.character.skillAbilities[skillName]) {
+        window.character.skillAbilities[skillName] = chosenAbility;
+      }
+      const abilKey = chosenAbility.toLowerCase();
+      const rawVal = abilityVals[abilKey] ?? 0;
+      const displayVal = rawVal >= 0 ? `+${rawVal}` : rawVal;
+      const selectHtml = `<select class="skill-ability-select" data-skill="${skillName}">
+        ${abilList.map(a => `<option value="${a}" ${a === chosenAbility ? 'selected' : ''}>${a}</option>`).join('')}
+      </select>`;
+      return `
+        <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
+          <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
+          ${selectHtml}
+          <span class="skill-bonus-value">${displayVal}</span>
+        </div>
+      `;
+    }
+
+    // No abilities listed
+    const displayVal = '+0';
     return `
       <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
         <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
-        ${abilityControl}
-        <span class="skill-bonus-value">+${bonus}</span>
+        <span class="skill-fixed-ability">—</span>
+        <span class="skill-bonus-value">${displayVal}</span>
       </div>
     `;
   }).join('');
+
   saveCharacter();
 }
 
@@ -1093,6 +1121,7 @@ document.addEventListener('change', (e) => {
     window.character.skillAbilities = window.character.skillAbilities || {};
     window.character.skillAbilities[skill] = val;
     saveCharacter();
+    updateSkillsBonusDisplay(); // NEW
   }
 });
 
