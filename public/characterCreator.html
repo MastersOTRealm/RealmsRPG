@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Character Creator - Realms: The Freeform Roleplaying Game</title>
     <link rel="stylesheet" href="/styles/main.css">
-    <link rel="stylesheet" href="/styles/characterCreator.css">
+    <link rel="stylesheet" href="/styles/characterCreator/character-creator.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&family=Nova+Flat:wght@400&display=swap" rel="stylesheet">
@@ -419,12 +419,33 @@
                         <div class="resource-value" id="armament-max">4</div>
                     </div>
                 </div>
+
+                <!-- NEW: Equipment Bonus Section -->
+                <div class="equipment-bonus-section">
+                    <h3>Your Equipment</h3>
+                    <div id="equipment-bonus-list" class="equipment-bonus-list">
+                        <p class="no-skills-message">No equipment selected yet</p>
+                    </div>
+                </div>
+
+                <div class="equipment-section">
+                    <div class="section-header" data-section="equipment">
+                        <h3>Equipment</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="equipment-body">
+                        <input type="text" id="equipment-search" class="search-input" placeholder="Search equipment...">
+                        <div class="feats-list" id="equipment-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
     <footer id="footer"></footer>
 
-    <script type="module" src="/scripts/characterCreator.js"></script>
+    <script type="module" src="/scripts/characterCreator/characterCreator_main.js"></script>
 </body>
 </html>

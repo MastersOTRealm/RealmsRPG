@@ -1,0 +1,42 @@
+.hidden {
+  display: none !important;
+}
+
+.open {
+  display: block !important;
+}
+
+.selected {
+  background: var(--bg-selected);
+  border-left: 4px solid var(--border-primary);
+}
+
+.selected-feat {
+  background: var(--bg-selected);
+  border-left: 4px solid var(--border-primary);
+}
+
+.species-skill {
+  border-left: 3px solid var(--primary-light);
+}
+
+.no-skills-message {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  grid-column: 1 / -1;
+  padding: 20px;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .show-mobile {
+    display: none !important;
+  }
+}

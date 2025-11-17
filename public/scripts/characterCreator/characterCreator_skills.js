@@ -1,0 +1,322 @@
+import { allSkills, allSpecies } from './characterCreator_firebase.js';
+import { saveCharacter } from './characterCreator_storage.js';
+
+export let selectedSkills = [];
+let skillsInitialized = false;
+
+export function populateSkills() {
+  const list = document.getElementById('skills-list');
+  if (!list) return;
+  
+  list.innerHTML = '';
+  const searchTerm = document.getElementById('skills-search')?.value.toLowerCase() || '';
+  const char = window.character || {};
+  
+  const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
+  const speciesSkills = species ? species.skills : [];
+
+  const canSelectMore = getRemainingSkillPoints() > 0;
+
+  let filteredSkills = allSkills.filter(skill => {
+    if (searchTerm && !skill.name.toLowerCase().includes(searchTerm) && !(skill.description && skill.description.toLowerCase().includes(searchTerm))) return false;
+    if (skill.base_skill && !selectedSkills.includes(skill.base_skill)) return false;
+    return true;
+  });
+
+  filteredSkills.forEach(skill => {
+    const item = document.createElement('div');
+    item.className = 'feat-item';
+    if (selectedSkills.includes(skill.name)) {
+      item.classList.add('selected-feat');
+    }
+    const selected = selectedSkills.includes(skill.name);
+    const isSpeciesSkill = speciesSkills.includes(skill.name);
+    const abilitiesText = skill.ability.length ? ` (${skill.ability.join(', ')})` : '';
+    
+    const shouldDisable = isSpeciesSkill || (!selected && !canSelectMore);
+    
+    item.innerHTML = `
+      <div class="feat-header">
+        <h4>${skill.name}<span style="font-weight: normal; font-size: 14px; color: #888;">${abilitiesText}</span>${isSpeciesSkill ? '<span style="font-size: 12px; color: #0a4a7a; margin-left: 8px;">(Species)</span>' : ''}</h4>
+        <span class="feat-arrow">▼</span>
+      </div>
+      <div class="feat-body">
+        <p>${skill.description || 'No description'}</p>
+        <button class="feat-select-btn ${selected ? 'selected' : ''}" data-name="${skill.name}" data-type="skill" ${shouldDisable ? 'disabled' : ''}>${selected ? 'Deselect' : 'Select'}</button>
+      </div>
+    `;
+    list.appendChild(item);
+
+    const header = item.querySelector('.feat-header');
+    header.addEventListener('click', () => {
+      const body = header.nextElementSibling;
+      const arrow = header.querySelector('.feat-arrow');
+      body.classList.toggle('open');
+      arrow.classList.toggle('open');
+    });
+
+    const btn = item.querySelector('.feat-select-btn');
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      if (selectedSkills.includes(name)) {
+        if (speciesSkills.includes(name)) return;
+        selectedSkills = selectedSkills.filter(n => n !== name);
+        const subSkills = allSkills.filter(s => s.base_skill === name).map(s => s.name);
+        selectedSkills = selectedSkills.filter(n => !subSkills.includes(n));
+
+        if (!window.character) window.character = {};
+        window.character.skillVals = window.character.skillVals || {};
+        delete window.character.skillVals[name];
+        subSkills.forEach(sk => delete window.character.skillVals[sk]);
+
+        btn.textContent = 'Select';
+        btn.classList.remove('selected');
+        item.classList.remove('selected-feat');
+      } else {
+        if (getRemainingSkillPoints() <= 0) return;
+        
+        selectedSkills.push(name);
+        btn.textContent = 'Deselect';
+        btn.classList.add('selected');
+        item.classList.add('selected-feat');
+      }
+      updateSkillPoints();
+      if (!window.character) window.character = {};
+      window.character.skills = selectedSkills;
+      saveCharacter();
+      
+      populateSkills();
+    });
+  });
+}
+
+function getSkillValsTotal() {
+  const vals = (window.character && window.character.skillVals) || {};
+  return selectedSkills.reduce((sum, s) => sum + Math.max(0, parseInt(vals[s]) || 0), 0);
+}
+
+function getRemainingSkillPoints() {
+  return 5 - selectedSkills.length - getSkillValsTotal();
+}
+
+function updateSkillPoints() {
+  const points = 5 - selectedSkills.length - getSkillValsTotal();
+  const el = document.getElementById('skill-points');
+  if (el) el.textContent = points;
+  updateSkillsBonusDisplay();
+}
+
+export function updateSkillsBonusDisplay() {
+  const bonusList = document.getElementById('skills-bonus-list');
+  if (!bonusList) return;
+  
+  const char = window.character || {};
+  if (!window.character) window.character = {};
+  window.character.skillAbilities = window.character.skillAbilities || {};
+  window.character.skillVals = window.character.skillVals || {};
+
+  const fmt = (n) => (n >= 0 ? `+${n}` : `${n}`);
+
+  const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
+  const speciesSkills = species ? species.skills : [];
+  
+  if (selectedSkills.length === 0) {
+    bonusList.innerHTML = '<p class="no-skills-message">No skills selected yet</p>';
+    return;
+  }
+
+  const abilityVals = (char.abilities) ? char.abilities : {
+    strength: 0, vitality: 0, agility: 0,
+    acuity: 0, intelligence: 0, charisma: 0
+  };
+
+  const sortedSkills = [...selectedSkills].sort();
+
+  bonusList.innerHTML = sortedSkills.map(skillName => {
+    const isSpeciesSkill = speciesSkills.includes(skillName);
+    const skillObj = allSkills.find(s => s.name === skillName);
+    const abilList = (skillObj && Array.isArray(skillObj.ability)) ? skillObj.ability : [];
+    let chosenAbility;
+
+    const skill_val = Math.max(0, parseInt(window.character.skillVals[skillName]) || 0);
+    const hasValue = skill_val > 0;
+    
+    const isSubSkill = skillObj && skillObj.base_skill;
+    const subSkillBonus = isSubSkill ? 1 : 0;
+
+    if (abilList.length === 1) {
+      chosenAbility = abilList[0];
+      window.character.skillAbilities[skillName] = chosenAbility;
+      const abilKey = chosenAbility.toLowerCase();
+      const rawVal = abilityVals[abilKey] ?? 0;
+      const totalVal = rawVal + skill_val + subSkillBonus;
+      const displayVal = fmt(totalVal);
+      return `
+        <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
+          <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
+          <span class="skill-fixed-ability">${chosenAbility}</span>
+          <div class="skill-val-controls" title="Adjust skill value">
+            <button type="button" class="skill-val-btn dec" data-skill="${skillName}" aria-label="Decrease">-</button>
+            <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
+          </div>
+          <span class="skill-bonus-value">${displayVal}</span>
+        </div>
+      `;
+    }
+
+    if (abilList.length > 1) {
+      chosenAbility = window.character.skillAbilities[skillName] || abilList[0];
+      if (!window.character.skillAbilities[skillName]) {
+        window.character.skillAbilities[skillName] = chosenAbility;
+      }
+      const abilKey = chosenAbility.toLowerCase();
+      const rawVal = abilityVals[abilKey] ?? 0;
+      const totalVal = rawVal + skill_val + subSkillBonus;
+      const displayVal = fmt(totalVal);
+      const selectHtml = `<select class="skill-ability-select" data-skill="${skillName}">
+        ${abilList.map(a => `<option value="${a}" ${a === chosenAbility ? 'selected' : ''}>${a}</option>`).join('')}
+      </select>`;
+      return `
+        <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
+          <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
+          ${selectHtml}
+          <div class="skill-val-controls" title="Adjust skill value">
+            <button type="button" class="skill-val-btn dec" data-skill="${skillName}" aria-label="Decrease">-</button>
+            <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
+          </div>
+          <span class="skill-bonus-value">${displayVal}</span>
+        </div>
+      `;
+    }
+
+    const totalVal = 0 + skill_val + subSkillBonus;
+    const displayVal = fmt(totalVal);
+    return `
+      <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
+        <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
+        <span class="skill-fixed-ability">—</span>
+        <div class="skill-val-controls" title="Adjust skill value">
+          <button type="button" class="skill-val-btn dec" data-skill="${skillName}" aria-label="Decrease">-</button>
+          <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
+        </div>
+        <span class="skill-bonus-value">${displayVal}</span>
+      </div>
+    `;
+  }).join('');
+
+  saveCharacter();
+}
+
+document.addEventListener('change', (e) => {
+  if (e.target.matches('.skill-ability-select')) {
+    const skill = e.target.dataset.skill;
+    const val = e.target.value;
+    if (!window.character) window.character = {};
+    window.character.skillAbilities = window.character.skillAbilities || {};
+    window.character.skillAbilities[skill] = val;
+    saveCharacter();
+    updateSkillsBonusDisplay();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.skill-val-btn');
+  if (!btn) return;
+  const skill = btn.dataset.skill;
+  if (!skill) return;
+
+  if (!window.character) window.character = {};
+  window.character.skillVals = window.character.skillVals || {};
+  const current = Math.max(0, parseInt(window.character.skillVals[skill]) || 0);
+
+  if (btn.classList.contains('inc')) {
+    if (getRemainingSkillPoints() <= 0) return;
+    window.character.skillVals[skill] = current + 1;
+  } else {
+    if (current <= 0) return;
+    window.character.skillVals[skill] = current - 1;
+  }
+
+  saveCharacter();
+  updateSkillPoints();
+});
+
+function initSkills() {
+  if (!skillsInitialized) {
+    const skillsHeader = document.querySelector('#content-skills .section-header');
+    if (skillsHeader) {
+      const newSkillsHeader = skillsHeader.cloneNode(true);
+      skillsHeader.parentNode.replaceChild(newSkillsHeader, skillsHeader);
+      
+      newSkillsHeader.addEventListener('click', () => {
+        const body = document.getElementById('skills-body');
+        const arrow = newSkillsHeader.querySelector('.toggle-arrow');
+        if (body && arrow) {
+          body.classList.toggle('open');
+          arrow.classList.toggle('open');
+        }
+      });
+    }
+
+    const searchInput = document.getElementById('skills-search');
+    if (searchInput) {
+      const newSearchInput = searchInput.cloneNode(true);
+      searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+      newSearchInput.addEventListener('keyup', populateSkills);
+    }
+
+    const codexBtn = document.getElementById('open-codex-skills');
+    if (codexBtn) {
+      const newCodexBtn = codexBtn.cloneNode(true);
+      codexBtn.parentNode.replaceChild(newCodexBtn, codexBtn);
+      newCodexBtn.addEventListener('click', () => {
+        window.open('/codex.html', '_blank');
+      });
+    }
+
+    const continueBtn = document.getElementById('skills-continue');
+    if (continueBtn) {
+      const newContinueBtn = continueBtn.cloneNode(true);
+      continueBtn.parentNode.replaceChild(newContinueBtn, continueBtn);
+      newContinueBtn.addEventListener('click', () => {
+        document.querySelector('.tab[data-tab="feats"]')?.click();
+      });
+    }
+
+    skillsInitialized = true;
+  }
+
+  const body = document.getElementById('skills-body');
+  const arrow = document.querySelector('#content-skills .toggle-arrow');
+  if (body) body.classList.add('open');
+  if (arrow) arrow.classList.add('open');
+
+  const char = window.character || {};
+  const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
+  const speciesSkills = species ? species.skills : [];
+  const skillsText = speciesSkills.length ? speciesSkills.join(', ') : 'None';
+  const descEl = document.getElementById('skills-description');
+  if (descEl) {
+    descEl.innerHTML = `Now you can choose your skills. Picking a new skill grants you proficiency, while allocating more points to a skill you have increases its bonus!<br><strong>Species Skills: ${skillsText}</strong>`;
+  }
+
+  const skillsToAdd = speciesSkills.filter(skill => !selectedSkills.includes(skill));
+  selectedSkills = [...selectedSkills, ...skillsToAdd];
+  updateSkillPoints();
+
+  populateSkills();
+  updateSkillsBonusDisplay();
+}
+
+document.querySelector('.tab[data-tab="skills"]')?.addEventListener('click', async () => {
+  const { loadSkills } = await import('./characterCreator_firebase.js');
+  await loadSkills();
+  initSkills();
+});
+
+export function restoreSkills() {
+  if (window.character?.skills) {
+    selectedSkills = window.character.skills;
+  }
+  initSkills();
+}
