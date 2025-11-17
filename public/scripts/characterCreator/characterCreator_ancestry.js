@@ -161,17 +161,17 @@ function selectTrait(type, trait, li, hasLimit) {
   let selected;
 
   if (type === 'ancestry') {
-    selected = char.ancestryTraits ? char.ancestryTraits.find(t => t.name === trait.name) : null;
+    selected = char.ancestryTraits ? char.ancestryTraits.includes(trait.name) : false;
   } else if (type === 'characteristic') {
     selected = char.characteristicTrait;
   } else if (type === 'flaw') {
     selected = char.flawTrait;
   }
 
-  if (selected && selected.name === trait.name) {
+  if (selected && (type === 'ancestry' ? selected : selected === trait.name)) {
     li.classList.remove('selected');
     if (type === 'ancestry') {
-      char.ancestryTraits = char.ancestryTraits.filter(t => t.name !== trait.name);
+      char.ancestryTraits = char.ancestryTraits.filter(name => name !== trait.name);
     } else if (type === 'characteristic') {
       delete char.characteristicTrait;
     } else if (type === 'flaw') {
@@ -199,11 +199,11 @@ function selectTrait(type, trait, li, hasLimit) {
     li.classList.add('selected');
     if (type === 'ancestry') {
       if (!char.ancestryTraits) char.ancestryTraits = [];
-      char.ancestryTraits.push({ name: trait.name, desc: trait.desc });
+      char.ancestryTraits.push(trait.name);
     } else if (type === 'characteristic') {
-      char.characteristicTrait = { name: trait.name, desc: trait.desc };
+      char.characteristicTrait = trait.name;
     } else if (type === 'flaw') {
-      char.flawTrait = { name: trait.name, desc: trait.desc };
+      char.flawTrait = trait.name;
     }
   }
 
@@ -227,12 +227,18 @@ function showTraitSelection(species) {
   fillTraitSection('characteristic', species.characteristics, true, true, true);
   fillTraitSection('flaw', species.flaws, false, true, true);
 
+  // Remove old event listeners by cloning and replacing
   document.querySelectorAll('.section-header').forEach(header => {
-    header.addEventListener('click', () => {
-      const body = header.nextElementSibling;
-      const arrow = header.querySelector('.toggle-arrow');
-      body.classList.toggle('open');
-      arrow.classList.toggle('open');
+    const newHeader = header.cloneNode(true);
+    header.parentNode.replaceChild(newHeader, header);
+    
+    newHeader.addEventListener('click', () => {
+      const body = newHeader.nextElementSibling;
+      const arrow = newHeader.querySelector('.toggle-arrow');
+      if (body && arrow) {
+        body.classList.toggle('open');
+        arrow.classList.toggle('open');
+      }
     });
   });
 
@@ -256,9 +262,9 @@ function restoreTraitSelections() {
   if (!char) return;
   
   if (char.ancestryTraits && char.ancestryTraits.length > 0) {
-    char.ancestryTraits.forEach(trait => {
+    char.ancestryTraits.forEach(traitName => {
       const li = Array.from(document.querySelectorAll('#ancestry-section-body .trait-list li')).find(
-        item => item.querySelector('.trait-name').textContent === trait.name
+        item => item.querySelector('.trait-name').textContent === traitName
       );
       if (li) li.classList.add('selected');
     });
@@ -266,14 +272,14 @@ function restoreTraitSelections() {
   
   if (char.characteristicTrait) {
     const li = Array.from(document.querySelectorAll('#characteristic-section-body .trait-list li')).find(
-      item => item.querySelector('.trait-name').textContent === char.characteristicTrait.name
+      item => item.querySelector('.trait-name').textContent === char.characteristicTrait
     );
     if (li) li.classList.add('selected');
   }
   
   if (char.flawTrait) {
     const li = Array.from(document.querySelectorAll('#flaw-section-body .trait-list li')).find(
-      item => item.querySelector('.trait-name').textContent === char.flawTrait.name
+      item => item.querySelector('.trait-name').textContent === char.flawTrait
     );
     if (li) li.classList.add('selected');
   }

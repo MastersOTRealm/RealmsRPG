@@ -28,6 +28,7 @@ export function clearCharacter() {
 export function restoreCharacterState() {
   // Import and call restoration functions from each module
   import('./characterCreator_archetype.js').then(m => m.restoreArchetype?.());
+  import('./characterCreator_ancestry.js').then(m => m.restoreAncestry?.());
   import('./characterCreator_feats.js').then(m => m.restoreFeats?.());
   import('./characterCreator_skills.js').then(m => m.restoreSkills?.());
   import('./characterCreator_equipment.js').then(m => m.restoreEquipment?.());
