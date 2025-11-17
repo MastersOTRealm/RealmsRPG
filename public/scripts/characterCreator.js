@@ -1101,19 +1101,27 @@ function updateSkillsBonusDisplay() {
 
     // READ skill-specific value
     const skill_val = Math.max(0, parseInt(window.character.skillVals[skillName]) || 0);
+    const hasValue = skill_val > 0;
+    
+    // NEW: Check if this is a sub-skill (has a base_skill property)
+    const isSubSkill = skillObj && skillObj.base_skill;
+    const subSkillBonus = isSubSkill ? 1 : 0;
 
     if (abilList.length === 1) {
       chosenAbility = abilList[0];
       window.character.skillAbilities[skillName] = chosenAbility;
       const abilKey = chosenAbility.toLowerCase();
       const rawVal = abilityVals[abilKey] ?? 0;
-      const totalVal = rawVal + skill_val;
+      const totalVal = rawVal + skill_val + subSkillBonus; // NEW: Add subSkillBonus
       const displayVal = fmt(totalVal);
       return `
         <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
           <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
           <span class="skill-fixed-ability">${chosenAbility}</span>
-          ${controlsHtml(skillName)}
+          <div class="skill-val-controls" title="Adjust skill value">
+            <button type="button" class="skill-val-btn dec" data-skill="${skillName}" aria-label="Decrease">-</button>
+            <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
+          </div>
           <span class="skill-bonus-value">${displayVal}</span>
         </div>
       `;
@@ -1126,7 +1134,7 @@ function updateSkillsBonusDisplay() {
       }
       const abilKey = chosenAbility.toLowerCase();
       const rawVal = abilityVals[abilKey] ?? 0;
-      const totalVal = rawVal + skill_val;
+      const totalVal = rawVal + skill_val + subSkillBonus; // NEW: Add subSkillBonus
       const displayVal = fmt(totalVal);
       const selectHtml = `<select class="skill-ability-select" data-skill="${skillName}">
         ${abilList.map(a => `<option value="${a}" ${a === chosenAbility ? 'selected' : ''}>${a}</option>`).join('')}
@@ -1135,20 +1143,26 @@ function updateSkillsBonusDisplay() {
         <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
           <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
           ${selectHtml}
-          ${controlsHtml(skillName)}
+          <div class="skill-val-controls" title="Adjust skill value">
+            <button type="button" class="skill-val-btn dec" data-skill="${skillName}" aria-label="Decrease">-</button>
+            <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
+          </div>
           <span class="skill-bonus-value">${displayVal}</span>
         </div>
       `;
     }
 
     // No abilities listed
-    const totalVal = 0 + skill_val;
+    const totalVal = 0 + skill_val + subSkillBonus; // NEW: Add subSkillBonus
     const displayVal = fmt(totalVal);
     return `
       <div class="skill-bonus-item ${isSpeciesSkill ? 'species-skill' : ''}">
         <span class="skill-bonus-name">${skillName}${isSpeciesSkill ? ' <span style="font-size:11px;color:#0a4a7a;">(Species)</span>' : ''}</span>
         <span class="skill-fixed-ability">—</span>
-        ${controlsHtml(skillName)}
+        <div class="skill-val-controls" title="Adjust skill value">
+          <button type="button" class="skill-val-btn dec" data-skill="${skillName}" aria-label="Decrease">-</button>
+          <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
+        </div>
         <span class="skill-bonus-value">${displayVal}</span>
       </div>
     `;

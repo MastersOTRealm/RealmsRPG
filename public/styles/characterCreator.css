@@ -1073,6 +1073,14 @@ h1 {
     background: #0a4a7a;
 }
 
+.skill-val-btn.inc.active {
+    background: #4a9eff;
+}
+
+.skill-val-btn.inc.active:hover {
+    background: #3a8eef;
+}
+
 @media (max-width: 768px) {
     main {
         padding: 24px;
