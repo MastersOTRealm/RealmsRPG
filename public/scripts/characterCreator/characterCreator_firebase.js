@@ -122,14 +122,19 @@ export async function loadSkills() {
 
 export async function loadEquipment() {
   if (allEquipment.length > 0) return;
-  console.log('Loading equipment...');
-  const snap = await get(ref(db, 'items'));
-  const data = snap.val();
-  if (data) {
-    allEquipment = Object.values(data).map(e => ({
-      ...e,
-      currency: parseInt(e.currency) || 0,
-    }));
-    console.log(`✓ Loaded ${allEquipment.length} equipment`);
+  console.log('Loading general equipment from database...');
+  try {
+    const snap = await get(ref(db, 'items'));
+    const data = snap.val();
+    if (data) {
+      allEquipment = Object.values(data).map(e => ({
+        ...e,
+        currency: parseInt(e.currency) || 0,
+        id: e.name ? e.name.toLowerCase().replace(/\s+/g, '-') : Math.random().toString(36).substr(2, 9)
+      }));
+      console.log(`✓ Loaded ${allEquipment.length} general equipment items`);
+    }
+  } catch (error) {
+    console.error('Error loading equipment:', error);
   }
 }

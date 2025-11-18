@@ -36,6 +36,7 @@
                 <div class="tab" data-tab="skills">5. Skills</div>
                 <div class="tab" data-tab="feats">6. Feats</div>
                 <div class="tab" data-tab="equipment">7. Equipment</div>
+                <div class="tab" data-tab="powers">8. Powers & Techniques</div> <!-- NEW -->
                 <button id="clear-progress-btn" style="margin-left: auto; background: #d9534f; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">Restart Character</button>
             </div>
 
@@ -420,6 +421,14 @@
                     </div>
                 </div>
 
+                <!-- NEW: Equipment Bonus Section moved here -->
+                <div class="equipment-bonus-section">
+                    <h3>Your Equipment</h3>
+                    <div id="equipment-bonus-list" class="equipment-bonus-list">
+                        <p class="no-skills-message">No equipment selected yet</p>
+                    </div>
+                </div>
+
                 <!-- Weapons Section -->
                 <div class="equipment-section">
                     <div class="section-header" data-section="weapons">
@@ -439,6 +448,7 @@
                                         <th>TP</th>
                                         <th>Currency</th>
                                         <th>Rarity</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="weapons-list">
@@ -467,6 +477,7 @@
                                         <th>TP</th>
                                         <th>Currency</th>
                                         <th>Rarity</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="armor-list">
@@ -474,14 +485,6 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-
-                <!-- NEW: Equipment Bonus Section -->
-                <div class="equipment-bonus-section">
-                    <h3>Your Equipment</h3>
-                    <div id="equipment-bonus-list" class="equipment-bonus-list">
-                        <p class="no-skills-message">No equipment selected yet</p>
                     </div>
                 </div>
 
@@ -494,6 +497,86 @@
                         <input type="text" id="equipment-search" class="search-input" placeholder="Search equipment...">
                         <div class="feats-list" id="equipment-list">
                             <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Powers & Techniques Tab (NEW) -->
+            <div id="content-powers" class="content">
+                <h1>POWERS & TECHNIQUES</h1>
+                <p class="description">
+                    Choose powers and techniques from your library to use with your character.
+                </p>
+
+                <div class="equipment-resources">
+                    <div class="resource-box">
+                        <div class="resource-label">Training Points</div>
+                        <div class="resource-value" id="powers-training-points">22</div>
+                    </div>
+                    <div class="resource-box">
+                        <div class="resource-label">Innate Energy Maximum</div>
+                        <div class="resource-value" id="innate-energy-max">0</div>
+                    </div>
+                </div>
+
+                <div class="equipment-bonus-section">
+                    <h3>Your Powers & Techniques</h3>
+                    <div id="powers-techniques-bonus-list" class="equipment-bonus-list">
+                        <p class="no-skills-message">No powers or techniques selected yet</p>
+                    </div>
+                </div>
+
+                <!-- Powers Section -->
+                <div class="equipment-section">
+                    <div class="section-header" data-section="powers">
+                        <h3>Powers</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="powers-body">
+                        <input type="text" id="powers-search" class="search-input" placeholder="Search powers...">
+                        <div class="equipment-table-container">
+                            <table class="equipment-table" id="powers-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Energy</th>
+                                        <th>TP</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="powers-list">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Techniques Section -->
+                <div class="equipment-section">
+                    <div class="section-header" data-section="techniques">
+                        <h3>Techniques</h3>
+                        <span class="toggle-arrow">▼</span>
+                    </div>
+                    <div class="section-body" id="techniques-body">
+                        <input type="text" id="techniques-search" class="search-input" placeholder="Search techniques...">
+                        <div class="equipment-table-container">
+                            <table class="equipment-table" id="techniques-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Energy</th>
+                                        <th>TP</th>
+                                        <th>Weapon</th>
+                                        <th>Damage</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="techniques-list">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

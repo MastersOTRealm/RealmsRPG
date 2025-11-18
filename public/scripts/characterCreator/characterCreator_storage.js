@@ -26,11 +26,14 @@ export function clearCharacter() {
 }
 
 export function restoreCharacterState() {
-  // Import and call restoration functions from each module
-  import('./characterCreator_archetype.js').then(m => m.restoreArchetype?.());
-  import('./characterCreator_ancestry.js').then(m => m.restoreAncestry?.());
-  import('./characterCreator_feats.js').then(m => m.restoreFeats?.());
-  import('./characterCreator_skills.js').then(m => m.restoreSkills?.());
-  import('./characterCreator_equipment.js').then(m => m.restoreEquipment?.());
+  if (!window.character) return;
+  
+  import('./characterCreator_archetype.js').then(mod => mod.restoreArchetype?.());
+  import('./characterCreator_ancestry.js').then(mod => mod.restoreAncestry?.());
+  import('./characterCreator_abilities.js').then(mod => mod.restoreAbilities?.());
+  import('./characterCreator_skills.js').then(mod => mod.restoreSkills?.());
+  import('./characterCreator_feats.js').then(mod => mod.restoreFeats?.());
+  import('./characterCreator_equipment.js').then(mod => mod.restoreEquipment?.());
+  import('./characterCreator_powers.js').then(mod => mod.restorePowersTechniques?.()); // NEW
   console.log('Character state restored');
 }

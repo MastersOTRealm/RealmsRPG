@@ -8,6 +8,7 @@ import './characterCreator_abilities.js';
 import './characterCreator_skills.js';
 import './characterCreator_feats.js';
 import './characterCreator_equipment.js';
+import './characterCreator_powers.js'; // NEW
 
 // Global character object
 window.character = {};
@@ -30,19 +31,32 @@ document.getElementById('clear-progress-btn')?.addEventListener('click', () => {
 
 // Initialize and load data
 (async () => {
+  console.log('Initializing character creator...');
+  
+  // Initialize Firebase first
   window.db = await initializeFirebase();
+  console.log('Firebase initialized');
+  
+  // Load all database content in parallel
+  console.log('Loading database content...');
   await Promise.all([
     loadTraits(),
     loadSpecies(),
     loadFeats(),
     loadSkills(),
-    loadEquipment()
+    loadEquipment() // Load general equipment from database
   ]);
+  console.log('All database content loaded');
 
+  // Populate ancestry grid (requires species and traits)
   populateAncestryGrid();
 
+  // Restore saved character if exists
   const hasData = loadCharacter();
   if (hasData && window.character) {
+    console.log('Restoring saved character state');
     restoreCharacterState();
   }
+  
+  console.log('Character creator ready');
 })();
