@@ -82,7 +82,10 @@ function confirmArchetype() {
   if (!selectedArchetype || !selectedAbility) return;
 
   window.character = window.character || {};
-  window.character.archetype = { type: selectedArchetype.id, abilities: selectedAbility };
+  window.character.archetype = { 
+    type: selectedArchetype.id, 
+    abilities: selectedAbility  // This will be a string for power/martial, or {power: 'X', martial: 'Y'} for powered-martial
+  };
   saveCharacter();
 
   document.querySelectorAll('.archetype-btn').forEach(btn => btn.style.display = 'none');

@@ -2,6 +2,7 @@ import { saveCharacter } from './characterCreator_storage.js';
 import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
 import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+import { getDefaultTrainingPoints } from './characterCreator_utils.js';
 
 export let selectedPowersTechniques = [];
 let powersInitialized = false;
@@ -444,41 +445,30 @@ function togglePowerTechnique(itemId) {
 
 // Extract and merge proficiencies from selected powers/techniques
 function extractPowersProficiencies() {
-  const proficiencies = new Map(); // key: part name, value: {name, baseTP, op1Lvl, op2Lvl, op3Lvl, description, op1TP, op2TP, op3TP}
-
+  const proficiencies = new Map();
   selectedPowersTechniques.forEach(id => {
     const power = powersLibrary.find(p => p.id === id);
     const tech = techniquesLibrary.find(t => t.id === id);
     const item = power || tech;
-    
     if (!item || !item.parts) return;
-
     const partsDb = power ? powerPartsCache : techniquePartsCache;
-
     item.parts.forEach(partData => {
       const partDef = partsDb?.find(p => p.name === partData.name);
       if (!partDef) return;
-
-      const baseTP = partDef.base_tp || 0;
-      const op1TP = (partDef.op_1_tp || 0) * (partData.op_1_lvl || 0);
-      const op2TP = (partDef.op_2_tp || 0) * (partData.op_2_lvl || 0);
-      const op3TP = (partDef.op_3_tp || 0) * (partData.op_3_lvl || 0);
-
-      // Special handling for Additional Damage in techniques
-      let adjustedOp1TP = op1TP;
+      // ROUND DOWN TP
+      const baseTP = Math.floor(partDef.base_tp || 0);
+      let op1TP = (partDef.op_1_tp || 0) * (partData.op_1_lvl || 0);
       if (!power && partDef.name === 'Additional Damage') {
-        adjustedOp1TP = Math.floor((partDef.op_1_tp || 0) * (partData.op_1_lvl || 0));
+        op1TP = Math.floor((partDef.op_1_tp || 0) * (partData.op_1_lvl || 0));
+      } else {
+        op1TP = Math.floor(op1TP);
       }
-
-      const totalTP = baseTP + adjustedOp1TP + op2TP + op3TP;
-
-      // Only include if there's a TP cost
+      const op2TP = Math.floor((partDef.op_2_tp || 0) * (partData.op_2_lvl || 0));
+      const op3TP = Math.floor((partDef.op_3_tp || 0) * (partData.op_3_lvl || 0));
+      const totalTP = baseTP + op1TP + op2TP + op3TP;
       if (totalTP <= 0) return;
-
       const key = partDef.name;
-      
       if (proficiencies.has(key)) {
-        // Merge: combine option levels (take max for each option)
         const existing = proficiencies.get(key);
         existing.op1Lvl = Math.max(existing.op1Lvl, partData.op_1_lvl || 0);
         existing.op2Lvl = Math.max(existing.op2Lvl, partData.op_2_lvl || 0);
@@ -499,25 +489,23 @@ function extractPowersProficiencies() {
       }
     });
   });
-
   return proficiencies;
 }
 
-// Calculate total TP from proficiencies
 export function getTotalPowersTP() {
   const proficiencies = extractPowersProficiencies();
   let total = 0;
-  
   proficiencies.forEach(prof => {
     let op1TP = prof.op1TP * prof.op1Lvl;
     if (prof.isAdditionalDamage) {
       op1TP = Math.floor(prof.op1TP * prof.op1Lvl);
+    } else {
+      op1TP = Math.floor(op1TP);
     }
-    const op2TP = prof.op2TP * prof.op2Lvl;
-    const op3TP = prof.op3TP * prof.op3Lvl;
-    total += Math.ceil(prof.baseTP + op1TP + op2TP + op3TP);
+    const op2TP = Math.floor(prof.op2TP * prof.op2Lvl);
+    const op3TP = Math.floor(prof.op3TP * prof.op3Lvl);
+    total += Math.floor(prof.baseTP + op1TP + op2TP + op3TP);
   });
-  
   return total;
 }
 
@@ -541,9 +529,11 @@ function updatePowersProficienciesDisplay() {
     let op1TP = prof.op1TP * prof.op1Lvl;
     if (prof.isAdditionalDamage) {
       op1TP = Math.floor(prof.op1TP * prof.op1Lvl);
+    } else {
+      op1TP = Math.floor(op1TP);
     }
-    const op2TP = prof.op2TP * prof.op2Lvl;
-    const op3TP = prof.op3TP * prof.op3Lvl;
+    const op2TP = Math.floor(prof.op2TP * prof.op2Lvl);
+    const op3TP = Math.floor(prof.op3TP * prof.op3Lvl);
     const partTotal = Math.ceil(prof.baseTP + op1TP + op2TP + op3TP);
     totalTP += partTotal;
     
@@ -631,7 +621,6 @@ function updatePowersTechniquesBonusDisplay() {
   });
 }
 
-// Calculate and display training points
 // Update training points display
 function updateTrainingPointsDisplay() {
   const powersTP = getTotalPowersTP();
@@ -640,16 +629,14 @@ function updateTrainingPointsDisplay() {
   import('./characterCreator_equipment.js').then(mod => {
     const equipmentTP = mod.getTotalEquipmentTP ? mod.getTotalEquipmentTP() : 0;
     const totalSpent = equipmentTP + powersTP;
-    const remaining = 22 - totalSpent;
-    
+    const remaining = getDefaultTrainingPoints() - totalSpent;
     const trainingPointsEl = document.getElementById('training-points');
     if (trainingPointsEl) trainingPointsEl.textContent = remaining;
-    
     const powersTrainingPointsEl = document.getElementById('powers-training-points');
     if (powersTrainingPointsEl) powersTrainingPointsEl.textContent = remaining;
   }).catch(() => {
     // Equipment module not loaded yet
-    const remaining = 22 - powersTP;
+    const remaining = getDefaultTrainingPoints() - powersTP;
     const powersTrainingPointsEl = document.getElementById('powers-training-points');
     if (powersTrainingPointsEl) powersTrainingPointsEl.textContent = remaining;
   });

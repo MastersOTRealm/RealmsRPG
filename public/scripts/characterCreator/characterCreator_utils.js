@@ -165,3 +165,68 @@ export function getArmamentMax(archetype) {
   if (archetype.type === 'martial') return 16;
   return 4;
 }
+
+/**
+ * Get archetype ability score
+ */
+export function getArchetypeAbilityScore() {
+    const char = window.character || {};
+    const archetype = char.archetype || {};
+    const abilities = char.abilities || {};
+    
+    if (archetype.type === 'powered-martial') {
+        // For powered-martial, abilities is an object like {power: 'Strength', martial: 'Agility'}
+        const powerAbilityName = archetype.abilities?.power;
+        const martialAbilityName = archetype.abilities?.martial;
+        const pow = abilities[powerAbilityName?.toLowerCase()] ?? 0;
+        const mar = abilities[martialAbilityName?.toLowerCase()] ?? 0;
+        return Math.max(pow, mar);
+    }
+    if (archetype.type === 'martial' || archetype.type === 'power') {
+        // For martial/power, abilities is a string like 'Acuity'
+        const abilityName = archetype.abilities;
+        return abilities[abilityName?.toLowerCase()] ?? 0;
+    }
+    return 0;
+}
+
+/**
+ * Get base health
+ */
+export function getBaseHealth() {
+    const archetype = window.character?.archetype || {};
+    const abilities = window.character?.abilities || {};
+    
+    // Generally 8 + vitality, but if vitality is an archetype ability, use 8 + strength
+    let healthAbility = 'vitality';
+    
+    if (archetype.type === 'powered-martial') {
+        const powerAbilityName = archetype.abilities?.power?.toLowerCase();
+        const martialAbilityName = archetype.abilities?.martial?.toLowerCase();
+        if (powerAbilityName === 'vitality' || martialAbilityName === 'vitality') {
+            healthAbility = 'strength';
+        }
+    } else if (archetype.type === 'power' || archetype.type === 'martial') {
+        if (archetype.abilities?.toLowerCase() === 'vitality') {
+            healthAbility = 'strength';
+        }
+    }
+    
+    return 8 + (abilities[healthAbility] ?? 0);
+}
+
+/**
+ * Get base energy
+ */
+export function getBaseEnergy() {
+    // Energy defaults to 0 + archetype ability score
+    return getArchetypeAbilityScore();
+}
+
+/**
+ * Get default training points
+ */
+export function getDefaultTrainingPoints() {
+    // 22 + archetype ability score
+    return 22 + getArchetypeAbilityScore();
+}

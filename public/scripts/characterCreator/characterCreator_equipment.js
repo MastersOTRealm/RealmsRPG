@@ -2,6 +2,7 @@ import { saveCharacter } from './characterCreator_storage.js';
 import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
 import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+import { getDefaultTrainingPoints } from './characterCreator_utils.js';
 
 export let selectedEquipment = [];
 export let selectedEquipmentQuantities = {}; // { id: quantity }
@@ -114,7 +115,8 @@ function calculateItemCosts(properties, propertiesData) {
     if (!propData) return;
 
     const level = propRef.op_1_lvl || 0;
-    totalTP += propData.base_tp + (propData.op_1_tp * level);
+    // ROUND DOWN TP
+    totalTP += Math.floor(propData.base_tp + (propData.op_1_tp * level));
     totalGP += propData.base_gp + (propData.op_1_gp * level);
     totalIP += propData.base_ip + (propData.op_1_ip * level);
   });
@@ -315,17 +317,19 @@ function populateWeapons() {
       </td>
     `;
 
-    // Details row with quantity controls
+    // Details row with cute quantity controls
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'equipment-details-row';
     detailsRow.innerHTML = `
       <td colspan="8" class="equipment-details-cell">
         ${weapon.description ? `<div class="equipment-description">${weapon.description}</div>` : ''}
-        <div style="margin-bottom:8px;">
-          <label>Quantity:</label>
-          <button class="qty-dec" data-id="${weapon.id}">-</button>
-          <span class="qty-value" id="weapon-qty-${weapon.id}">${getEquipmentQuantity(weapon.id)}</span>
-          <button class="qty-inc" data-id="${weapon.id}">+</button>
+        <div style="margin-bottom:12px;">
+          <label style="font-weight:500;">Quantity:</label>
+          <span class="control" style="display:inline-flex;align-items:center;gap:8px;">
+            <button class="qty-dec" data-id="${weapon.id}" style="width:32px;height:32px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1.2em;cursor:pointer;">-</button>
+            <span class="qty-value" id="weapon-qty-${weapon.id}" style="display:inline-block;width:32px;text-align:center;font-size:1.2em;font-weight:600;background:#f7f7f7;border-radius:8px;">${getEquipmentQuantity(weapon.id)}</span>
+            <button class="qty-inc" data-id="${weapon.id}" style="width:32px;height:32px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1.2em;cursor:pointer;">+</button>
+          </span>
         </div>
         ${weapon.itemParts && weapon.itemParts.length > 0 ? `
           <h4 style="margin: 0 0 8px 0; color: var(--primary);">Properties & Proficiencies</h4>
@@ -520,11 +524,13 @@ function populateGeneralEquipment() {
           <div><strong>Currency:</strong> ${equipItem.currency || 0}</div>
           <div><strong>Rarity:</strong> ${equipItem.rarity || 'Common'}</div>
         </div>
-        <div style="margin-bottom:8px;">
-          <label>Quantity:</label>
-          <button class="qty-dec" data-id="${equipItem.id}">-</button>
-          <span class="qty-value" id="equip-qty-${equipItem.id}">${getEquipmentQuantity(equipItem.id)}</span>
-          <button class="qty-inc" data-id="${equipItem.id}">+</button>
+        <div style="margin-bottom:12px;">
+          <label style="font-weight:500;">Quantity:</label>
+          <span class="control" style="display:inline-flex;align-items:center;gap:8px;">
+            <button class="qty-dec" data-id="${equipItem.id}" style="width:32px;height:32px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1.2em;cursor:pointer;">-</button>
+            <span class="qty-value" id="equip-qty-${equipItem.id}" style="display:inline-block;width:32px;text-align:center;font-size:1.2em;font-weight:600;background:#f7f7f7;border-radius:8px;">${getEquipmentQuantity(equipItem.id)}</span>
+            <button class="qty-inc" data-id="${equipItem.id}" style="width:32px;height:32px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1.2em;cursor:pointer;">+</button>
+          </span>
         </div>
         <button class="feat-select-btn ${selected ? 'selected' : ''} ${!canAfford ? 'disabled' : ''}" 
                 data-id="${equipItem.id}" 
@@ -566,25 +572,20 @@ function populateGeneralEquipment() {
 
 // Extract and merge proficiencies from selected equipment
 function extractEquipmentProficiencies() {
-  const proficiencies = new Map(); // key: property name/id (+ damage type for weapon damage), value: {name, baseTP, op1Lvl, description, damageType}
-
+  const proficiencies = new Map();
   selectedEquipment.forEach(id => {
     const weapon = weaponLibrary.find(w => w.id === id);
     const armor = armorLibrary.find(a => a.id === id);
     const item = weapon || armor;
-    
     if (!item || !item.itemParts) return;
-
     item.itemParts.forEach(propRef => {
       const propData = itemPropertiesCache?.find(prop => prop.id === propRef.id || prop.name === propRef.name);
       if (!propData) return;
-
-      const baseTP = Math.ceil(propData.base_tp || 0);
+      // ROUND DOWN TP
+      const baseTP = Math.floor(propData.base_tp || 0);
       const optionLevel = propRef.op_1_lvl || 0;
-      const optionTP = optionLevel > 0 ? Math.ceil((propData.op_1_tp || 0) * optionLevel) : 0;
+      const optionTP = optionLevel > 0 ? Math.floor((propData.op_1_tp || 0) * optionLevel) : 0;
       const totalTP = baseTP + optionTP;
-
-      // Only include if there's a TP cost
       if (totalTP <= 0) return;
 
       // Special handling for Weapon Damage - count separately per damage type
@@ -618,7 +619,6 @@ function extractEquipmentProficiencies() {
       }
     });
   });
-
   return proficiencies;
 }
 
@@ -626,12 +626,10 @@ function extractEquipmentProficiencies() {
 export function getTotalEquipmentTP() {
   const proficiencies = extractEquipmentProficiencies();
   let total = 0;
-  
   proficiencies.forEach(prof => {
-    const optionTP = prof.op1Lvl > 0 ? Math.ceil(prof.op1TP * prof.op1Lvl) : 0;
+    const optionTP = prof.op1Lvl > 0 ? Math.floor(prof.op1TP * prof.op1Lvl) : 0;
     total += prof.baseTP + optionTP;
   });
-  
   return total;
 }
 
@@ -652,7 +650,7 @@ function updateEquipmentProficienciesDisplay() {
 
   let totalTP = 0;
   const chips = Array.from(proficiencies.values()).map(prof => {
-    const optionTP = prof.op1Lvl > 0 ? Math.ceil(prof.op1TP * prof.op1Lvl) : 0;
+    const optionTP = prof.op1Lvl > 0 ? Math.floor(prof.op1TP * prof.op1Lvl) : 0;
     totalTP += prof.baseTP + optionTP;
     
     let text = prof.name;
@@ -757,9 +755,13 @@ function updateEquipmentBonusDisplay() {
     return `
       <div class="skill-bonus-item">
         <span class="skill-bonus-name">${item.name}</span>
-        <span class="skill-fixed-ability">Currency: ${currency} &times; <span class="bonus-qty-value" id="bonus-qty-${id}">${qty}</span></span>
-        <button class="bonus-qty-dec" data-id="${id}">-</button>
-        <button class="bonus-qty-inc" data-id="${id}">+</button>
+        <span class="skill-fixed-ability">Currency: ${currency} &times; 
+          <span class="control" style="display:inline-flex;align-items:center;gap:8px;">
+            <button class="bonus-qty-dec" data-id="${id}" style="width:28px;height:28px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1em;cursor:pointer;">-</button>
+            <span class="bonus-qty-value" id="bonus-qty-${id}" style="display:inline-block;width:28px;text-align:center;font-size:1em;font-weight:600;background:#f7f7f7;border-radius:8px;">${qty}</span>
+            <button class="bonus-qty-inc" data-id="${id}" style="width:28px;height:28px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1em;cursor:pointer;">+</button>
+          </span>
+        </span>
         <button class="equipment-remove-btn" data-id="${id}" title="Remove equipment">×</button>
       </div>
     `;
@@ -960,16 +962,14 @@ function updateTrainingPointsDisplay() {
   import('./characterCreator_powers.js').then(mod => {
     const powersTP = mod.getTotalPowersTP ? mod.getTotalPowersTP() : 0;
     const totalSpent = equipmentTP + powersTP;
-    const remaining = 22 - totalSpent;
-    
+    const remaining = getDefaultTrainingPoints() - totalSpent;
     const trainingPointsEl = document.getElementById('training-points');
     if (trainingPointsEl) trainingPointsEl.textContent = remaining;
-    
     const powersTrainingPointsEl = document.getElementById('powers-training-points');
     if (powersTrainingPointsEl) powersTrainingPointsEl.textContent = remaining;
   }).catch(() => {
     // Powers module not loaded yet
-    const remaining = 22 - equipmentTP;
+    const remaining = getDefaultTrainingPoints() - equipmentTP;
     const trainingPointsEl = document.getElementById('training-points');
     if (trainingPointsEl) trainingPointsEl.textContent = remaining;
   });

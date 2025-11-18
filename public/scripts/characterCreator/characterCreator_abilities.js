@@ -30,9 +30,18 @@ function initAbilities() {
     };
     saveCharacter();
 
+    // Update finalize tab if active
+    if (document.getElementById('content-finalize').classList.contains('active')) {
+      import('./characterCreator_main.js').then(mod => mod.updateFinalizeTab?.());
+    }
+
     if (document.getElementById('skills-bonus-list')) {
       import('./characterCreator_skills.js').then(m => m.updateSkillsBonusDisplay?.());
     }
+
+    // Update training points and finalize tab globally
+    window.updateTrainingPointsDisplay?.();
+    window.updateFinalizeTab?.();
   }
 
   const char = window.character || {};

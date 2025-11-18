@@ -37,6 +37,7 @@
                 <div class="tab" data-tab="feats">6. Feats</div>
                 <div class="tab" data-tab="equipment">7. Equipment</div>
                 <div class="tab" data-tab="powers">8. Powers & Techniques</div> <!-- NEW -->
+                <div class="tab" data-tab="finalize">9. Finalize</div> <!-- NEW TAB -->
                 <button id="clear-progress-btn" style="margin-left: auto; background: #d9534f; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">Restart Character</button>
             </div>
 
@@ -605,6 +606,52 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Finalize Tab -->
+            <div id="content-finalize" class="content">
+                <h1>Finalize Your Character</h1>
+                <div class="finalize-form">
+                    <div class="finalize-fields">
+                        <label for="finalize-name"><strong>Name:</strong></label>
+                        <input type="text" id="finalize-name" placeholder="Character Name">
+                        <label for="finalize-height"><strong>Height (cm):</strong></label>
+                        <input type="number" id="finalize-height" min="50" max="300" placeholder="Height in cm">
+                        <label for="finalize-weight"><strong>Weight (kg):</strong></label>
+                        <input type="number" id="finalize-weight" min="20" max="300" placeholder="Weight in kg">
+                        <label for="finalize-appearance"><strong>Appearance Description:</strong></label>
+                        <textarea id="finalize-appearance" rows="2" placeholder="Describe your character's appearance"></textarea>
+                        <label for="finalize-archetype-desc"><strong>Archetype Description:</strong></label>
+                        <textarea id="finalize-archetype-desc" rows="2" placeholder="Describe your archetype"></textarea>
+                        <label for="finalize-notes"><strong>Notes:</strong></label>
+                        <textarea id="finalize-notes" rows="2" placeholder="Any notes about your character"></textarea>
+                    </div>
+                    <div class="finalize-health-energy" style="display:flex;flex-direction:row;justify-content:center;align-items:center;gap:32px;padding:32px 0;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <label for="finalize-health" style="font-size:1.1em;"><strong>Health</strong></label>
+        <div style="margin-top:10px;">
+            <button type="button" id="finalize-dec-health" class="small-button">-</button>
+            <input type="number" id="finalize-health" min="0" style="width:60px;text-align:center;" readonly>
+            <button type="button" id="finalize-inc-health" class="small-button">+</button>
+        </div>
+        <span id="finalize-health-base" style="margin-top:8px;color:#888;"></span>
+    </div>
+    <div style="flex:0 0 180px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <h3 style="margin-bottom:8px;">Health-Energy Points</h3>
+        <span style="font-size:2em;font-weight:700;color:#1a73e8;" id="finalize-hep-remaining">18</span>
+        <span style="color:#888;">Points to Allot</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <label for="finalize-energy" style="font-size:1.1em;"><strong>Energy</strong></label>
+        <div style="margin-top:10px;">
+            <button type="button" id="finalize-dec-energy" class="small-button">-</button>
+            <input type="number" id="finalize-energy" min="0" style="width:60px;text-align:center;" readonly>
+            <button type="button" id="finalize-inc-energy" class="small-button">+</button>
+        </div>
+        <span id="finalize-energy-base" style="margin-top:8px;color:#888;"></span>
+    </div>
+</div>
                 </div>
             </div>
         </div>

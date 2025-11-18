@@ -18,3 +18,108 @@
 @import './components/feats.css';
 @import './components/equipment.css';
 @import './components/buttons.css';
+
+.finalize-form {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+}
+.finalize-fields {
+    flex: 1 1 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.finalize-fields label {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+.finalize-fields input,
+.finalize-fields textarea {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+}
+.finalize-health-energy {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+    padding: 32px 0;
+    background: #f7faff;
+    border-radius: 16px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.07);
+    margin-top: 24px;
+}
+.finalize-health-energy > div {
+    min-width: 160px;
+}
+.finalize-health-energy h3 {
+    font-size: 1.3em;
+    margin-bottom: 8px;
+}
+.finalize-health-energy input[type="number"] {
+    width: 60px;
+    padding: 3px;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 1.2em;
+}
+.finalize-health-energy .small-button {
+    padding: 4px 12px;
+    font-size: 1.2em;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    background: #eee;
+    cursor: pointer;
+    margin: 0 4px;
+}
+.finalize-health-energy .small-button:active {
+    background: #ddd;
+}
+.control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 0;
+}
+.control button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0056b3; /* Dark blue background */
+    border: 1px solid #ccc;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white; /* Ensure +/- is visible on dark background */
+    line-height: 1; /* Center text vertically */
+    padding: 0; /* Remove padding to center better */
+}
+.control button:active {
+    background: #003d82; /* Darker on click */
+}
+.control .qty-value,
+.control .bonus-qty-value {
+    display: inline-block;
+    width: 32px;
+    text-align: center;
+    font-size: 1.2em;
+    font-weight: 600;
+    background: #f7f7f7;
+    border-radius: 8px;
+    margin: 0 2px;
+}
+@media (max-width: 900px) {
+    .finalize-form { flex-direction: column; gap: 18px; }
+    .finalize-health-energy { flex-direction: column; gap: 18px; }
+    .finalize-health-energy > div { min-width: 120px; }
+}
