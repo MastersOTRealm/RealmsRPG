@@ -4,6 +4,7 @@ import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 
 export let selectedEquipment = [];
+export let selectedEquipmentQuantities = {}; // { id: quantity }
 let equipmentInitialized = false;
 let itemPropertiesCache = null;
 let weaponLibrary = [];
@@ -245,11 +246,19 @@ function getArmamentMax() {
   return max;
 }
 
+function getEquipmentQuantity(id) {
+  return selectedEquipmentQuantities[id] || 1;
+}
+
+function setEquipmentQuantity(id, qty) {
+  selectedEquipmentQuantities[id] = Math.max(1, qty);
+}
+
 function populateWeapons() {
   const list = document.getElementById('weapons-list');
   if (!list) return;
-  
   list.innerHTML = '';
+
   const searchInput = document.getElementById('weapons-search');
   const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
   const availableCurrency = 200 - getSpentCurrency();
@@ -263,15 +272,15 @@ function populateWeapons() {
   weapons.forEach(weapon => {
     const selected = selectedEquipment.includes(weapon.id);
     const price = Math.ceil(weapon.goldCost || 0);
-    const canAfford = price <= availableCurrency || selected;
-    const exceedsTP = (weapon.totalBP || 0) > armamentMax;
+    const canAfford = price * getEquipmentQuantity(weapon.id) <= availableCurrency || selected;
+    const exceedsTP = (weapon.totalBP || 0) * getEquipmentQuantity(weapon.id) > armamentMax;
     const canAdd = canAfford && (!exceedsTP || selected);
-    
+
     // Main row
     const row = document.createElement('tr');
     if (selected) row.classList.add('selected-equipment');
     row.dataset.itemId = weapon.id;
-    
+
     // Damage
     let damageStr = 'N/A';
     if (weapon.damage && Array.isArray(weapon.damage)) {
@@ -301,15 +310,23 @@ function populateWeapons() {
       <td>${weapon.totalBP || 0}</td>
       <td>${price}</td>
       <td>${weapon.rarity}</td>
-      <td><button class="equipment-add-btn ${selected ? 'selected' : ''}" data-id="${weapon.id}" ${!canAdd ? 'disabled' : ''} title="${exceedsTP && !selected ? 'Exceeds Armament Proficiency Max' : ''}">${selected ? '✓' : '+'}</button></td>
+      <td>
+        <button class="equipment-add-btn ${selected ? 'selected' : ''}" data-id="${weapon.id}" ${!canAdd ? 'disabled' : ''} title="${exceedsTP && !selected ? 'Exceeds Armament Proficiency Max' : ''}">${selected ? '✓' : '+'}</button>
+      </td>
     `;
-    
-    // Details row
+
+    // Details row with quantity controls
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'equipment-details-row';
     detailsRow.innerHTML = `
       <td colspan="8" class="equipment-details-cell">
         ${weapon.description ? `<div class="equipment-description">${weapon.description}</div>` : ''}
+        <div style="margin-bottom:8px;">
+          <label>Quantity:</label>
+          <button class="qty-dec" data-id="${weapon.id}">-</button>
+          <span class="qty-value" id="weapon-qty-${weapon.id}">${getEquipmentQuantity(weapon.id)}</span>
+          <button class="qty-inc" data-id="${weapon.id}">+</button>
+        </div>
         ${weapon.itemParts && weapon.itemParts.length > 0 ? `
           <h4 style="margin: 0 0 8px 0; color: var(--primary);">Properties & Proficiencies</h4>
           <div class="equipment-properties-list">
@@ -351,6 +368,18 @@ function populateWeapons() {
       }
     });
     
+    // Quantity controls
+    detailsRow.querySelector('.qty-dec').addEventListener('click', () => {
+      setEquipmentQuantity(weapon.id, getEquipmentQuantity(weapon.id) - 1);
+      document.getElementById(`weapon-qty-${weapon.id}`).textContent = getEquipmentQuantity(weapon.id);
+      updateEquipmentCurrency();
+    });
+    detailsRow.querySelector('.qty-inc').addEventListener('click', () => {
+      setEquipmentQuantity(weapon.id, getEquipmentQuantity(weapon.id) + 1);
+      document.getElementById(`weapon-qty-${weapon.id}`).textContent = getEquipmentQuantity(weapon.id);
+      updateEquipmentCurrency();
+    });
+
     list.appendChild(row);
     list.appendChild(detailsRow);
   });
@@ -473,7 +502,7 @@ function populateGeneralEquipment() {
 
   equipment.forEach(equipItem => {
     const selected = selectedEquipment.includes(equipItem.id);
-    const canAfford = equipItem.currency <= availableCurrency || selected;
+    const canAfford = (equipItem.currency * getEquipmentQuantity(equipItem.id)) <= availableCurrency || selected;
     
     const itemDiv = document.createElement('div');
     itemDiv.className = 'feat-item';
@@ -490,6 +519,12 @@ function populateGeneralEquipment() {
           <div><strong>Category:</strong> ${equipItem.category || 'N/A'}</div>
           <div><strong>Currency:</strong> ${equipItem.currency || 0}</div>
           <div><strong>Rarity:</strong> ${equipItem.rarity || 'Common'}</div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>Quantity:</label>
+          <button class="qty-dec" data-id="${equipItem.id}">-</button>
+          <span class="qty-value" id="equip-qty-${equipItem.id}">${getEquipmentQuantity(equipItem.id)}</span>
+          <button class="qty-inc" data-id="${equipItem.id}">+</button>
         </div>
         <button class="feat-select-btn ${selected ? 'selected' : ''} ${!canAfford ? 'disabled' : ''}" 
                 data-id="${equipItem.id}" 
@@ -514,25 +549,152 @@ function populateGeneralEquipment() {
       if (!canAfford) return;
       toggleEquipment(equipItem.id, availableCurrency, equipItem.currency, 'general');
     });
+
+    // Quantity controls
+    itemDiv.querySelector('.qty-dec').addEventListener('click', () => {
+      setEquipmentQuantity(equipItem.id, getEquipmentQuantity(equipItem.id) - 1);
+      document.getElementById(`equip-qty-${equipItem.id}`).textContent = getEquipmentQuantity(equipItem.id);
+      updateEquipmentCurrency();
+    });
+    itemDiv.querySelector('.qty-inc').addEventListener('click', () => {
+      setEquipmentQuantity(equipItem.id, getEquipmentQuantity(equipItem.id) + 1);
+      document.getElementById(`equip-qty-${equipItem.id}`).textContent = getEquipmentQuantity(equipItem.id);
+      updateEquipmentCurrency();
+    });
   });
+}
+
+// Extract and merge proficiencies from selected equipment
+function extractEquipmentProficiencies() {
+  const proficiencies = new Map(); // key: property name/id (+ damage type for weapon damage), value: {name, baseTP, op1Lvl, description, damageType}
+
+  selectedEquipment.forEach(id => {
+    const weapon = weaponLibrary.find(w => w.id === id);
+    const armor = armorLibrary.find(a => a.id === id);
+    const item = weapon || armor;
+    
+    if (!item || !item.itemParts) return;
+
+    item.itemParts.forEach(propRef => {
+      const propData = itemPropertiesCache?.find(prop => prop.id === propRef.id || prop.name === propRef.name);
+      if (!propData) return;
+
+      const baseTP = Math.ceil(propData.base_tp || 0);
+      const optionLevel = propRef.op_1_lvl || 0;
+      const optionTP = optionLevel > 0 ? Math.ceil((propData.op_1_tp || 0) * optionLevel) : 0;
+      const totalTP = baseTP + optionTP;
+
+      // Only include if there's a TP cost
+      if (totalTP <= 0) return;
+
+      // Special handling for Weapon Damage - count separately per damage type
+      let key = propData.id || propData.name;
+      let damageType = null;
+      
+      if (propData.name === 'Weapon Damage' && weapon && weapon.damage && Array.isArray(weapon.damage)) {
+        const damageTypes = weapon.damage
+          .filter(d => d && d.type && d.type !== 'none')
+          .map(d => d.type)
+          .join(', ');
+        if (damageTypes) {
+          damageType = damageTypes;
+          key = `${propData.name}|${damageTypes}`;
+        }
+      }
+      
+      if (proficiencies.has(key)) {
+        // Merge: take the highest option level
+        const existing = proficiencies.get(key);
+        existing.op1Lvl = Math.max(existing.op1Lvl, optionLevel);
+      } else {
+        proficiencies.set(key, {
+          name: propData.name,
+          description: propData.description || '',
+          baseTP: baseTP,
+          op1Lvl: optionLevel,
+          op1TP: propData.op_1_tp || 0,
+          damageType: damageType
+        });
+      }
+    });
+  });
+
+  return proficiencies;
+}
+
+// Calculate total TP from proficiencies
+export function getTotalEquipmentTP() {
+  const proficiencies = extractEquipmentProficiencies();
+  let total = 0;
+  
+  proficiencies.forEach(prof => {
+    const optionTP = prof.op1Lvl > 0 ? Math.ceil(prof.op1TP * prof.op1Lvl) : 0;
+    total += prof.baseTP + optionTP;
+  });
+  
+  return total;
+}
+
+// Update proficiencies display
+function updateEquipmentProficienciesDisplay() {
+  const profList = document.getElementById('equipment-proficiencies-list');
+  if (!profList) return;
+
+  const proficiencies = extractEquipmentProficiencies();
+
+  if (proficiencies.size === 0) {
+    profList.innerHTML = '<p class="no-skills-message">No proficiencies from selected equipment</p>';
+    // Update header to show 0 TP
+    const header = document.querySelector('#content-equipment .section-header[data-section="equipment-proficiencies"] h3');
+    if (header) header.innerHTML = 'Proficiencies <span style="margin-left: auto; font-weight: normal; color: #666;">Total TP Cost: 0</span>';
+    return;
+  }
+
+  let totalTP = 0;
+  const chips = Array.from(proficiencies.values()).map(prof => {
+    const optionTP = prof.op1Lvl > 0 ? Math.ceil(prof.op1TP * prof.op1Lvl) : 0;
+    totalTP += prof.baseTP + optionTP;
+    
+    let text = prof.name;
+    if (prof.damageType) text += ` (${prof.damageType})`;
+    if (prof.op1Lvl > 0) text += ` (Level ${prof.op1Lvl})`;
+    let tpText = ` | TP: ${prof.baseTP}`;
+    if (optionTP > 0) tpText += ` + ${optionTP}`;
+    text += tpText;
+    
+    return `<div class="equipment-property-chip proficiency-chip" title="${prof.description}">${text}</div>`;
+  }).join('');
+
+  profList.innerHTML = chips;
+  
+  // Update header to show total TP
+  const header = document.querySelector('#content-equipment .section-header[data-section="equipment-proficiencies"] h3');
+  if (header) header.innerHTML = `Proficiencies <span style="margin-left: auto; font-weight: normal; color: #666;">Total TP Cost: ${totalTP}</span>`;
+  
+  // Update training points display
+  updateTrainingPointsDisplay();
 }
 
 function toggleEquipment(itemId, availableCurrency, itemCurrency, itemType) {
   if (selectedEquipment.includes(itemId)) {
     selectedEquipment = selectedEquipment.filter(id => id !== itemId);
+    delete selectedEquipmentQuantities[itemId];
   } else {
     if (itemCurrency > availableCurrency) return;
     selectedEquipment.push(itemId);
+    if (!selectedEquipmentQuantities[itemId]) selectedEquipmentQuantities[itemId] = 1;
   }
-  
+
   updateEquipmentCurrency();
   if (!window.character) window.character = {};
   window.character.equipment = selectedEquipment;
+  window.character.equipmentQuantities = selectedEquipmentQuantities;
   saveCharacter();
-  
+
   populateWeapons();
   populateArmor();
   populateGeneralEquipment();
+  updateTrainingPointsDisplay();
 }
 
 function getSpentCurrency() {
@@ -541,8 +703,9 @@ function getSpentCurrency() {
     const armor = armorLibrary.find(a => a.id === id);
     const general = generalEquipment.find(g => g.id === id);
     const item = weapon || armor || general;
+    const qty = getEquipmentQuantity(id);
     const value = item ? (item.goldCost || item.currency || 0) : 0;
-    return sum + Math.ceil(value);
+    return sum + Math.ceil(value) * qty;
   }, 0);
 }
 
@@ -553,6 +716,7 @@ function updateEquipmentCurrency() {
   if (el) el.textContent = remaining;
   updateEquipmentBonusDisplay();
   updateArmamentMax();
+  updateEquipmentProficienciesDisplay();
 }
 
 function updateArmamentMax() {
@@ -573,9 +737,10 @@ function updateArmamentMax() {
 function updateEquipmentBonusDisplay() {
   const bonusList = document.getElementById('equipment-bonus-list');
   if (!bonusList) return;
-  
+
   if (selectedEquipment.length === 0) {
     bonusList.innerHTML = '<p class="no-skills-message">No equipment selected yet</p>';
+    updateTrainingPointsDisplay();
     return;
   }
 
@@ -586,28 +751,53 @@ function updateEquipmentBonusDisplay() {
     const item = weapon || armor || general;
     if (!item) return '';
     
+    const qty = getEquipmentQuantity(id);
     const currency = Math.ceil(item.goldCost || item.currency || 0);
+
     return `
       <div class="skill-bonus-item">
         <span class="skill-bonus-name">${item.name}</span>
-        <span class="skill-fixed-ability">Currency: ${currency}</span>
+        <span class="skill-fixed-ability">Currency: ${currency} &times; <span class="bonus-qty-value" id="bonus-qty-${id}">${qty}</span></span>
+        <button class="bonus-qty-dec" data-id="${id}">-</button>
+        <button class="bonus-qty-inc" data-id="${id}">+</button>
         <button class="equipment-remove-btn" data-id="${id}" title="Remove equipment">×</button>
       </div>
     `;
   }).filter(Boolean).join('');
-  
+
   // Add event listeners to remove buttons
   bonusList.querySelectorAll('.equipment-remove-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const itemId = btn.dataset.id;
       selectedEquipment = selectedEquipment.filter(id => id !== itemId);
+      delete selectedEquipmentQuantities[itemId];
       updateEquipmentCurrency();
       if (!window.character) window.character = {};
       window.character.equipment = selectedEquipment;
+      window.character.equipmentQuantities = selectedEquipmentQuantities;
       saveCharacter();
       populateWeapons();
       populateArmor();
       populateGeneralEquipment();
+      updateTrainingPointsDisplay();
+    });
+  });
+
+  // Add event listeners to quantity controls
+  bonusList.querySelectorAll('.bonus-qty-dec').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const itemId = btn.dataset.id;
+      setEquipmentQuantity(itemId, getEquipmentQuantity(itemId) - 1);
+      document.getElementById(`bonus-qty-${itemId}`).textContent = getEquipmentQuantity(itemId);
+      updateEquipmentCurrency();
+    });
+  });
+  bonusList.querySelectorAll('.bonus-qty-inc').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const itemId = btn.dataset.id;
+      setEquipmentQuantity(itemId, getEquipmentQuantity(itemId) + 1);
+      document.getElementById(`bonus-qty-${itemId}`).textContent = getEquipmentQuantity(itemId);
+      updateEquipmentCurrency();
     });
   });
 }
@@ -655,6 +845,22 @@ async function initEquipmentUI() {
       newEquipmentHeader.addEventListener('click', () => {
         const body = document.getElementById('equipment-body');
         const arrow = newEquipmentHeader.querySelector('.toggle-arrow');
+        if (body && arrow) {
+          body.classList.toggle('open');
+          arrow.classList.toggle('open');
+        }
+      });
+    }
+
+    // Equipment Proficiencies header
+    const equipProfHeader = document.querySelector('#content-equipment .section-header[data-section="equipment-proficiencies"]');
+    if (equipProfHeader) {
+      const newEquipProfHeader = equipProfHeader.cloneNode(true);
+      equipProfHeader.parentNode.replaceChild(newEquipProfHeader, equipProfHeader);
+      
+      newEquipProfHeader.addEventListener('click', () => {
+        const body = document.getElementById('equipment-proficiencies-body');
+        const arrow = newEquipProfHeader.querySelector('.toggle-arrow');
         if (body && arrow) {
           body.classList.toggle('open');
           arrow.classList.toggle('open');
@@ -717,6 +923,11 @@ async function initEquipmentUI() {
   if (equipmentBody) equipmentBody.classList.add('open');
   if (equipmentArrow) equipmentArrow.classList.add('open');
 
+  const equipProfBody = document.getElementById('equipment-proficiencies-body');
+  const equipProfArrow = document.querySelector('#content-equipment .section-header[data-section="equipment-proficiencies"] .toggle-arrow');
+  if (equipProfBody) equipProfBody.classList.add('open');
+  if (equipProfArrow) equipProfArrow.classList.add('open');
+
   // Populate all lists
   console.log(`Populating UI with ${weaponLibrary.length} weapons, ${armorLibrary.length} armor, ${generalEquipment.length} general equipment`);
   populateWeapons();
@@ -724,7 +935,9 @@ async function initEquipmentUI() {
   populateGeneralEquipment();
   updateEquipmentBonusDisplay();
   updateEquipmentCurrency();
-  updateArmamentMax(); // Add this line
+  updateArmamentMax();
+  updateEquipmentProficienciesDisplay();
+  updateTrainingPointsDisplay(); // NEW
 }
 
 document.querySelector('.tab[data-tab="equipment"]')?.addEventListener('click', async () => {
@@ -734,6 +947,30 @@ document.querySelector('.tab[data-tab="equipment"]')?.addEventListener('click', 
 export function restoreEquipment() {
   if (window.character?.equipment) {
     selectedEquipment = window.character.equipment;
+    selectedEquipmentQuantities = window.character.equipmentQuantities || {};
   }
   initEquipmentUI();
+}
+
+// Update training points display
+function updateTrainingPointsDisplay() {
+  const equipmentTP = getTotalEquipmentTP();
+  
+  // Import powers TP if available
+  import('./characterCreator_powers.js').then(mod => {
+    const powersTP = mod.getTotalPowersTP ? mod.getTotalPowersTP() : 0;
+    const totalSpent = equipmentTP + powersTP;
+    const remaining = 22 - totalSpent;
+    
+    const trainingPointsEl = document.getElementById('training-points');
+    if (trainingPointsEl) trainingPointsEl.textContent = remaining;
+    
+    const powersTrainingPointsEl = document.getElementById('powers-training-points');
+    if (powersTrainingPointsEl) powersTrainingPointsEl.textContent = remaining;
+  }).catch(() => {
+    // Powers module not loaded yet
+    const remaining = 22 - equipmentTP;
+    const trainingPointsEl = document.getElementById('training-points');
+    if (trainingPointsEl) trainingPointsEl.textContent = remaining;
+  });
 }

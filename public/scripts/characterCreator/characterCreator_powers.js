@@ -439,6 +439,136 @@ function togglePowerTechnique(itemId) {
   
   populatePowers();
   populateTechniques();
+  updateTrainingPointsDisplay(); // <-- Ensure TP updates immediately
+}
+
+// Extract and merge proficiencies from selected powers/techniques
+function extractPowersProficiencies() {
+  const proficiencies = new Map(); // key: part name, value: {name, baseTP, op1Lvl, op2Lvl, op3Lvl, description, op1TP, op2TP, op3TP}
+
+  selectedPowersTechniques.forEach(id => {
+    const power = powersLibrary.find(p => p.id === id);
+    const tech = techniquesLibrary.find(t => t.id === id);
+    const item = power || tech;
+    
+    if (!item || !item.parts) return;
+
+    const partsDb = power ? powerPartsCache : techniquePartsCache;
+
+    item.parts.forEach(partData => {
+      const partDef = partsDb?.find(p => p.name === partData.name);
+      if (!partDef) return;
+
+      const baseTP = partDef.base_tp || 0;
+      const op1TP = (partDef.op_1_tp || 0) * (partData.op_1_lvl || 0);
+      const op2TP = (partDef.op_2_tp || 0) * (partData.op_2_lvl || 0);
+      const op3TP = (partDef.op_3_tp || 0) * (partData.op_3_lvl || 0);
+
+      // Special handling for Additional Damage in techniques
+      let adjustedOp1TP = op1TP;
+      if (!power && partDef.name === 'Additional Damage') {
+        adjustedOp1TP = Math.floor((partDef.op_1_tp || 0) * (partData.op_1_lvl || 0));
+      }
+
+      const totalTP = baseTP + adjustedOp1TP + op2TP + op3TP;
+
+      // Only include if there's a TP cost
+      if (totalTP <= 0) return;
+
+      const key = partDef.name;
+      
+      if (proficiencies.has(key)) {
+        // Merge: combine option levels (take max for each option)
+        const existing = proficiencies.get(key);
+        existing.op1Lvl = Math.max(existing.op1Lvl, partData.op_1_lvl || 0);
+        existing.op2Lvl = Math.max(existing.op2Lvl, partData.op_2_lvl || 0);
+        existing.op3Lvl = Math.max(existing.op3Lvl, partData.op_3_lvl || 0);
+      } else {
+        proficiencies.set(key, {
+          name: partDef.name,
+          description: partDef.description || '',
+          baseTP: baseTP,
+          op1Lvl: partData.op_1_lvl || 0,
+          op2Lvl: partData.op_2_lvl || 0,
+          op3Lvl: partData.op_3_lvl || 0,
+          op1TP: partDef.op_1_tp || 0,
+          op2TP: partDef.op_2_tp || 0,
+          op3TP: partDef.op_3_tp || 0,
+          isAdditionalDamage: partDef.name === 'Additional Damage'
+        });
+      }
+    });
+  });
+
+  return proficiencies;
+}
+
+// Calculate total TP from proficiencies
+export function getTotalPowersTP() {
+  const proficiencies = extractPowersProficiencies();
+  let total = 0;
+  
+  proficiencies.forEach(prof => {
+    let op1TP = prof.op1TP * prof.op1Lvl;
+    if (prof.isAdditionalDamage) {
+      op1TP = Math.floor(prof.op1TP * prof.op1Lvl);
+    }
+    const op2TP = prof.op2TP * prof.op2Lvl;
+    const op3TP = prof.op3TP * prof.op3Lvl;
+    total += Math.ceil(prof.baseTP + op1TP + op2TP + op3TP);
+  });
+  
+  return total;
+}
+
+// Update proficiencies display
+function updatePowersProficienciesDisplay() {
+  const profList = document.getElementById('powers-proficiencies-list');
+  if (!profList) return;
+
+  const proficiencies = extractPowersProficiencies();
+
+  if (proficiencies.size === 0) {
+    profList.innerHTML = '<p class="no-skills-message">No proficiencies from selected powers/techniques</p>';
+    // Update header to show 0 TP
+    const header = document.querySelector('#content-powers .section-header[data-section="powers-proficiencies"] h3');
+    if (header) header.innerHTML = 'Proficiencies <span style="margin-left: auto; font-weight: normal; color: #666;">Total TP Cost: 0</span>';
+    return;
+  }
+
+  let totalTP = 0;
+  const chips = Array.from(proficiencies.values()).map(prof => {
+    let op1TP = prof.op1TP * prof.op1Lvl;
+    if (prof.isAdditionalDamage) {
+      op1TP = Math.floor(prof.op1TP * prof.op1Lvl);
+    }
+    const op2TP = prof.op2TP * prof.op2Lvl;
+    const op3TP = prof.op3TP * prof.op3Lvl;
+    const partTotal = Math.ceil(prof.baseTP + op1TP + op2TP + op3TP);
+    totalTP += partTotal;
+    
+    let text = prof.name;
+    if (prof.op1Lvl > 0) text += ` (Opt 1: ${prof.op1Lvl})`;
+    if (prof.op2Lvl > 0) text += ` (Opt 2: ${prof.op2Lvl})`;
+    if (prof.op3Lvl > 0) text += ` (Opt 3: ${prof.op3Lvl})`;
+    
+    let tpText = ` | TP: ${Math.ceil(prof.baseTP)}`;
+    if (op1TP > 0) tpText += ` + ${Math.ceil(op1TP)}`;
+    if (op2TP > 0) tpText += ` + ${Math.ceil(op2TP)}`;
+    if (op3TP > 0) tpText += ` + ${Math.ceil(op3TP)}`;
+    text += tpText;
+    
+    return `<div class="equipment-property-chip proficiency-chip" title="${prof.description}">${text}</div>`;
+  }).join('');
+
+  profList.innerHTML = chips;
+  
+  // Update header to show total TP
+  const header = document.querySelector('#content-powers .section-header[data-section="powers-proficiencies"] h3');
+  if (header) header.innerHTML = `Proficiencies <span style="margin-left: auto; font-weight: normal; color: #666;">Total TP Cost: ${totalTP}</span>`;
+  
+  // Update training points display
+  updateTrainingPointsDisplay();
 }
 
 function getSpentEnergy() {
@@ -457,6 +587,7 @@ function updatePowersDisplay() {
   if (maxEl) maxEl.textContent = innateMax;
   
   updatePowersTechniquesBonusDisplay();
+  updatePowersProficienciesDisplay();
 }
 
 function updatePowersTechniquesBonusDisplay() {
@@ -465,6 +596,7 @@ function updatePowersTechniquesBonusDisplay() {
   
   if (selectedPowersTechniques.length === 0) {
     bonusList.innerHTML = '<p class="no-skills-message">No powers or techniques selected yet</p>';
+    updateTrainingPointsDisplay(); // Ensure TP updates when all removed
     return;
   }
 
@@ -494,7 +626,32 @@ function updatePowersTechniquesBonusDisplay() {
       saveCharacter();
       populatePowers();
       populateTechniques();
+      updateTrainingPointsDisplay(); // <-- Ensure TP updates immediately
     });
+  });
+}
+
+// Calculate and display training points
+// Update training points display
+function updateTrainingPointsDisplay() {
+  const powersTP = getTotalPowersTP();
+  
+  // Import equipment TP if available
+  import('./characterCreator_equipment.js').then(mod => {
+    const equipmentTP = mod.getTotalEquipmentTP ? mod.getTotalEquipmentTP() : 0;
+    const totalSpent = equipmentTP + powersTP;
+    const remaining = 22 - totalSpent;
+    
+    const trainingPointsEl = document.getElementById('training-points');
+    if (trainingPointsEl) trainingPointsEl.textContent = remaining;
+    
+    const powersTrainingPointsEl = document.getElementById('powers-training-points');
+    if (powersTrainingPointsEl) powersTrainingPointsEl.textContent = remaining;
+  }).catch(() => {
+    // Equipment module not loaded yet
+    const remaining = 22 - powersTP;
+    const powersTrainingPointsEl = document.getElementById('powers-training-points');
+    if (powersTrainingPointsEl) powersTrainingPointsEl.textContent = remaining;
   });
 }
 
@@ -525,6 +682,22 @@ async function initPowersUI() {
       newTechniquesHeader.addEventListener('click', () => {
         const body = document.getElementById('techniques-body');
         const arrow = newTechniquesHeader.querySelector('.toggle-arrow');
+        if (body && arrow) {
+          body.classList.toggle('open');
+          arrow.classList.toggle('open');
+        }
+      });
+    }
+
+    // Powers Proficiencies header
+    const powersProfHeader = document.querySelector('#content-powers .section-header[data-section="powers-proficiencies"]');
+    if (powersProfHeader) {
+      const newPowersProfHeader = powersProfHeader.cloneNode(true);
+      powersProfHeader.parentNode.replaceChild(newPowersProfHeader, powersProfHeader);
+      
+      newPowersProfHeader.addEventListener('click', () => {
+        const body = document.getElementById('powers-proficiencies-body');
+        const arrow = newPowersProfHeader.querySelector('.toggle-arrow');
         if (body && arrow) {
           body.classList.toggle('open');
           arrow.classList.toggle('open');
@@ -568,11 +741,19 @@ async function initPowersUI() {
   if (techniquesBody) techniquesBody.classList.add('open');
   if (techniquesArrow) techniquesArrow.classList.add('open');
 
+  // Open proficiencies section by default
+  const powersProfBody = document.getElementById('powers-proficiencies-body');
+  const powersProfArrow = document.querySelector('#content-powers .section-header[data-section="powers-proficiencies"] .toggle-arrow');
+  if (powersProfBody) powersProfBody.classList.add('open');
+  if (powersProfArrow) powersProfArrow.classList.add('open');
+
   console.log(`Populating UI with ${powersLibrary.length} powers, ${techniquesLibrary.length} techniques`);
   populatePowers();
   populateTechniques();
   updatePowersTechniquesBonusDisplay();
+  updatePowersProficienciesDisplay();
   updatePowersDisplay();
+  updateTrainingPointsDisplay(); // NEW
 }
 
 document.querySelector('.tab[data-tab="powers"]')?.addEventListener('click', async () => {
