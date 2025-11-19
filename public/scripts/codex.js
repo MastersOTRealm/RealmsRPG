@@ -1199,10 +1199,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           ...p,
           base_ip: parseInt(p.base_ip) || 0,
           base_tp: parseInt(p.base_tp) || 0,
-          base_gp: parseInt(p.base_gp) || 0,
+          base_c: parseInt(p.base_c) || 0,
           opt_1_ip: parseInt(p.opt_1_ip) || 0,
           opt_1_tp: parseInt(p.opt_1_tp) || 0,
-          opt_1_gp: parseInt(p.opt_1_gp) || 0,
+          opt_1_c: parseInt(p.opt_1_c) || 0,
         }));
         console.log(`✓ Loaded ${allProperties.length} properties successfully`);
         propertiesLoaded = true;
@@ -1281,11 +1281,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           ${p.description ? `<div class="property-description" style="color:#000;">${p.description}</div>` : ''}
           <div class="property-details">
             <div><strong>Base IP:</strong> ${p.base_ip || 'N/A'}</div>
-            <div><strong>Base GP:</strong> ${p.base_gp || 'N/A'}</div>
+            <div><strong>Base Currency:</strong> ${p.base_c || 'N/A'}</div>
             ${p.opt_1_ip ? `<div><strong>Optional IP:</strong> ${p.opt_1_ip}</div>` : ''}
-            ${p.opt_1_gp ? `<div><strong>Optional GP:</strong> ${p.opt_1_gp}</div>` : ''}
+            ${p.opt_1_c ? `<div><strong>Optional Currency:</strong> ${p.opt_1_c}</div>` : ''}
           </div>
-          ${p.opt_1_desc ? `<div class="option"><strong>Optional:</strong> ${p.opt_1_desc} (IP: ${p.opt_1_ip}, TP: ${p.opt_1_tp}, GP: ${p.opt_1_gp})</div>` : ''}
+          ${p.opt_1_desc ? `<div class="option"><strong>Optional:</strong> ${p.opt_1_desc} (IP: ${p.opt_1_ip}, TP: ${p.opt_1_tp}, Currency: ${p.opt_1_c})</div>` : ''}
         </div>
       </div>
     `).join('');

@@ -8,7 +8,6 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
 let appCheckInitialized = false;
 
 (() => {
-    // Initialize as empty array - will be populated from database
     let itemProperties = [];
 
     // Sanitize property name to ID (matches your script)
@@ -50,14 +49,13 @@ let appCheckInitialized = false;
                     id: id,
                     name: prop.name || '',
                     description: prop.description || '',
-                    // Coerce to numbers
                     base_ip: parseFloat(prop.base_ip) || 0,
                     base_tp: parseFloat(prop.base_tp) || 0,
-                    base_gp: parseFloat(prop.base_gp) || 0,
+                    base_c: parseFloat(prop.base_c) || 0,
                     op_1_desc: prop.op_1_desc || '',
                     op_1_ip: parseFloat(prop.op_1_ip) || 0,
                     op_1_tp: parseFloat(prop.op_1_tp) || 0,
-                    op_1_gp: parseFloat(prop.op_1_gp) || 0,
+                    op_1_c: parseFloat(prop.op_1_c) || 0,
                     type: prop.type ? prop.type.charAt(0).toUpperCase() + prop.type.slice(1) : 'Weapon'
                 }));
                 
@@ -153,11 +151,11 @@ let appCheckInitialized = false;
             (property.op_1_desc && property.op_1_desc.trim() !== '') ||
             (property.op_1_ip && property.op_1_ip !== 0) ||
             (property.op_1_tp && property.op_1_tp !== 0) ||
-            (property.op_1_gp && property.op_1_gp !== 0);
+            (property.op_1_c && property.op_1_c !== 0);
 
         return `
-            <h3>${property.name} <span class="small-text">Item Points: <span id="baseIP-${propertyIndex}">${property.base_ip}</span></span> <span class="small-text">Training Points: <span id="baseTP-${propertyIndex}">${property.base_tp}</span></span> <span class="small-text">Gold Points: <span id="baseGP-${propertyIndex}">${property.base_gp}</span></span></h3>
-            <p>Property IP: <span id="totalIP-${propertyIndex}">${property.base_ip}</span> Property TP: <span id="totalTP-${propertyIndex}">${property.base_tp}</span> Property GP: <span id="totalGP-${propertyIndex}">${property.base_gp}</span></p>
+            <h3>${property.name} <span class="small-text">Item Points: <span id="baseIP-${propertyIndex}">${property.base_ip}</span></span> <span class="small-text">Training Points: <span id="baseTP-${propertyIndex}">${property.base_tp}</span></span> <span class="small-text">Currency Points: <span id="baseCurrency-${propertyIndex}">${property.base_c}</span></span></h3>
+            <p>Property IP: <span id="totalIP-${propertyIndex}">${property.base_ip}</span> Property TP: <span id="totalTP-${propertyIndex}">${property.base_tp}</span> Property Currency: <span id="totalCurrency-${propertyIndex}">${property.base_c}</span></p>
             <p>${property.description}</p>
             ${hasOption1 ? `
             <div class="option-container">
@@ -288,13 +286,12 @@ let appCheckInitialized = false;
     }
 
     // --- calculateCosts function for splitting logic ---
-    function calculateGoldCost(totalGP, totalIP) {
+    function calculateGoldCost(totalCurrency, totalIP) {
         let goldCost = 0;
         let rarity = 'Common';
 
-        // Clamp totalIP and totalGP to at least 0
         const clampedIP = Math.max(0, totalIP);
-        const clampedGP = Math.max(0, totalGP);
+        const clampedCurrency = Math.max(0, totalCurrency);
 
         const rarityBrackets = [
             { name: 'Common', low: 25, ipLow: 0, ipHigh: 4 },
@@ -310,12 +307,11 @@ let appCheckInitialized = false;
             const bracket = rarityBrackets[i];
             if (clampedIP >= bracket.ipLow && clampedIP <= bracket.ipHigh) {
                 rarity = bracket.name;
-                goldCost = bracket.low * (1 + 0.125 * clampedGP);
+                goldCost = bracket.low * (1 + 0.125 * clampedCurrency);
                 break;
             }
         }
 
-        // Ensure goldCost is never less than the bracket minimum
         goldCost = Math.max(goldCost, rarityBrackets.find(b => b.name === rarity).low);
 
         return { goldCost, rarity };
@@ -324,7 +320,7 @@ let appCheckInitialized = false;
     function updateTotalCosts() {
         let sumBaseIP = 0;
         let totalTP = 0;
-        let totalGP = 0;
+        let totalCurrency = 0;
         let hasArmorProperty = false;
         let hasWeaponProperty = false;
         tpSources = []; // Reset
@@ -347,10 +343,10 @@ let appCheckInitialized = false;
         ) {
             const ip = propDamageReduction.base_ip + (damageReduction - 1) * (propDamageReduction.op_1_ip || 0);
             const tp = propDamageReduction.base_tp + (damageReduction - 1) * (propDamageReduction.op_1_tp || 0);
-            const gp = propDamageReduction.base_gp + (damageReduction - 1) * (propDamageReduction.op_1_gp || 0);
+            const c = propDamageReduction.base_c + (damageReduction - 1) * (propDamageReduction.op_1_c || 0);
             sumBaseIP += ip;
             totalTP += tp;
-            totalGP += gp;
+            totalCurrency += c;
             tpSources.push(`${tp} TP: Damage Reduction ${damageReduction}`);
         }
         // --- end Damage Reduction ---
@@ -359,14 +355,14 @@ let appCheckInitialized = false;
         if (window.selectedArmamentType && window.selectedArmamentType() === "Shield" && propShieldBase) {
             sumBaseIP += propShieldBase.base_ip;
             totalTP += propShieldBase.base_tp;
-            totalGP += propShieldBase.base_gp;
+            totalCurrency += propShieldBase.base_c;
             tpSources.push(`${propShieldBase.base_tp} TP: Shield Base`);
         }
         // --- Armor base (from DB) ---
         if (window.selectedArmamentType && window.selectedArmamentType() === "Armor" && propArmorBase) {
             sumBaseIP += propArmorBase.base_ip;
             totalTP += propArmorBase.base_tp;
-            totalGP += propArmorBase.base_gp;
+            totalCurrency += propArmorBase.base_c;
             tpSources.push(`${propArmorBase.base_tp} TP: Armor Base`);
         }
 
@@ -394,14 +390,14 @@ let appCheckInitialized = false;
 
             let propertyIP = property.base_ip;
             let propertyTP = property.base_tp;
-            let propertyGP = property.base_gp;
+            let propertyCurrency = property.base_c;
             propertyIP += (property.op_1_ip || 0) * propertyData.op_1_lvl;
             propertyTP += (property.op_1_tp || 0) * propertyData.op_1_lvl;
-            propertyGP += (property.op_1_gp || 0) * propertyData.op_1_lvl;
+            propertyCurrency += (property.op_1_c || 0) * propertyData.op_1_lvl;
 
             sumBaseIP += propertyIP;
             totalTP += propertyTP;
-            totalGP += propertyGP;
+            totalCurrency += propertyCurrency;
 
             const opt1TP = (property.op_1_tp || 0) * propertyData.op_1_lvl;
             if (propertyTP > 0 || opt1TP > 0) {
@@ -449,10 +445,10 @@ let appCheckInitialized = false;
                     }
                 }
                 if (property) {
-                    const gpAdd = property.base_gp + (typeof property.op_1_gp === "number" ? property.op_1_gp : 0) * (value - 1);
+                    const cAdd = property.base_c + (typeof property.op_1_c === "number" ? property.op_1_c : 0) * (value - 1);
                     // Debug log:
-                    console.log(`Adding GP for ${req.type} (value=${value}): ${gpAdd}`);
-                    totalGP += gpAdd;
+                    console.log(`Adding Currency for ${req.type} (value=${value}): ${cAdd}`);
+                    totalCurrency += cAdd;
                     sumBaseIP += property.base_ip + (typeof property.op_1_ip === "number" ? property.op_1_ip : 0) * (value - 1);
                     const reqTP = property.base_tp + (typeof property.op_1_tp === "number" ? property.op_1_tp : 0) * (value - 1);
                     totalTP += reqTP;
@@ -467,10 +463,10 @@ let appCheckInitialized = false;
         if (window.selectedArmamentType && window.selectedArmamentType() === "Armor" && typeof window.agilityReduction === "number" && window.agilityReduction > 0) {
             const agilityReductionProperty = itemProperties.find(p => p.name === "Agility Reduction" && p.type === "Armor");
             if (agilityReductionProperty) {
-                const gpAdd = agilityReductionProperty.base_gp + ((window.agilityReduction - 1) * (typeof agilityReductionProperty.op_1_gp === "number" ? agilityReductionProperty.op_1_gp : 0));
+                const cAdd = agilityReductionProperty.base_c + ((window.agilityReduction - 1) * (typeof agilityReductionProperty.op_1_c === "number" ? agilityReductionProperty.op_1_c : 0));
                 // Debug log:
-                console.log(`Adding GP for Agility Reduction (${window.agilityReduction}): ${gpAdd}`);
-                totalGP += gpAdd;
+                console.log(`Adding Currency for Agility Reduction (${window.agilityReduction}): ${cAdd}`);
+                totalCurrency += cAdd;
                 sumBaseIP += agilityReductionProperty.base_ip + ((window.agilityReduction - 1) * (typeof agilityReductionProperty.op_1_ip === "number" ? agilityReductionProperty.op_1_ip : 0));
                 const agTP = agilityReductionProperty.base_tp + ((window.agilityReduction - 1) * (typeof agilityReductionProperty.op_1_tp === "number" ? agilityReductionProperty.op_1_tp : 0));
                 totalTP += agTP;
@@ -485,10 +481,10 @@ let appCheckInitialized = false;
         if (range > 0 && propRange) {
             const ip = propRange.base_ip + (range - 1) * (propRange.op_1_ip || 0);
             const tp = propRange.base_tp + (range - 1) * (propRange.op_1_tp || 0);
-            const gp = propRange.base_gp + (range - 1) * (propRange.op_1_gp || 0);
+            const c = propRange.base_c + (range - 1) * (propRange.op_1_c || 0);
             sumBaseIP += ip;
             totalTP += tp;
-            totalGP += gp;
+            totalCurrency += c;
             tpSources.push(`${tp} TP: Range ${range * 8} Spaces`);
         }
 
@@ -496,7 +492,7 @@ let appCheckInitialized = false;
         if (handedness === "Two-Handed" && propTwoHanded) {
             sumBaseIP += propTwoHanded.base_ip;
             totalTP += propTwoHanded.base_tp;
-            totalGP += propTwoHanded.base_gp;
+            totalCurrency += propTwoHanded.base_c;
             tpSources.push(`${propTwoHanded.base_tp} TP: Two-Handed`);
         }
 
@@ -511,10 +507,10 @@ let appCheckInitialized = false;
             weaponDamageLevel = Math.max(0, ((dieAmount1 * dieSize1) - 4) / 2);
             const ip = propWeaponDamage.base_ip + weaponDamageLevel * (propWeaponDamage.op_1_ip || 0);
             const tp = propWeaponDamage.base_tp + weaponDamageLevel * (propWeaponDamage.op_1_tp || 0);
-            const gp = propWeaponDamage.base_gp + weaponDamageLevel * (propWeaponDamage.op_1_gp || 0);
+            const c = propWeaponDamage.base_c + weaponDamageLevel * (propWeaponDamage.op_1_c || 0);
             sumBaseIP += ip;
             totalTP += tp;
-            totalGP += gp;
+            totalCurrency += c;
             tpSources.push(`${tp} TP: Weapon Damage ${dieAmount1}d${dieSize1} ${damageType1} (Option 1 Level ${weaponDamageLevel})`);
         }
 
@@ -525,19 +521,19 @@ let appCheckInitialized = false;
                 const splitLevel = splits - 1; // base covers first split
                 const ip = propSplitDice.base_ip + splitLevel * (propSplitDice.op_1_ip || 0);
                 const tp = propSplitDice.base_tp + splitLevel * (propSplitDice.op_1_tp || 0);
-                const gp = propSplitDice.base_gp + splitLevel * (propSplitDice.op_1_gp || 0);
+                const c = propSplitDice.base_c + splitLevel * (propSplitDice.op_1_c || 0);
                 sumBaseIP += ip;
                 totalTP += tp;
-                totalGP += gp;
+                totalCurrency += c;
                 tpSources.push(`${tp} TP: Split Damage Dice (${splits} split${splits>1?'s':''})${splitLevel>0?` (Option 1 Level ${splitLevel})`:''}`);
             }
         }
 
         // Debug log before gold cost calculation:
-        console.log(`Before calculateGoldCost: totalGP=${totalGP}, sumBaseIP=${sumBaseIP}`);
+        console.log(`Before calculateGoldCost: totalCurrency=${totalCurrency}, sumBaseIP=${sumBaseIP}`);
 
         // Calculate gold cost and rarity
-        const { goldCost, rarity } = calculateGoldCost(totalGP, sumBaseIP);
+        const { goldCost, rarity } = calculateGoldCost(totalCurrency, sumBaseIP);
 
         // Debug log after gold cost calculation:
         console.log(`After calculateGoldCost: goldCost=${goldCost}, rarity=${rarity}`);
@@ -547,12 +543,12 @@ let appCheckInitialized = false;
 
         const totalIPElement = document.getElementById("totalIP");
         const totalTPElement = document.getElementById("totalTP");
-        const totalGPElement = document.getElementById("totalGP");
+        const totalCurrencyElement = document.getElementById("totalCurrency");
         const totalRarityElement = document.getElementById("totalRarity");
 
         if (totalIPElement) totalIPElement.textContent = finalIP.toFixed(2);
         if (totalTPElement) totalTPElement.textContent = totalTP.toFixed(2);
-        if (totalGPElement) totalGPElement.textContent = goldCost.toFixed(2);
+        if (totalCurrencyElement) totalCurrencyElement.textContent = goldCost.toFixed(2);
         if (totalRarityElement) totalRarityElement.textContent = rarity;
 
         updateItemSummary(finalIP, rarity);
@@ -598,7 +594,7 @@ let appCheckInitialized = false;
         const itemName = document.getElementById('itemName').value;
         const summaryIP = document.getElementById('totalIP')?.textContent;
         let summaryTP = document.getElementById('totalTP')?.textContent;
-        const summaryGP = document.getElementById('totalGP')?.textContent;
+        const summaryCurrency = document.getElementById('totalCurrency')?.textContent;
         const summaryRange = range === 0 ? 'Melee' : `${range * 8} Spaces`;
 
         // Clamp TP to 0 for weapons
@@ -608,7 +604,7 @@ let appCheckInitialized = false;
 
         if (document.getElementById('summaryIP')) document.getElementById('summaryIP').textContent = summaryIP;
         if (document.getElementById('summaryTP')) document.getElementById('summaryTP').textContent = summaryTP;
-        if (document.getElementById('summaryGP')) document.getElementById('summaryGP').textContent = summaryGP;
+        if (document.getElementById('summaryCurrency')) document.getElementById('summaryCurrency').textContent = summaryCurrency;
         if (document.getElementById('summaryRange')) document.getElementById('summaryRange').textContent = summaryRange;
 
         // Build damage summary without calculateCosts; use computeSplits for display
@@ -655,7 +651,7 @@ let appCheckInitialized = false;
                     <h4>${property.name}</h4>
                     <p>Item Points: ${property.base_ip}</p>
                     <p>Training Points: ${property.base_tp}</p>
-                    <p>Gold Points: ${property.base_gp}</p>
+                    <p>Currency Points: ${property.base_c}</p>
                     <p>${property.description}</p>
                     ${property.op_1_desc ? `<p>Option 1: ${property.op_1_desc} (Level: ${propertyData.op_1_lvl})</p>` : ''}
                 `;
@@ -1014,7 +1010,6 @@ let appCheckInitialized = false;
         const damageReductionCostSummary = document.getElementById('damageReductionCostSummary');
 
         function updateDamageReductionDisplay() {
-            // Find damage reduction property after itemProperties is loaded
             const damageReductionProperty = itemProperties.find(
                 p => p.type === "Armor" && p.name === "Damage Reduction"
             );
@@ -1025,8 +1020,8 @@ let appCheckInitialized = false;
                 if (damageReduction > 0) {
                     const ip = damageReductionProperty.base_ip + (damageReduction - 1) * (damageReductionProperty.op_1_ip || 0);
                     const tp = damageReductionProperty.base_tp + (damageReduction - 1) * (damageReductionProperty.op_1_tp || 0);
-                    const gp = damageReductionProperty.base_gp + (damageReduction - 1) * (damageReductionProperty.op_1_gp || 0);
-                    damageReductionCostSummary.textContent = `IP: ${ip}, TP: ${tp}, GP: ${gp}`;
+                    const c = damageReductionProperty.base_c + (damageReduction - 1) * (damageReductionProperty.op_1_c || 0);
+                    damageReductionCostSummary.textContent = `IP: ${ip}, TP: ${tp}, Currency: ${c}`;
                 } else {
                     damageReductionCostSummary.textContent = "";
                 }

@@ -32,15 +32,13 @@ function waitForAuth() {
 }
 
 // Calculate gold cost from GP and IP (matching library.js logic)
-function calculateGoldCostAndRarity(gp, ip) {
+function calculateGoldCostAndRarity(c, ip) {
   let goldCost = 0;
   let rarity = 'Common';
 
-  // Clamp totalIP and totalGP to at least 0
   const clampedIP = Math.max(0, ip);
-  const clampedGP = Math.max(0, gp);
+  const clampedCurrency = Math.max(0, c);
 
-  // Use IP for rarity brackets (matching itemMechanics.js)
   const rarityBrackets = [
     { name: 'Common', low: 25, ipLow: 0, ipHigh: 4 },
     { name: 'Uncommon', low: 100, ipLow: 4.01, ipHigh: 6 },
@@ -51,18 +49,15 @@ function calculateGoldCostAndRarity(gp, ip) {
     { name: 'Ascended', low: 100000, ipLow: 16.01, ipHigh: Infinity }
   ];
 
-  // Find rarity bracket based on IP
   for (let i = 0; i < rarityBrackets.length; i++) {
     const bracket = rarityBrackets[i];
     if (clampedIP >= bracket.ipLow && clampedIP <= bracket.ipHigh) {
       rarity = bracket.name;
-      // Calculate gold cost: bracket minimum * (1 + 0.125 * GP)
-      goldCost = bracket.low * (1 + 0.125 * clampedGP);
+      goldCost = bracket.low * (1 + 0.125 * clampedCurrency);
       break;
     }
   }
 
-  // Ensure goldCost is never less than the bracket minimum
   const bracket = rarityBrackets.find(b => b.name === rarity);
   if (bracket) {
     goldCost = Math.max(goldCost, bracket.low);
@@ -71,7 +66,6 @@ function calculateGoldCostAndRarity(gp, ip) {
   return { goldCost, rarity };
 }
 
-// Load properties from Realtime Database (matching library.js)
 async function loadItemProperties(database) {
   if (itemPropertiesCache) return itemPropertiesCache;
   
@@ -87,11 +81,11 @@ async function loadItemProperties(database) {
         description: prop.description || '',
         base_ip: parseFloat(prop.base_ip) || 0,
         base_tp: parseFloat(prop.base_tp) || 0,
-        base_gp: parseFloat(prop.base_gp) || 0,
+        base_c: parseFloat(prop.base_c) || 0,
         op_1_desc: prop.op_1_desc || '',
         op_1_ip: parseFloat(prop.op_1_ip) || 0,
         op_1_tp: parseFloat(prop.op_1_tp) || 0,
-        op_1_gp: parseFloat(prop.op_1_gp) || 0,
+        op_1_c: parseFloat(prop.op_1_c) || 0,
         type: prop.type ? prop.type.charAt(0).toUpperCase() + prop.type.slice(1) : 'Weapon'
       }));
       return itemPropertiesCache;
@@ -102,26 +96,24 @@ async function loadItemProperties(database) {
   return [];
 }
 
-// Calculate item costs (matching library.js)
 function calculateItemCosts(properties, propertiesData) {
   let totalTP = 0;
-  let totalGP = 0;
+  let totalCurrency = 0;
   let totalIP = 0;
 
-  if (!Array.isArray(properties)) return { totalTP: 0, totalGP: 0, totalIP: 0 };
+  if (!Array.isArray(properties)) return { totalTP: 0, totalCurrency: 0, totalIP: 0 };
 
   properties.forEach(propRef => {
     const propData = propertiesData.find(p => p.id === propRef.id || p.name === propRef.name);
     if (!propData) return;
 
     const level = propRef.op_1_lvl || 0;
-    // ROUND DOWN TP
     totalTP += Math.floor(propData.base_tp + (propData.op_1_tp * level));
-    totalGP += propData.base_gp + (propData.op_1_gp * level);
+    totalCurrency += propData.base_c + (propData.op_1_c * level);
     totalIP += propData.base_ip + (propData.op_1_ip * level);
   });
 
-  return { totalTP, totalGP, totalIP };
+  return { totalTP, totalCurrency, totalIP };
 }
 
 // Fetch weapons from user's library
@@ -146,7 +138,7 @@ async function fetchWeaponsFromLibrary() {
       const data = docSnap.data();
       if (data.armamentType === 'Weapon') {
         const costs = calculateItemCosts(data.properties || [], propertiesData);
-        const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalGP, costs.totalIP);
+        const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalCurrency, costs.totalIP);
         
         weapons.push({
           id: docSnap.id,
@@ -157,7 +149,7 @@ async function fetchWeaponsFromLibrary() {
           properties: data.properties || [],
           itemParts: data.properties || [],
           totalBP: costs.totalTP,
-          totalGP: costs.totalGP,
+          totalCurrency: costs.totalCurrency,
           totalIP: costs.totalIP,
           goldCost: goldCost,
           rarity: rarity
@@ -194,7 +186,7 @@ async function fetchArmorFromLibrary() {
       const data = docSnap.data();
       if (data.armamentType === 'Armor' || data.armamentType === 'Shield') {
         const costs = calculateItemCosts(data.properties || [], propertiesData);
-        const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalGP, costs.totalIP);
+        const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalCurrency, costs.totalIP);
         
         // Find damage reduction from properties
         let damageReduction = 0;
@@ -219,7 +211,7 @@ async function fetchArmorFromLibrary() {
           properties: data.properties || [],
           itemParts: data.properties || [],
           totalBP: costs.totalTP,
-          totalGP: costs.totalGP,
+          totalCurrency: costs.totalCurrency,
           totalIP: costs.totalIP,
           goldCost: goldCost,
           rarity: rarity

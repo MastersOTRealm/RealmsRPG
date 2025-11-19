@@ -55,11 +55,11 @@ async function loadItemProperties(database) {
                 description: prop.description || '',
                 base_ip: parseFloat(prop.base_ip) || 0,
                 base_tp: parseFloat(prop.base_tp) || 0,
-                base_gp: parseFloat(prop.base_gp) || 0,
+                base_c: parseFloat(prop.base_c) || 0,
                 op_1_desc: prop.op_1_desc || '',
                 op_1_ip: parseFloat(prop.op_1_ip) || 0,
                 op_1_tp: parseFloat(prop.op_1_tp) || 0,
-                op_1_gp: parseFloat(prop.op_1_gp) || 0,
+                op_1_c: parseFloat(prop.op_1_c) || 0,
                 type: prop.type ? prop.type.charAt(0).toUpperCase() + prop.type.slice(1) : 'Weapon'
             }));
             console.log(`Loaded ${itemPropertiesCache.length} properties from database`);
@@ -388,7 +388,7 @@ async function showSavedItems(db, userId, database) {
         querySnapshot.forEach((docSnapshot) => {
             const item = docSnapshot.data();
             const costs = calculateItemCosts(item.properties || [], propertiesData);
-            const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalGP, costs.totalIP);
+            const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalCurrency, costs.totalIP);
             
             items.push({ 
                 ...item, 
@@ -454,8 +454,8 @@ function createItemCard(item, db, userId, propertiesData) {
                 <span>${item.costs.totalIP.toFixed(2)}</span>
             </div>
             <div class="detail-field">
-                <label>Gold Points:</label>
-                <span>${item.costs.totalGP.toFixed(2)}</span>
+                <label>Currency Points:</label>
+                <span>${item.costs.totalCurrency.toFixed(2)}</span>
             </div>
         </div>
     `;

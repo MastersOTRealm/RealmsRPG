@@ -59,7 +59,7 @@ export function formatRange(itemProperties) {
 export function calculateItemCosts(itemProperties, propertiesData) {
     let sumBaseIP = 0;
     let totalTP = 0;
-    let totalGP = 0;
+    let totalCurrency = 0;
     let hasArmorProperty = false;
     let hasWeaponProperty = false;
 
@@ -82,7 +82,7 @@ export function calculateItemCosts(itemProperties, propertiesData) {
         if (propShieldBase) {
             sumBaseIP += propShieldBase.base_ip;
             totalTP += propShieldBase.base_tp;
-            totalGP += propShieldBase.base_gp;
+            totalCurrency += propShieldBase.base_c;
         }
     }
     // --- Armor base (from DB) ---
@@ -90,7 +90,7 @@ export function calculateItemCosts(itemProperties, propertiesData) {
         if (propArmorBase) {
             sumBaseIP += propArmorBase.base_ip;
             totalTP += propArmorBase.base_tp;
-            totalGP += propArmorBase.base_gp;
+            totalCurrency += propArmorBase.base_c;
         }
     }
 
@@ -100,15 +100,15 @@ export function calculateItemCosts(itemProperties, propertiesData) {
         if (property && !["Shield Base", "Armor Base", "Range", "Two-Handed", "Split Damage Dice", "Damage Reduction", "Weapon Damage"].includes(property.name)) {
             let propertyIP = property.base_ip;
             let propertyTP = property.base_tp;
-            let propertyGP = property.base_gp;
+            let propertyCurrency = property.base_c;
             const optionLevel = itemProp.op_1_lvl || 0;
             propertyIP += (property.op_1_ip || 0) * optionLevel;
             propertyTP += (property.op_1_tp || 0) * optionLevel;
-            propertyGP += (property.op_1_gp || 0) * optionLevel;
+            propertyCurrency += (property.op_1_c || 0) * optionLevel;
 
             sumBaseIP += propertyIP;
             totalTP += propertyTP;
-            totalGP += propertyGP;
+            totalCurrency += propertyCurrency;
 
             if (property.type === 'Armor') hasArmorProperty = true;
             if (property.type === 'Weapon') hasWeaponProperty = true;
@@ -126,17 +126,17 @@ export function calculateItemCosts(itemProperties, propertiesData) {
         const level = rangeProp.op_1_lvl || 0;
         const ip = propRange.base_ip + level * (propRange.op_1_ip || 0);
         const tp = propRange.base_tp + level * (propRange.op_1_tp || 0);
-        const gp = propRange.base_gp + level * (propRange.op_1_gp || 0);
+        const c = propRange.base_c + level * (propRange.op_1_c || 0);
         sumBaseIP += ip;
         totalTP += tp;
-        totalGP += gp;
+        totalCurrency += c;
     }
 
     // --- Two-Handed cost from DB ---
     if (itemProperties.some(p => p.name === "Two-Handed") && propTwoHanded) {
         sumBaseIP += propTwoHanded.base_ip;
         totalTP += propTwoHanded.base_tp;
-        totalGP += propTwoHanded.base_gp;
+        totalCurrency += propTwoHanded.base_c;
     }
 
     // --- Weapon Damage (base dice only; splits priced separately) ---
@@ -146,10 +146,10 @@ export function calculateItemCosts(itemProperties, propertiesData) {
         const level = weaponDamageProp.op_1_lvl || 0;
         const ip = propWeaponDamage.base_ip + level * (propWeaponDamage.op_1_ip || 0);
         const tp = propWeaponDamage.base_tp + level * (propWeaponDamage.op_1_tp || 0);
-        const gp = propWeaponDamage.base_gp + level * (propWeaponDamage.op_1_gp || 0);
+        const c = propWeaponDamage.base_c + level * (propWeaponDamage.op_1_c || 0);
         sumBaseIP += ip;
         totalTP += tp;
-        totalGP += gp;
+        totalCurrency += c;
     }
 
     // --- Split Damage Dice priced by DB property with levels = totalSplits ---
@@ -158,13 +158,13 @@ export function calculateItemCosts(itemProperties, propertiesData) {
         const level = splitProp.op_1_lvl || 0;
         const ip = propSplitDice.base_ip + level * (propSplitDice.op_1_ip || 0);
         const tp = propSplitDice.base_tp + level * (propSplitDice.op_1_tp || 0);
-        const gp = propSplitDice.base_gp + level * (propSplitDice.op_1_gp || 0);
+        const c = propSplitDice.base_c + level * (propSplitDice.op_1_c || 0);
         sumBaseIP += ip;
         totalTP += tp;
-        totalGP += gp;
+        totalCurrency += c;
     }
 
-    return { totalIP: sumBaseIP, totalTP, totalGP };
+    return { totalIP: sumBaseIP, totalTP, totalCurrency };
 }
 
 /**
@@ -173,13 +173,13 @@ export function calculateItemCosts(itemProperties, propertiesData) {
  * @param {number} totalIP - Total item points
  * @returns {Object} { goldCost, rarity }
  */
-export function calculateGoldCostAndRarity(totalGP, totalIP) {
+export function calculateGoldCostAndRarity(totalCurrency, totalIP) {
     let goldCost = 0;
     let rarity = 'Common';
 
     // Clamp totalIP and totalGP to at least 0
     const clampedIP = Math.max(0, totalIP);
-    const clampedGP = Math.max(0, totalGP);
+    const clampedCurrency = Math.max(0, totalCurrency);
 
     const rarityBrackets = [
         { name: 'Common', low: 25, ipLow: 0, ipHigh: 4 },
@@ -195,7 +195,7 @@ export function calculateGoldCostAndRarity(totalGP, totalIP) {
         const bracket = rarityBrackets[i];
         if (clampedIP >= bracket.ipLow && clampedIP <= bracket.ipHigh) {
             rarity = bracket.name;
-            goldCost = bracket.low * (1 + 0.125 * clampedGP);
+            goldCost = bracket.low * (1 + 0.125 * clampedCurrency);
             break;
         }
     }

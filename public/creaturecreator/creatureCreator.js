@@ -282,16 +282,16 @@ function getCreatureCurrency(level) {
     return Math.round(200 * Math.pow(1.45, level - 1));
 }
 
-// --- Calculate total GP spent on armaments ---
-function getArmamentsTotalGP() {
+// --- Calculate total Currency spent on armaments ---
+function getArmamentsTotalCurrency() {
     return armaments.reduce((sum, item) => {
-        // Prefer totalGP, fallback to gp, fallback to 0
-        let gp = 0;
-        if (typeof item.totalGP === "number") gp = item.totalGP;
-        else if (typeof item.gp === "number") gp = item.gp;
-        else if (!isNaN(Number(item.totalGP))) gp = Number(item.totalGP);
-        else if (!isNaN(Number(item.gp))) gp = Number(item.gp);
-        return sum + (gp || 0);
+        // Prefer totalCurrency, fallback to currency, fallback to 0
+        let currency = 0;
+        if (typeof item.totalCurrency === "number") currency = item.totalCurrency;
+        else if (typeof item.currency === "number") currency = item.currency;
+        else if (!isNaN(Number(item.totalCurrency))) currency = Number(item.totalCurrency);
+        else if (!isNaN(Number(item.currency))) currency = Number(item.currency);
+        return sum + (currency || 0);
     }, 0);
 }
 // --- Summary Update ---
@@ -618,7 +618,7 @@ function updateSummary() {
     if (currencyElem) {
         const levelVal = document.getElementById("creatureLevel").value || 1;
         const baseCurrency = getCreatureCurrency(levelVal);
-        const spent = getArmamentsTotalGP();
+        const spent = getArmamentsTotalCurrency();
         const remaining = baseCurrency - spent; // allow negative values
         currencyElem.textContent = remaining;
         currencyElem.title = `Base: ${baseCurrency} - Spent: ${spent}`;
@@ -2423,7 +2423,7 @@ function updateCreatureDetailsBox() {
     }
     // Currency
     const baseCurrency = getCreatureCurrency(level);
-    const spentCurrency = getArmamentsTotalGP();
+    const spentCurrency = getArmamentsTotalCurrency();
     const detailsCurrency = document.getElementById("detailsCurrency");
     if (detailsCurrency) {
         detailsCurrency.textContent = `${baseCurrency - spentCurrency} / ${baseCurrency}`;
