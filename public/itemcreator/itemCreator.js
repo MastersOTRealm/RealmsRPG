@@ -4,6 +4,14 @@ import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { 
+  calculateItemCosts,
+  calculateCurrencyCostAndRarity,
+  extractProficiencies,
+  formatProficiencyChip,
+  computeSplits
+} from '/scripts/item_calc.js';
+import { computeSplits } from '/scripts/technique_calc.js';
 
 let appCheckInitialized = false;
 
@@ -286,272 +294,114 @@ let appCheckInitialized = false;
     }
 
     // --- calculateCosts function for splitting logic ---
-    function calculateGoldCost(totalCurrency, totalIP) {
-        let goldCost = 0;
-        let rarity = 'Common';
-
-        const clampedIP = Math.max(0, totalIP);
-        const clampedCurrency = Math.max(0, totalCurrency);
-
-        const rarityBrackets = [
-            { name: 'Common', low: 25, ipLow: 0, ipHigh: 4 },
-            { name: 'Uncommon', low: 100, ipLow: 4.01, ipHigh: 6 },
-            { name: 'Rare', low: 500, ipLow: 6.01, ipHigh: 8 },
-            { name: 'Epic', low: 2500, ipLow: 8.01, ipHigh: 11 },
-            { name: 'Legendary', low: 10000, ipLow: 11.01, ipHigh: 14 },
-            { name: 'Mythic', low: 50000, ipLow: 14.01, ipHigh: 16 },
-            { name: 'Ascended', low: 100000, ipLow: 16.01, ipHigh: Infinity }
-        ];
-
-        for (let i = 0; i < rarityBrackets.length; i++) {
-            const bracket = rarityBrackets[i];
-            if (clampedIP >= bracket.ipLow && clampedIP <= bracket.ipHigh) {
-                rarity = bracket.name;
-                goldCost = bracket.low * (1 + 0.125 * clampedCurrency);
-                break;
-            }
-        }
-
-        goldCost = Math.max(goldCost, rarityBrackets.find(b => b.name === rarity).low);
-
-        return { goldCost, rarity };
-    }
-
     function updateTotalCosts() {
-        let sumBaseIP = 0;
-        let totalTP = 0;
-        let totalCurrency = 0;
-        let hasArmorProperty = false;
-        let hasWeaponProperty = false;
-        tpSources = []; // Reset
+        // Build a temporary properties array representing current state (used only for live cost display)
+        const tempProperties = [];
 
-        // Find general properties we need
-        const propShieldBase = getPropertyByName("Shield Base");
-        const propArmorBase = getPropertyByName("Armor Base");
-        const propRange = getPropertyByName("Range");
-        const propTwoHanded = getPropertyByName("Two-Handed");
-        const propSplitDice = getPropertyByName("Split Damage Dice");
-        const propDamageReduction = getPropertyByName("Damage Reduction");
-        const propWeaponDamage = getPropertyByName("Weapon Damage");
-
-        // --- Damage Reduction for Armor ---
-        if (window.selectedArmamentType &&
-            window.selectedArmamentType() === "Armor" &&
-            propDamageReduction &&
-            typeof damageReduction === "number" &&
-            damageReduction > 0
-        ) {
-            const ip = propDamageReduction.base_ip + (damageReduction - 1) * (propDamageReduction.op_1_ip || 0);
-            const tp = propDamageReduction.base_tp + (damageReduction - 1) * (propDamageReduction.op_1_tp || 0);
-            const c = propDamageReduction.base_c + (damageReduction - 1) * (propDamageReduction.op_1_c || 0);
-            sumBaseIP += ip;
-            totalTP += tp;
-            totalCurrency += c;
-            tpSources.push(`${tp} TP: Damage Reduction ${damageReduction}`);
-        }
-        // --- end Damage Reduction ---
-
-        // --- Shield base (from DB) ---
-        if (window.selectedArmamentType && window.selectedArmamentType() === "Shield" && propShieldBase) {
-            sumBaseIP += propShieldBase.base_ip;
-            totalTP += propShieldBase.base_tp;
-            totalCurrency += propShieldBase.base_c;
-            tpSources.push(`${propShieldBase.base_tp} TP: Shield Base`);
-        }
-        // --- Armor base (from DB) ---
-        if (window.selectedArmamentType && window.selectedArmamentType() === "Armor" && propArmorBase) {
-            sumBaseIP += propArmorBase.base_ip;
-            totalTP += propArmorBase.base_tp;
-            totalCurrency += propArmorBase.base_c;
-            tpSources.push(`${propArmorBase.base_tp} TP: Armor Base`);
-        }
-
-        // Apply selected item properties (excluding general properties)
-        selectedItemProperties.forEach((propertyData) => {
-            const property = propertyData.property;
-
-            // Skip if this is a general property by name (now driven by UI)
-            if (generalPropertyNames.has(property.name)) return;
-
-            // Skip ability requirement items (handled by global ability requirements)
-            if (
-                property.name === "Weapon Strength Requirement" ||
-                property.name === "Weapon Agility Requirement" ||
-                property.name === "Weapon Vitality Requirement" ||
-                property.name === "Weapon Acuity Requirement" ||
-                property.name === "Weapon Intelligence Requirement" ||
-                property.name === "Weapon Charisma Requirement" ||
-                property.name === "Armor Strength Requirement" ||
-                property.name === "Armor Agility Requirement" ||
-                property.name === "Armor Vitality Requirement"
-            ) {
-                return;
-            }
-
-            let propertyIP = property.base_ip;
-            let propertyTP = property.base_tp;
-            let propertyCurrency = property.base_c;
-            propertyIP += (property.op_1_ip || 0) * propertyData.op_1_lvl;
-            propertyTP += (property.op_1_tp || 0) * propertyData.op_1_lvl;
-            propertyCurrency += (property.op_1_c || 0) * propertyData.op_1_lvl;
-
-            sumBaseIP += propertyIP;
-            totalTP += propertyTP;
-            totalCurrency += propertyCurrency;
-
-            const opt1TP = (property.op_1_tp || 0) * propertyData.op_1_lvl;
-            if (propertyTP > 0 || opt1TP > 0) {
-                let propertySource = `${propertyTP} TP: ${property.name}`;
-                if (opt1TP > 0) propertySource += ` (Option 1 Level ${propertyData.op_1_lvl}: ${opt1TP} TP)`;
-                tpSources.push(propertySource);
-            }
-
-            if (property.type === 'Armor') hasArmorProperty = true;
-            if (property.type === 'Weapon') hasWeaponProperty = true;
+        // Selected item properties
+        selectedItemProperties.forEach(p => {
+            if (!p.property) return;
+            tempProperties.push({
+                id: p.property.id || p.property.name,
+                name: p.property.name,
+                op_1_lvl: p.op_1_lvl || 0
+            });
         });
 
-        // --- Ability Requirements (still DB-backed names) ---
+        const armamentType = window.selectedArmamentType ? window.selectedArmamentType() : 'Weapon';
+
+        // Two-Handed
+        if (handedness === "Two-Handed") {
+            const propTwoHanded = itemProperties.find(p => p.name === "Two-Handed");
+            if (propTwoHanded) tempProperties.push({ id: propTwoHanded.id || propTwoHanded.name, name: propTwoHanded.name, op_1_lvl: 0 });
+        }
+
+        // Range
+        if (armamentType === "Weapon" && range > 0) {
+            const propRange = itemProperties.find(p => p.name === "Range");
+            if (propRange) tempProperties.push({ id: propRange.id || propRange.name, name: propRange.name, op_1_lvl: range - 1 });
+        }
+
+        // Weapon Damage
+        if (armamentType === "Weapon") {
+            const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
+            const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
+            const damageType1 = document.getElementById('damageType1')?.value;
+            const validSizes = [4,6,8,10,12];
+            if (!isNaN(dieAmount1) && !isNaN(dieSize1) && validSizes.includes(dieSize1) && damageType1 && damageType1 !== 'none') {
+                const propWeaponDamage = itemProperties.find(p => p.name === "Weapon Damage");
+                if (propWeaponDamage) {
+                    const weaponDamageLevel = Math.max(0, ((dieAmount1 * dieSize1) - 4) / 2);
+                    tempProperties.push({ id: propWeaponDamage.id || propWeaponDamage.name, name: propWeaponDamage.name, op_1_lvl: weaponDamageLevel });
+                }
+                // Split Damage Dice
+                const splits = computeSplits(dieAmount1, dieSize1);
+                if (splits > 0) {
+                    const propSplitDice = itemProperties.find(p => p.name === "Split Damage Dice");
+                    if (propSplitDice) tempProperties.push({ id: propSplitDice.id || propSplitDice.name, name: propSplitDice.name, op_1_lvl: splits - 1 });
+                }
+            }
+        }
+
+        // Shield / Armor Base
+        if (armamentType === "Shield") {
+            const propShieldBase = itemProperties.find(p => p.name === "Shield Base");
+            if (propShieldBase) tempProperties.push({ id: propShieldBase.id || propShieldBase.name, name: propShieldBase.name, op_1_lvl: 0 });
+        }
+        if (armamentType === "Armor") {
+            const propArmorBase = itemProperties.find(p => p.name === "Armor Base");
+            if (propArmorBase) tempProperties.push({ id: propArmorBase.id || propArmorBase.name, name: propArmorBase.name, op_1_lvl: 0 });
+        }
+
+        // Damage Reduction
+        if (armamentType === "Armor" && damageReduction > 0) {
+            const propDR = itemProperties.find(p => p.name === "Damage Reduction");
+            if (propDR) tempProperties.push({ id: propDR.id || propDR.name, name: propDR.name, op_1_lvl: damageReduction - 1 });
+        }
+
+        // Agility Reduction
+        if (armamentType === "Armor" && typeof window.agilityReduction === "number" && window.agilityReduction > 0) {
+            const propAR = itemProperties.find(p => p.name === "Agility Reduction");
+            if (propAR) tempProperties.push({ id: propAR.id || propAR.name, name: propAR.name, op_1_lvl: window.agilityReduction - 1 });
+        }
+
+        // Ability Requirements
         const abilityRequirements = window.getAbilityRequirements ? window.getAbilityRequirements() : [];
         abilityRequirements.forEach(req => {
-            let property = null;
-            let value = parseInt(req.value, 10);
+            const value = parseInt(req.value, 10);
             if (value > 0) {
-                const armamentType = window.selectedArmamentType ? window.selectedArmamentType() : 'Weapon';
-                if (armamentType === "Weapon" || armamentType === "Shield") {
-                    if (req.type === "Strength") {
-                        property = itemProperties.find(p => p.name === "Weapon Strength Requirement" && p.type === "Weapon");
-                    } else if (req.type === "Agility") {
-                        property = itemProperties.find(p => p.name === "Weapon Agility Requirement" && p.type === "Weapon");
-                    } else if (req.type === "Acuity") {
-                        property = itemProperties.find(p => p.name === "Weapon Acuity Requirement" && p.type === "Weapon");
-                    } else if (req.type === "Vitality") {
-                        property = itemProperties.find(p => p.name === "Weapon Vitality Requirement" && p.type === "Weapon");
-                    } else if (req.type === "Intelligence") {
-                        property = itemProperties.find(p => p.name === "Weapon Intelligence Requirement" && p.type === "Weapon");
-                    } else if (req.type === "Charisma") {
-                        property = itemProperties.find(p => p.name === "Weapon Charisma Requirement" && p.type === "Weapon");
-                    }
-                } else if (armamentType === "Armor") {
-                    if (req.type === "Strength") {
-                        property = itemProperties.find(p => p.name === "Armor Strength Requirement" && p.type === "Armor");
-                    } else if (req.type === "Agility") {
-                        property = itemProperties.find(p => p.name === "Armor Agility Requirement" && p.type === "Armor");
-                    } else if (req.type === "Vitality") {
-                        property = itemProperties.find(p => p.name === "Armor Vitality Requirement" && p.type === "Armor");
-                    } else if (req.type === "Intelligence") {
-                        property = null;
-                    } else if (req.type === "Charisma") {
-                        property = null;
-                    }
-                }
-                if (property) {
-                    const cAdd = property.base_c + (typeof property.op_1_c === "number" ? property.op_1_c : 0) * (value - 1);
-                    // Debug log:
-                    console.log(`Adding Currency for ${req.type} (value=${value}): ${cAdd}`);
-                    totalCurrency += cAdd;
-                    sumBaseIP += property.base_ip + (typeof property.op_1_ip === "number" ? property.op_1_ip : 0) * (value - 1);
-                    const reqTP = property.base_tp + (typeof property.op_1_tp === "number" ? property.op_1_tp : 0) * (value - 1);
-                    totalTP += reqTP;
-                    tpSources.push(`${reqTP} TP: ${req.type} Requirement ${value}`);
-                } else {
-                    console.warn(`Property not found for ${req.type} in ${armamentType}`);
+                const prefix = (armamentType === "Armor") ? "Armor" : "Weapon";
+                const propertyName = `${prefix} ${req.type} Requirement`;
+                const propReq = itemProperties.find(p => p.name === propertyName);
+                if (propReq) {
+                    tempProperties.push({
+                        id: propReq.id || propReq.name,
+                        name: propReq.name,
+                        op_1_lvl: value - 1
+                    });
                 }
             }
         });
 
-        // --- Agility Reduction (DB-backed name) ---
-        if (window.selectedArmamentType && window.selectedArmamentType() === "Armor" && typeof window.agilityReduction === "number" && window.agilityReduction > 0) {
-            const agilityReductionProperty = itemProperties.find(p => p.name === "Agility Reduction" && p.type === "Armor");
-            if (agilityReductionProperty) {
-                const cAdd = agilityReductionProperty.base_c + ((window.agilityReduction - 1) * (typeof agilityReductionProperty.op_1_c === "number" ? agilityReductionProperty.op_1_c : 0));
-                // Debug log:
-                console.log(`Adding Currency for Agility Reduction (${window.agilityReduction}): ${cAdd}`);
-                totalCurrency += cAdd;
-                sumBaseIP += agilityReductionProperty.base_ip + ((window.agilityReduction - 1) * (typeof agilityReductionProperty.op_1_ip === "number" ? agilityReductionProperty.op_1_ip : 0));
-                const agTP = agilityReductionProperty.base_tp + ((window.agilityReduction - 1) * (typeof agilityReductionProperty.op_1_tp === "number" ? agilityReductionProperty.op_1_tp : 0));
-                totalTP += agTP;
-                tpSources.push(`${agTP} TP: Agility Reduction ${window.agilityReduction}`);
-            } else {
-                console.warn("Agility Reduction property not found");
-            }
-        }
-        // --- end Agility Reduction ---
+        // Centralized totals
+        const { totalIP, totalTP, totalCurrency } = calculateItemCosts(tempProperties, itemProperties);
+        const { currencyCost, rarity } = calculateCurrencyCostAndRarity(totalCurrency, totalIP);
 
-        // --- Range cost from DB (levels = range steps) ---
-        if (range > 0 && propRange) {
-            const ip = propRange.base_ip + (range - 1) * (propRange.op_1_ip || 0);
-            const tp = propRange.base_tp + (range - 1) * (propRange.op_1_tp || 0);
-            const c = propRange.base_c + (range - 1) * (propRange.op_1_c || 0);
-            sumBaseIP += ip;
-            totalTP += tp;
-            totalCurrency += c;
-            tpSources.push(`${tp} TP: Range ${range * 8} Spaces`);
-        }
-
-        // --- Two-Handed cost from DB ---
-        if (handedness === "Two-Handed" && propTwoHanded) {
-            sumBaseIP += propTwoHanded.base_ip;
-            totalTP += propTwoHanded.base_tp;
-            totalCurrency += propTwoHanded.base_c;
-            tpSources.push(`${propTwoHanded.base_tp} TP: Two-Handed`);
-        }
-
-        // --- Weapon Damage (base dice only; splits priced separately) ---
-        let weaponDamageLevel = 0;
-        const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
-        const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
-        const damageType1 = document.getElementById('damageType1')?.value;
-        const validDamage = !isNaN(dieAmount1) && !isNaN(dieSize1) && ["4","6","8","10","12"].includes(String(dieSize1)) && damageType1 && damageType1 !== 'none';
-
-        if (window.selectedArmamentType && window.selectedArmamentType() === 'Weapon' && propWeaponDamage && validDamage) {
-            weaponDamageLevel = Math.max(0, ((dieAmount1 * dieSize1) - 4) / 2);
-            const ip = propWeaponDamage.base_ip + weaponDamageLevel * (propWeaponDamage.op_1_ip || 0);
-            const tp = propWeaponDamage.base_tp + weaponDamageLevel * (propWeaponDamage.op_1_tp || 0);
-            const c = propWeaponDamage.base_c + weaponDamageLevel * (propWeaponDamage.op_1_c || 0);
-            sumBaseIP += ip;
-            totalTP += tp;
-            totalCurrency += c;
-            tpSources.push(`${tp} TP: Weapon Damage ${dieAmount1}d${dieSize1} ${damageType1} (Option 1 Level ${weaponDamageLevel})`);
-        }
-
-        // --- Split Damage Dice priced by DB property with levels = totalSplits ---
-        if (window.selectedArmamentType && window.selectedArmamentType() === 'Weapon' && propSplitDice && validDamage) {
-            const splits = computeSplits(dieAmount1, dieSize1);
-            if (splits > 0) {
-                const splitLevel = splits - 1; // base covers first split
-                const ip = propSplitDice.base_ip + splitLevel * (propSplitDice.op_1_ip || 0);
-                const tp = propSplitDice.base_tp + splitLevel * (propSplitDice.op_1_tp || 0);
-                const c = propSplitDice.base_c + splitLevel * (propSplitDice.op_1_c || 0);
-                sumBaseIP += ip;
-                totalTP += tp;
-                totalCurrency += c;
-                tpSources.push(`${tp} TP: Split Damage Dice (${splits} split${splits>1?'s':''})${splitLevel>0?` (Option 1 Level ${splitLevel})`:''}`);
-            }
-        }
-
-        // Debug log before gold cost calculation:
-        console.log(`Before calculateGoldCost: totalCurrency=${totalCurrency}, sumBaseIP=${sumBaseIP}`);
-
-        // Calculate gold cost and rarity
-        const { goldCost, rarity } = calculateGoldCost(totalCurrency, sumBaseIP);
-
-        // Debug log after gold cost calculation:
-        console.log(`After calculateGoldCost: goldCost=${goldCost}, rarity=${rarity}`);
-
-        // Final IP calculation
-        const finalIP = sumBaseIP;
-
+        // Update numeric displays
         const totalIPElement = document.getElementById("totalIP");
         const totalTPElement = document.getElementById("totalTP");
         const totalCurrencyElement = document.getElementById("totalCurrency");
         const totalRarityElement = document.getElementById("totalRarity");
-
-        if (totalIPElement) totalIPElement.textContent = finalIP.toFixed(2);
+        if (totalIPElement) totalIPElement.textContent = totalIP.toFixed(2);
         if (totalTPElement) totalTPElement.textContent = totalTP.toFixed(2);
-        if (totalCurrencyElement) totalCurrencyElement.textContent = goldCost.toFixed(2);
+        if (totalCurrencyElement) totalCurrencyElement.textContent = currencyCost.toFixed(2);
         if (totalRarityElement) totalRarityElement.textContent = rarity;
 
-        updateItemSummary(finalIP, rarity);
+        // Proficiency sources (TP chips)
+        const profs = extractProficiencies(tempProperties, itemProperties);
+        tpSources = profs.map(p => formatProficiencyChip(p));
+
+        updateItemSummary(totalIP, rarity);
     }
 
     function renderItemProperties() {
@@ -1102,39 +952,6 @@ let appCheckInitialized = false;
         const additionalDamageRow = document.getElementById('additionalDamageRow');
         additionalDamageRow.innerHTML = '';
         document.getElementById('addDamageRowButton').style.display = 'inline-block';
-    }
-
-    // Helper: compute splits (needed by Split Damage Dice)
-    function computeSplits(dieAmount, dieSize) {
-        const validSizes = [4, 6, 8, 10, 12];
-        if (!validSizes.includes(dieSize)) return 0;
-        if (dieAmount <= 1) return 0;
-        
-        // Calculate total damage
-        const totalDamage = dieAmount * dieSize;
-        
-        // Find minimum number of dice needed by greedily using largest die (d12)
-        const maxDieSize = 12;
-        const minDice = Math.ceil(totalDamage / maxDieSize);
-        
-        // Number of splits = original dice count - minimum possible dice count
-        return dieAmount - minDice;
-    }
-
-    // Ensure initial pushes use op_1_lvl
-    function addShieldProperty() {
-        const property = itemProperties.find(p => p.type === 'Shield' && !generalPropertyNames.has(p.name));
-        if (property) {
-            selectedItemProperties.push({ property, op_1_lvl: 0, opt2Level: 0 });
-            renderItemProperties(); updateTotalCosts();
-        }
-    }
-    function addArmorProperty() {
-        const property = itemProperties.find(p => p.type === 'Armor' && !generalPropertyNames.has(p.name));
-        if (property) {
-            selectedItemProperties.push({ property, op_1_lvl: 0, opt2Level: 0 });
-            renderItemProperties(); updateTotalCosts();
-        }
     }
 
     // Dynamic ability requirement dropdown (armor uses only armor reqs; weapon & shield use weapon reqs)

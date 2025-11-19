@@ -3,6 +3,15 @@ import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/fireb
 import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 import { getDefaultTrainingPoints } from './characterCreator_utils.js';
+import {
+  calculateItemCosts,
+  calculateCurrencyCostAndRarity,
+  formatDamage,
+  formatRange,
+  extractProficiencies,
+  formatProficiencyChip,
+  deriveItemDisplay
+} from '../item_calc.js';
 
 export let selectedEquipment = [];
 export let selectedEquipmentQuantities = {}; // { id: quantity }
@@ -29,41 +38,6 @@ function waitForAuth() {
       resolve(user);
     });
   });
-}
-
-// Calculate gold cost from GP and IP (matching library.js logic)
-function calculateGoldCostAndRarity(c, ip) {
-  let goldCost = 0;
-  let rarity = 'Common';
-
-  const clampedIP = Math.max(0, ip);
-  const clampedCurrency = Math.max(0, c);
-
-  const rarityBrackets = [
-    { name: 'Common', low: 25, ipLow: 0, ipHigh: 4 },
-    { name: 'Uncommon', low: 100, ipLow: 4.01, ipHigh: 6 },
-    { name: 'Rare', low: 500, ipLow: 6.01, ipHigh: 8 },
-    { name: 'Epic', low: 2500, ipLow: 8.01, ipHigh: 11 },
-    { name: 'Legendary', low: 10000, ipLow: 11.01, ipHigh: 14 },
-    { name: 'Mythic', low: 50000, ipLow: 14.01, ipHigh: 16 },
-    { name: 'Ascended', low: 100000, ipLow: 16.01, ipHigh: Infinity }
-  ];
-
-  for (let i = 0; i < rarityBrackets.length; i++) {
-    const bracket = rarityBrackets[i];
-    if (clampedIP >= bracket.ipLow && clampedIP <= bracket.ipHigh) {
-      rarity = bracket.name;
-      goldCost = bracket.low * (1 + 0.125 * clampedCurrency);
-      break;
-    }
-  }
-
-  const bracket = rarityBrackets.find(b => b.name === rarity);
-  if (bracket) {
-    goldCost = Math.max(goldCost, bracket.low);
-  }
-
-  return { goldCost, rarity };
 }
 
 async function loadItemProperties(database) {
@@ -94,136 +68,6 @@ async function loadItemProperties(database) {
     console.error('Error loading properties:', error);
   }
   return [];
-}
-
-function calculateItemCosts(properties, propertiesData) {
-  let totalTP = 0;
-  let totalCurrency = 0;
-  let totalIP = 0;
-
-  if (!Array.isArray(properties)) return { totalTP: 0, totalCurrency: 0, totalIP: 0 };
-
-  properties.forEach(propRef => {
-    const propData = propertiesData.find(p => p.id === propRef.id || p.name === propRef.name);
-    if (!propData) return;
-
-    const level = propRef.op_1_lvl || 0;
-    totalTP += Math.floor(propData.base_tp + (propData.op_1_tp * level));
-    totalCurrency += propData.base_c + (propData.op_1_c * level);
-    totalIP += propData.base_ip + (propData.op_1_ip * level);
-  });
-
-  return { totalTP, totalCurrency, totalIP };
-}
-
-// Fetch weapons from user's library
-async function fetchWeaponsFromLibrary() {
-  const user = await waitForAuth();
-  if (!user) {
-    console.log('No user authenticated, skipping weapon fetch');
-    return [];
-  }
-
-  try {
-    const database = getDatabase();
-    const propertiesData = await loadItemProperties(database);
-    if (!propertiesData || propertiesData.length === 0) return [];
-
-    const db = getFirestore();
-    const itemsRef = collection(db, 'users', user.uid, 'itemLibrary');
-    const snapshot = await getDocs(itemsRef);
-    
-    const weapons = [];
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data.armamentType === 'Weapon') {
-        const costs = calculateItemCosts(data.properties || [], propertiesData);
-        const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalCurrency, costs.totalIP);
-        
-        weapons.push({
-          id: docSnap.id,
-          name: data.name,
-          description: data.description,
-          damage: data.damage || [],
-          range: data.range || 0,
-          properties: data.properties || [],
-          itemParts: data.properties || [],
-          totalBP: costs.totalTP,
-          totalCurrency: costs.totalCurrency,
-          totalIP: costs.totalIP,
-          goldCost: goldCost,
-          rarity: rarity
-        });
-      }
-    });
-    
-    return weapons;
-  } catch (error) {
-    console.error('Error fetching weapons:', error);
-    return [];
-  }
-}
-
-// Fetch armor from user's library
-async function fetchArmorFromLibrary() {
-  const user = await waitForAuth();
-  if (!user) {
-    console.log('No user authenticated, skipping armor fetch');
-    return [];
-  }
-
-  try {
-    const database = getDatabase();
-    const propertiesData = await loadItemProperties(database);
-    if (!propertiesData || propertiesData.length === 0) return [];
-
-    const db = getFirestore();
-    const itemsRef = collection(db, 'users', user.uid, 'itemLibrary');
-    const snapshot = await getDocs(itemsRef);
-    
-    const armor = [];
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data.armamentType === 'Armor' || data.armamentType === 'Shield') {
-        const costs = calculateItemCosts(data.properties || [], propertiesData);
-        const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalCurrency, costs.totalIP);
-        
-        // Find damage reduction from properties
-        let damageReduction = 0;
-        if (Array.isArray(data.properties)) {
-          const drProp = data.properties.find(p => {
-            const propData = propertiesData.find(pd => pd.id === p.id || pd.name === p.name);
-            return propData && propData.name === 'Damage Reduction';
-          });
-          if (drProp) {
-            const propData = propertiesData.find(p => p.id === drProp.id || p.name === drProp.name);
-            if (propData) {
-              damageReduction = 1 + (drProp.op_1_lvl || 0);
-            }
-          }
-        }
-        
-        armor.push({
-          id: docSnap.id,
-          name: data.name,
-          description: data.description,
-          damageReduction: damageReduction,
-          properties: data.properties || [],
-          itemParts: data.properties || [],
-          totalBP: costs.totalTP,
-          totalCurrency: costs.totalCurrency,
-          totalIP: costs.totalIP,
-          goldCost: goldCost,
-          rarity: rarity
-        });
-      }
-    });
-    
-    return armor;
-  } catch (error) {
-    console.error('Error fetching armor:', error);
-    return [];
-  }
 }
 
 function getArmamentMax() {
@@ -265,7 +109,7 @@ function populateWeapons() {
 
   weapons.forEach(weapon => {
     const selected = selectedEquipment.includes(weapon.id);
-    const price = Math.ceil(weapon.goldCost || 0);
+    const price = Math.ceil(weapon.currencyCost ?? weapon.goldCost ?? 0);
     const canAfford = price * getEquipmentQuantity(weapon.id) <= availableCurrency || selected;
     const exceedsTP = (weapon.totalBP || 0) * getEquipmentQuantity(weapon.id) > armamentMax;
     const canAdd = canAfford && (!exceedsTP || selected);
@@ -287,7 +131,7 @@ function populateWeapons() {
     // Range
     let rangeStr = weapon.range ? (weapon.range === 0 ? 'Melee' : `${weapon.range} spaces`) : 'Melee';
     
-    // Properties (show property names from itemParts)
+    // Properties & Proficiencies (prefer precomputed proficiencies)
     let propsStr = '';
     if (weapon.itemParts && Array.isArray(weapon.itemParts)) {
       propsStr = weapon.itemParts.map(p => {
@@ -326,23 +170,30 @@ function populateWeapons() {
         ${weapon.itemParts && weapon.itemParts.length > 0 ? `
           <h4 style="margin: 0 0 8px 0; color: var(--primary);">Properties & Proficiencies</h4>
           <div class="equipment-properties-list">
-            ${weapon.itemParts.map(p => {
-              const propData = itemPropertiesCache?.find(prop => prop.id === p.id || prop.name === p.name);
-              if (!propData) return '';
-              const baseTP = Math.round(propData.base_tp || 0);
-              const optionLevel = p.op_1_lvl || 0;
-              const optionTP = optionLevel > 0 ? Math.round((propData.op_1_tp || 0) * optionLevel) : 0;
-              const totalTP = baseTP + optionTP;
-              let text = propData.name;
-              if (optionLevel > 0) text += ` (Level ${optionLevel})`;
-              if (totalTP > 0) {
-                let tpText = ` | TP: ${baseTP}`;
-                if (optionTP > 0) tpText += ` + ${optionTP}`;
-                text += tpText;
-              }
-              const chipClass = totalTP > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
-              return `<div class="${chipClass}" title="${propData.description}">${text}</div>`;
-            }).join('')}
+            ${weapon.proficiencies && weapon.proficiencies.length
+              ? weapon.proficiencies.map(p => {
+                  const chip = formatProficiencyChip(p);
+                  const chipClass = p.totalTP > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
+                  return `<div class="${chipClass}" title="${p.description}">${chip}</div>`;
+                }).join('')
+              : weapon.itemParts.map(p => {
+                  const propData = itemPropertiesCache?.find(prop => prop.id === p.id || prop.name === p.name);
+                  if (!propData) return '';
+                  const baseTP = Math.round(propData.base_tp || 0);
+                  const optionLevel = p.op_1_lvl || 0;
+                  const optionTP = optionLevel > 0 ? Math.round((propData.op_1_tp || 0) * optionLevel) : 0;
+                  const totalTP = baseTP + optionLevel * (propData.op_1_tp || 0);
+                  let text = propData.name;
+                  if (optionLevel > 0) text += ` (Level ${optionLevel})`;
+                  if (totalTP > 0) {
+                    let tpText = ` | TP: ${baseTP}`;
+                    if (optionTP > 0) tpText += ` + ${optionTP}`;
+                    text += tpText;
+                  }
+                  const chipClass = totalTP > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
+                  return `<div class="${chipClass}" title="${propData.description}">${text}</div>`;
+                }).join('')
+            }
           </div>
         ` : ''}
       </td>
@@ -360,7 +211,7 @@ function populateWeapons() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (canAdd) {
-        toggleEquipment(weapon.id, availableCurrency, weapon.goldCost, 'weapon');
+        toggleEquipment(weapon.id, availableCurrency, weapon.currencyCost ?? weapon.goldCost ?? 0, 'weapon');
       }
     });
     
@@ -398,7 +249,7 @@ function populateArmor() {
 
   armor.forEach(armorItem => {
     const selected = selectedEquipment.includes(armorItem.id);
-    const price = Math.ceil(armorItem.goldCost || 0);
+    const price = Math.ceil(armorItem.currencyCost ?? armorItem.goldCost ?? 0);
     const canAfford = price <= availableCurrency || selected;
     const exceedsTP = (armorItem.totalBP || 0) > armamentMax;
     const canAdd = canAfford && (!exceedsTP || selected);
@@ -439,23 +290,30 @@ function populateArmor() {
         ${armorItem.itemParts && armorItem.itemParts.length > 0 ? `
           <h4 style="margin: 0 0 8px 0; color: var(--primary);">Properties & Proficiencies</h4>
           <div class="equipment-properties-list">
-            ${armorItem.itemParts.map(p => {
-              const propData = itemPropertiesCache?.find(prop => prop.id === p.id || prop.name === p.name);
-              if (!propData) return '';
-              const baseTP = Math.round(propData.base_tp || 0);
-              const optionLevel = p.op_1_lvl || 0;
-              const optionTP = optionLevel > 0 ? Math.round((propData.op_1_tp || 0) * optionLevel) : 0;
-              const totalTP = baseTP + optionTP;
-              let text = propData.name;
-              if (optionLevel > 0) text += ` (Level ${optionLevel})`;
-              if (totalTP > 0) {
-                let tpText = ` | TP: ${baseTP}`;
-                if (optionTP > 0) tpText += ` + ${optionTP}`;
-                text += tpText;
-              }
-              const chipClass = totalTP > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
-              return `<div class="${chipClass}" title="${propData.description}">${text}</div>`;
-            }).join('')}
+            ${armorItem.proficiencies && armorItem.proficiencies.length
+              ? armorItem.proficiencies.map(p => {
+                  const chip = formatProficiencyChip(p);
+                  const chipClass = p.totalTP > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
+                  return `<div class="${chipClass}" title="${p.description}">${chip}</div>`;
+                }).join('')
+              : armorItem.itemParts.map(p => {
+                  const propData = itemPropertiesCache?.find(prop => prop.id === p.id || prop.name === p.name);
+                  if (!propData) return '';
+                  const baseTP = Math.round(propData.base_tp || 0);
+                  const optionLevel = p.op_1_lvl || 0;
+                  const optionTP = optionLevel > 0 ? Math.round((propData.op_1_tp || 0) * optionLevel) : 0;
+                  const totalTP = baseTP + optionLevel * (propData.op_1_tp || 0);
+                  let text = propData.name;
+                  if (optionLevel > 0) text += ` (Level ${optionLevel})`;
+                  if (totalTP > 0) {
+                    let tpText = ` | TP: ${baseTP}`;
+                    if (optionTP > 0) tpText += ` + ${optionTP}`;
+                    text += tpText;
+                  }
+                  const chipClass = totalTP > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
+                  return `<div class="${chipClass}" title="${propData.description}">${text}</div>`;
+                }).join('')
+            }
           </div>
         ` : ''}
       </td>
@@ -473,7 +331,7 @@ function populateArmor() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (canAdd) {
-        toggleEquipment(armorItem.id, availableCurrency, armorItem.goldCost, 'armor');
+        toggleEquipment(armorItem.id, availableCurrency, armorItem.currencyCost ?? armorItem.goldCost ?? 0, 'armor');
       }
     });
     
@@ -694,7 +552,7 @@ function getSpentCurrency() {
     const general = generalEquipment.find(g => g.id === id);
     const item = weapon || armor || general;
     const qty = getEquipmentQuantity(id);
-    const value = item ? (item.goldCost || item.currency || 0) : 0;
+    const value = item ? (item.currencyCost ?? item.goldCost ?? item.currency ?? 0) : 0;
     return sum + Math.ceil(value) * qty;
   }, 0);
 }
@@ -742,7 +600,7 @@ function updateEquipmentBonusDisplay() {
     if (!item) return '';
     
     const qty = getEquipmentQuantity(id);
-    const currency = Math.ceil(item.goldCost || item.currency || 0);
+    const currency = Math.ceil(item.currencyCost ?? item.goldCost ?? item.currency ?? 0);
 
     return `
       <div class="skill-bonus-item">
@@ -794,6 +652,75 @@ function updateEquipmentBonusDisplay() {
       updateEquipmentCurrency();
     });
   });
+}
+
+// NEW: Fetch weapons (Weapon + Shield) from user library
+async function fetchWeaponsFromLibrary() {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) return [];
+  if (!itemPropertiesCache) {
+    // Ensure properties loaded (Realtime DB)
+    await loadItemProperties(getDatabase());
+  }
+  const db = getFirestore();
+  const snap = await getDocs(collection(db, 'users', user.uid, 'itemLibrary'));
+  const list = [];
+  snap.forEach(docSnap => {
+    const raw = docSnap.data();
+    if (!raw.armamentType || (raw.armamentType !== 'Weapon' && raw.armamentType !== 'Shield')) return;
+    const display = deriveItemDisplay(raw, itemPropertiesCache);
+    // Range spaces numeric (0 = melee)
+    const rangeProp = (raw.properties || []).find(p => p.name === 'Range');
+    const rangeSpaces = rangeProp ? (8 + (rangeProp.op_1_lvl || 0) * 8) : 0;
+    list.push({
+      id: docSnap.id,
+      name: display.name,
+      description: display.description,
+      armamentType: raw.armamentType,
+      itemParts: raw.properties || [],
+      damage: raw.damage || [],
+      range: rangeSpaces,
+      totalBP: display.totalTP,              // TP budget
+      currencyCost: display.currencyCost,    // centralized currency
+      rarity: display.rarity,
+      proficiencies: display.proficiencies   // array of {name, level, ...}
+    });
+  });
+  return list;
+}
+
+// NEW: Fetch armor from user library
+async function fetchArmorFromLibrary() {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) return [];
+  if (!itemPropertiesCache) {
+    await loadItemProperties(getDatabase());
+  }
+  const db = getFirestore();
+  const snap = await getDocs(collection(db, 'users', user.uid, 'itemLibrary'));
+  const list = [];
+  snap.forEach(docSnap => {
+    const raw = docSnap.data();
+    if (raw.armamentType !== 'Armor') return;
+    const display = deriveItemDisplay(raw, itemPropertiesCache);
+    const drProp = (raw.properties || []).find(p => p.name === 'Damage Reduction');
+    const damageReduction = drProp ? (1 + (drProp.op_1_lvl || 0)) : 0;
+    list.push({
+      id: docSnap.id,
+      name: display.name,
+      description: display.description,
+      armamentType: 'Armor',
+      itemParts: raw.properties || [],
+      damageReduction,
+      totalBP: display.totalTP,
+      currencyCost: display.currencyCost,
+      rarity: display.rarity,
+      proficiencies: display.proficiencies
+    });
+  });
+  return list;
 }
 
 async function initEquipmentUI() {
@@ -890,12 +817,11 @@ async function initEquipmentUI() {
   // Wait for auth before loading user library
   console.log('Waiting for authentication...');
   await waitForAuth();
-  
-  // Load weapons and armor from user's library
-  console.log('Loading weapons and armor from library...');
+  // Ensure properties loaded before building library items
+  await loadItemProperties(getDatabase());
+  // Load weapons and armor (now centralized)
   weaponLibrary = await fetchWeaponsFromLibrary();
   armorLibrary = await fetchArmorFromLibrary();
-  
   // Load general equipment from Firebase (imported from firebase module)
   console.log('Loading general equipment...');
   const { allEquipment } = await import('./characterCreator_firebase.js');

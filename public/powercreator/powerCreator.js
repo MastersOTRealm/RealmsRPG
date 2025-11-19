@@ -4,6 +4,7 @@ import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriveArea, deriveDuration } from '/scripts/power_calc.js';
 
 (() => {
     // const powerParts = powerPartsData;
@@ -65,10 +66,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     }
 
     function addPowerPart() {
-        if (powerParts.length === 0) return; // Wait for data to load
+        if (powerParts.length === 0) return;
         const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts[0], opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // NEW: add applyDuration
-
+        selectedPowerParts.push({ part: powerParts[0], op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
         renderPowerParts();
         updateTotalCosts();
     }
@@ -95,7 +95,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                     <h4>Energy: ${part.op_1_en >= 0 ? '+' : ''}${part.op_1_en}     Training Points: ${part.op_1_tp >= 0 ? '+' : ''}${part.op_1_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt1', -1)">-</button>
-                    <span>Level: <span id="opt1Level-${partIndex}">${selectedPowerParts[partIndex].opt1Level}</span></span>
+                    <span>Level: <span id="op_1_lvl-${partIndex}">${selectedPowerParts[partIndex].op_1_lvl}</span></span>
                     <p>${part.op_1_desc}</p>
                 </div>` : ''}
                 
@@ -104,7 +104,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                     <h4>Energy: ${part.op_2_en >= 0 ? '+' : ''}${part.op_2_en}     Training Points: ${part.op_2_tp >= 0 ? '+' : ''}${part.op_2_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt2', -1)">-</button>
-                    <span>Level: <span id="opt2Level-${partIndex}">${selectedPowerParts[partIndex].opt2Level}</span></span>
+                    <span>Level: <span id="op_2_lvl-${partIndex}">${selectedPowerParts[partIndex].op_2_lvl}</span></span>
                     <p>${part.op_2_desc}</p>
                 </div>` : ''}
 
@@ -113,7 +113,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                     <h4>Energy: ${part.op_3_en >= 0 ? '+' : ''}${part.op_3_en}     Training Points: ${part.op_3_tp >= 0 ? '+' : ''}${part.op_3_tp}</h4>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', 1)">+</button>
                     <button onclick="changeOptionLevel(${partIndex}, 'opt3', -1)">-</button>
-                    <span>Level: <span id="opt3Level-${partIndex}">${selectedPowerParts[partIndex].opt3Level}</span></span>
+                    <span>Level: <span id="op_3_lvl-${partIndex}">${selectedPowerParts[partIndex].op_3_lvl}</span></span>
                     <p>${part.op_3_desc}</p>
                 </div>` : ''}
             </div>` : ''}
@@ -125,11 +125,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     function updateSelectedPart(index, selectedValue) {
         const selectedPart = powerParts[selectedValue];
         selectedPowerParts[index].part = selectedPart;
-        selectedPowerParts[index].opt1Level = 0;
-        selectedPowerParts[index].opt2Level = 0;
-        selectedPowerParts[index].opt3Level = 0;
-        // Keep applyDuration as is
-
+        selectedPowerParts[index].op_1_lvl = 0;
+        selectedPowerParts[index].op_2_lvl = 0;
+        selectedPowerParts[index].op_3_lvl = 0;
         renderPowerParts();
         updateTotalCosts();
     }
@@ -140,15 +138,12 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     }
 
     function changeOptionLevel(index, option, delta) {
+        const keyMap = { opt1: 'op_1_lvl', opt2: 'op_2_lvl', opt3: 'op_3_lvl' };
+        const levelKey = keyMap[option] || 'op_1_lvl';
         const part = selectedPowerParts[index];
-        const levelKey = `${option}Level`;
-        const energyIncreaseKey = `${option}Cost`;
-
-        part[levelKey] = Math.max(0, part[levelKey] + delta);
-
-        // Update the level indicator in the DOM
-        document.getElementById(`${levelKey}-${index}`).textContent = part[levelKey];
-
+        part[levelKey] = Math.max(0, (part[levelKey] || 0) + delta);
+        const el = document.getElementById(`${levelKey}-${index}`);
+        if (el) el.textContent = part[levelKey];
         renderPowerParts();
         updateTotalCosts();
     }
@@ -294,15 +289,6 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     }
 
     function updateTotalCosts() {
-        let flat_normal = 0; // Sum of all flat parts (regardless of applyDuration)
-        let flat_duration = 0; // Sum of flat parts with applyDuration checked only
-        let perc_all = 1; // Product of all percentage parts (regardless of applyDuration)
-        let perc_dur = 1; // Product of percentage parts with applyDuration checked only
-        let dur_all = 1; // Product of all duration parts (start at 1 for multiplication)
-        let hasDurationParts = false; // Track if any duration parts are added
-        let totalTP = 0;
-        tpSources = []; // Reset the array each time
-    
         // Build mechanic parts based on selections
         let mechanicParts = [];
         const actionType = document.getElementById('actionType').value;
@@ -315,29 +301,29 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         if (reactionChecked) {
             const reactionPart = powerParts.find(p => p.name === 'Power Reaction' && p.mechanic);
             if (reactionPart) {
-                mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
+                mechanicParts.push({ part: reactionPart, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); // Default unaffected
             }
         }
     
         if (actionType === 'quick') {
             const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
             if (quickFreePart) {
-                mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
+                mechanicParts.push({ part: quickFreePart, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); // Default unaffected
             }
         } else if (actionType === 'free') {
             const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
             if (quickFreePart) {
-                mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
+                mechanicParts.push({ part: quickFreePart, op_1_lvl: 1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); // Default unaffected
             }
         } else if (actionType === 'long3') {
             const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
             if (longPart) {
-                mechanicParts.push({ part: longPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
+                mechanicParts.push({ part: longPart, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); // Default unaffected
             }
         } else if (actionType === 'long4') {
             const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
             if (longPart) {
-                mechanicParts.push({ part: longPart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false }); // Default unaffected
+                mechanicParts.push({ part: longPart, op_1_lvl: 1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); // Default unaffected
             }
         }
     
@@ -354,7 +340,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         if (areaPartName) {
             const areaPart = powerParts.find(p => p.name === areaPartName && p.mechanic);
             if (areaPart) {
-                mechanicParts.push({ part: areaPart, opt1Level: areaEffectLevel - 1, opt2Level: 0, opt3Level: 0, applyDuration: areaEffectApplyDuration }); // Checkbox controls
+                mechanicParts.push({ part: areaPart, op_1_lvl: areaEffectLevel - 1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: areaEffectApplyDuration }); // Checkbox controls
             }
         }
     
@@ -375,7 +361,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                 if (damagePart) {
                     const totalDamage = dieAmount * dieSize;
                     const opt1Level = Math.floor((totalDamage - 4) / 2);
-                    mechanicParts.push({ part: damagePart, opt1Level: Math.max(0, opt1Level), opt2Level: 0, opt3Level: 0, applyDuration: false }); // Explicitly never apply to duration
+                    mechanicParts.push({ part: damagePart, op_1_lvl: Math.max(0, opt1Level), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); // Explicitly never apply to duration
                 }
             }
         };
@@ -409,39 +395,39 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         // Add toggle-driven duration modifiers
         if (focusChecked) {
             const p = getMechanicPart('Focus for Duration');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0 });
         }
         if (noHarmChecked) {
             const p = getMechanicPart('No Harm or Adaptation for Duration');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0 });
         }
         if (endsOnceChecked) {
             const p = getMechanicPart('Duration Ends On Activation');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0 });
         }
         if (sustainValue > 0) {
             const p = getMechanicPart('Sustain for Duration');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, sustainValue - 1), opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, sustainValue - 1), op_2_lvl: 0, op_3_lvl: 0 });
         }
 
         // Duration base type selection
         if (durationType === 'permanent') {
             const p = getMechanicPart('Duration (Permanent)');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0 });
         } else if (durationType === 'days') {
             const p = getMechanicPart('Duration (Days)');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0 });
         } else if (durationType === 'hours') {
             const p = getMechanicPart('Duration (Hour)');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0 });
         } else if (durationType === 'minutes') {
             const p = getMechanicPart('Duration (Minute)');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0 });
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0 });
         } else if (durationType === 'rounds') {
             // Only add when > 1 round. For 2 rounds (idx=1) => op1 = 0; 3 rounds (idx=2) => op1 = 1, etc.
             if (durationValue > 1) {
                 const p = getMechanicPart('Duration (Round)');
-                if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx - 1), opt2Level: 0, opt3Level: 0 });
+                if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx - 1), op_2_lvl: 0, op_3_lvl: 0 });
             }
         }
 
@@ -452,9 +438,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             if (rangePart) {
                 mechanicParts.push({
                     part: rangePart,
-                    opt1Level: Math.max(0, rangeSteps - 1),
-                    opt2Level: 0,
-                    opt3Level: 0,
+                    op_1_lvl: Math.max(0, rangeSteps - 1),
+                    op_2_lvl: 0,
+                    op_3_lvl: 0,
                     applyDuration: false // Default unaffected
                 });
             }
@@ -464,67 +450,25 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         const allParts = [...selectedPowerParts, ...mechanicParts, ...selectedAdvancedParts];
     
         // Temporary console log: Show all current parts with option levels
-        console.log('Current parts in power:');
-        allParts.forEach(partData => {
-            console.log(`${partData.part.name}: opt1=${partData.opt1Level}, opt2=${partData.opt2Level}, opt3=${partData.opt3Level}, applyDuration=${partData.applyDuration || false}`);
-        });
+        // console.log('Current parts in power:');
+        // allParts.forEach(partData => {
+        //     console.log(`${partData.part.name}: opt1=${partData.opt1Level}, opt2=${partData.opt2Level}, opt3=${partData.opt3Level}, applyDuration=${partData.applyDuration || false}`);
+        // });
     
-        allParts.forEach((partData) => {
-            const part = partData.part;
-            let partContribution = part.base_en;
-            partContribution += (part.op_1_en || 0) * partData.opt1Level;
-            partContribution += (part.op_2_en || 0) * partData.opt2Level;
-            partContribution += (part.op_3_en || 0) * partData.opt3Level;
+        // Use centralized calculator
+        const payloadForCalc = allParts.map(p => p.part ? ({
+            name: p.part.name,
+            op_1_lvl: p.op_1_lvl || 0,
+            op_2_lvl: p.op_2_lvl || 0,
+            op_3_lvl: p.op_3_lvl || 0,
+            applyDuration: p.applyDuration || false
+        }) : p);
 
-            const applyToDuration = partData.applyDuration || false;
+        const { totalEnergy, totalTP, tpSources: newTPSources, energyRaw } = calculatePowerCosts(payloadForCalc, powerParts);
+        tpSources = newTPSources;
 
-            // NEW: Accumulate new variables for the updated equation
-            if (part.duration || ['Focus for Duration', 'No Harm or Adaptation for Duration', 'Duration Ends On Activation', 'Sustain for Duration'].includes(part.name)) {
-                // Duration parts: accumulate product
-                dur_all *= partContribution;
-                hasDurationParts = true; // Mark that we have duration parts
-            } else if (part.percentage) {
-                // Percentage parts: accumulate for all and duration-specific
-                perc_all *= partContribution;
-                if (applyToDuration) {
-                    perc_dur *= partContribution;
-                }
-            } else {
-                // Flat parts: accumulate for all and duration-specific
-                flat_normal += partContribution;
-                if (applyToDuration) {
-                    flat_duration += partContribution;
-                }
-            }
-
-            // TP calculation (unchanged)
-            let partTP = part.base_tp;
-            totalTP += partTP;
-            const opt1TP = (part.op_1_tp || 0) * partData.opt1Level;
-            const opt2TP = (part.op_2_tp || 0) * partData.opt2Level;
-            const opt3TP = (part.op_3_tp || 0) * partData.opt3Level;
-            totalTP += opt1TP + opt2TP + opt3TP;
-
-            const totalPartTP = Math.floor(partTP + opt1TP + opt2TP + opt3TP);
-            totalTP = totalTP - (partTP + opt1TP + opt2TP + opt3TP) + totalPartTP;
-            if (totalPartTP > 0) {
-                let partSource = `${totalPartTP} TP: ${part.name}`;
-                if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.opt1Level}: ${opt1TP} TP)`;
-                if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.opt2Level}: ${opt2TP} TP)`;
-                if (opt3TP > 0) partSource += ` (Option 3 Level ${partData.opt3Level}: ${opt3TP} TP)`;
-                tpSources.push(partSource);
-            }
-        });
-    
-        // If no duration parts were added, set dur_all to 0
-        if (!hasDurationParts) {
-            dur_all = 0;
-        }
-    
-        // NEW: Calculate PowerEnergy using the updated equation
-        const PowerEnergy = (flat_normal * perc_all) + ((dur_all + 1) * flat_duration * perc_dur) - (flat_duration * perc_dur);
-    
-        document.getElementById("totalEnergy").textContent = PowerEnergy.toFixed(2);
+        // Display decimal energy (one decimal) in the creator UI
+        document.getElementById("totalEnergy").textContent = (Number.isFinite(energyRaw) ? energyRaw : totalEnergy).toFixed(1);
         document.getElementById("totalTP").textContent = totalTP;
     
         updatePowerSummary();
@@ -548,7 +492,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         document.getElementById('summaryTP').textContent = summaryTP;
         document.getElementById('summaryRange').textContent = `${summaryRange} ${summaryRange > 1 ? 'Spaces' : 'Space'}`;
         document.getElementById('summaryDuration').textContent = `${summaryDuration} ${summaryDuration > 1 ? 'Rounds' : 'Round'}`;
-        document.getElementById('summaryActionType').textContent = actionTypeText;
+        document.getElementById('summaryActionType').textContent = computeActionTypeFromSelection(actionType, reactionChecked);
 
         document.getElementById('summaryFocus').style.display = focusChecked ? 'block' : 'none';
         document.getElementById('summarySustain').style.display = sustainValue > 0 ? 'block' : 'none';
@@ -580,9 +524,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             partElement.innerHTML = `
                 <h4>${part.name} <strong style="margin-right: 10px;">Energy:</strong> ${part.base_en} <strong style="margin-right: 10px;">Training Points:</strong> ${part.base_tp}</h4>
                 <p>${part.description}</p>
-                ${part.op_1_desc && partData.opt1Level > 0 ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.opt1Level})</p>` : ''}
-                ${part.op_2_desc && partData.opt2Level > 0 ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.opt2Level})</p>` : ''}
-                ${part.op_3_desc && partData.opt3Level > 0 ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.opt3Level})</p>` : ''}
+                ${part.op_1_desc && partData.op_1_lvl > 0 ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.op_1_lvl})</p>` : ''}
+                ${part.op_2_desc && partData.op_2_lvl > 0 ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.op_2_lvl})</p>` : ''}
+                ${part.op_3_desc && partData.op_3_lvl > 0 ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.op_3_lvl})</p>` : ''}
             `;
             summaryPartsContainer.appendChild(partElement);
         });
@@ -735,7 +679,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
     function addAdvancedPart(part) {
         const existing = selectedAdvancedParts.find(ap => ap.part.name === part.name);
         if (!existing) {
-            selectedAdvancedParts.push({ part, opt1Level: 0, opt2Level: 0, opt3Level: 0 });
+            selectedAdvancedParts.push({ part, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0 });
             renderAddedAdvancedParts();
             updateTotalCosts();
         }
@@ -784,7 +728,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                         <h4>Energy: ${part.op_1_en >= 0 ? '+' : ''}${part.op_1_en} Training Points: ${part.op_1_tp >= 0 ? '+' : ''}${part.op_1_tp}</h4>
                         <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt1', 1)">+</button>
                         <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt1', -1)">-</button>
-                        <span>Level: <span id="adv-opt1Level-${idx}">${partData.opt1Level}</span></span>
+                        <span>Level: <span id="adv-op_1_lvl-${idx}">${partData.op_1_lvl}</span></span>
                         <p>${part.op_1_desc}</p>
                     </div>
                 </div>` : ''}
@@ -794,7 +738,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                         <h4>Energy: ${part.op_2_en >= 0 ? '+' : ''}${part.op_2_en} Training Points: ${part.op_2_tp >= 0 ? '+' : ''}${part.op_2_tp}</h4>
                         <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt2', 1)">+</button>
                         <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt2', -1)">-</button>
-                        <span>Level: <span id="adv-opt2Level-${idx}">${partData.opt2Level}</span></span>
+                        <span>Level: <span id="adv-op_2_lvl-${idx}">${partData.op_2_lvl}</span></span>
                         <p>${part.op_2_desc}</p>
                     </div>
                 </div>` : ''}
@@ -804,7 +748,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                         <h4>Energy: ${part.op_3_en >= 0 ? '+' : ''}${part.op_3_en} Training Points: ${part.op_3_tp >= 0 ? '+' : ''}${part.op_3_tp}</h4>
                         <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt3', 1)">+</button>
                         <button onclick="event.stopPropagation(); changeAdvancedOptionLevel(${idx}, 'opt3', -1)">-</button>
-                        <span>Level: <span id="adv-opt3Level-${idx}">${partData.opt3Level}</span></span>
+                        <span>Level: <span id="adv-op_3_lvl-${idx}">${partData.op_3_lvl}</span></span>
                         <p>${part.op_3_desc}</p>
                     </div>
                 </div>` : ''}
@@ -823,10 +767,12 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
 
     // NEW: Function to change option level for advanced parts
     function changeAdvancedOptionLevel(idx, option, delta) {
+        const keyMap = { opt1: 'op_1_lvl', opt2: 'op_2_lvl', opt3: 'op_3_lvl' };
+        const levelKey = keyMap[option] || 'op_1_lvl';
         const partData = selectedAdvancedParts[idx];
-        const levelKey = `${option}Level`;
-        partData[levelKey] = Math.max(0, partData[levelKey] + delta);
-        document.getElementById(`adv-${levelKey}-${idx}`).textContent = partData[levelKey];
+        partData[levelKey] = Math.max(0, (partData[levelKey] || 0) + delta);
+        const el = document.getElementById(`adv-${levelKey}-${idx}`);
+        if (el) el.textContent = partData[levelKey];
         updateTotalCosts();
     }
 
@@ -921,22 +867,22 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         // Reaction
         if (reactionChecked) {
             const reactionPart = powerParts.find(p => p.name === 'Power Reaction' && p.mechanic);
-            if (reactionPart) mechanicParts.push({ part: reactionPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+            if (reactionPart) mechanicParts.push({ part: reactionPart, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
         }
 
         // Action Type
         if (actionType === 'quick') {
             const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
-            if (quickFreePart) mechanicParts.push({ part: quickFreePart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+            if (quickFreePart) mechanicParts.push({ part: quickFreePart, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
         } else if (actionType === 'free') {
             const quickFreePart = powerParts.find(p => p.name === 'Power Quick or Free Action' && p.mechanic);
-            if (quickFreePart) mechanicParts.push({ part: quickFreePart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false });
+            if (quickFreePart) mechanicParts.push({ part: quickFreePart, op_1_lvl: 1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
         } else if (actionType === 'long3') {
             const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
-            if (longPart) mechanicParts.push({ part: longPart, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
+            if (longPart) mechanicParts.push({ part: longPart, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
         } else if (actionType === 'long4') {
             const longPart = powerParts.find(p => p.name === 'Power Long Action' && p.mechanic);
-            if (longPart) mechanicParts.push({ part: longPart, opt1Level: 1, opt2Level: 0, opt3Level: 0, applyDuration: false });
+            if (longPart) mechanicParts.push({ part: longPart, op_1_lvl: 1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
         }
 
         // Area of Effect
@@ -952,7 +898,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         if (areaPartName) {
             const areaPart = powerParts.find(p => p.name === areaPartName && p.mechanic);
             if (areaPart) {
-                mechanicParts.push({ part: areaPart, opt1Level: areaEffectLevel - 1, opt2Level: 0, opt3Level: 0, applyDuration: areaEffectApplyDuration });
+                mechanicParts.push({ part: areaPart, op_1_lvl: Math.max(0, areaEffectLevel - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: areaEffectApplyDuration });
             }
         }
 
@@ -972,8 +918,8 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
                 const damagePart = powerParts.find(p => p.name === partName && p.mechanic);
                 if (damagePart) {
                     const totalDamage = dieAmount * dieSize;
-                    const opt1Level = Math.floor((totalDamage - 4) / 2);
-                    mechanicParts.push({ part: damagePart, opt1Level: Math.max(0, opt1Level), opt2Level: 0, opt3Level: 0, applyDuration: false });
+                    const op1 = Math.max(0, Math.floor((totalDamage - 4) / 2));
+                    mechanicParts.push({ part: damagePart, op_1_lvl: op1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
                 }
             }
         };
@@ -981,73 +927,33 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
         const damageType1 = document.getElementById('damageType1')?.value;
-        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 && damageType1 !== "none") {
-            addDamagePart(damageType1, dieAmount1, dieSize1);
-        }
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 && damageType1 !== "none") addDamagePart(damageType1, dieAmount1, dieSize1);
 
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
         const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
         const damageType2 = document.getElementById('damageType2')?.value;
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 && damageType2 !== "none") {
-            addDamagePart(damageType2, dieAmount2, dieSize2);
-        }
+        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 && damageType2 !== "none") addDamagePart(damageType2, dieAmount2, dieSize2);
 
-        // Duration parts
-        const focusChecked = document.getElementById('focusCheckbox')?.checked;
-        const noHarmChecked = document.getElementById('noHarmCheckbox')?.checked;
-        const endsOnceChecked = document.getElementById('endsOnceCheckbox')?.checked;
-        const sustainValue = parseInt(document.getElementById('sustainValue')?.value, 10) || 0;
         const durationType = document.getElementById('durationType')?.value;
         const durationValue = parseInt(document.getElementById('durationValue')?.value, 10) || 1;
         const idx = durationValue - 1;
+        const getMP = (n) => powerParts.find(p => p.name === n && (p.mechanic || p.duration));
+        if (document.getElementById('focusCheckbox')?.checked) { const p = getMP('Focus for Duration'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        if (document.getElementById('noHarmCheckbox')?.checked) { const p = getMP('No Harm or Adaptation for Duration'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        if (document.getElementById('endsOnceCheckbox')?.checked) { const p = getMP('Duration Ends On Activation'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        const sustainValue = parseInt(document.getElementById('sustainValue')?.value, 10) || 0;
+        if (sustainValue > 0) { const p = getMP('Sustain for Duration'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, sustainValue - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        if (durationType === 'permanent') { const p = getMP('Duration (Permanent)'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        else if (durationType === 'days') { const p = getMP('Duration (Days)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        else if (durationType === 'hours') { const p = getMP('Duration (Hour)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        else if (durationType === 'minutes') { const p = getMP('Duration (Minute)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
+        else if (durationType === 'rounds') { if (durationValue > 1) { const p = getMP('Duration (Round)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }}
 
-        const getMechanicPart = (name) => powerParts.find(p => p.name === name && (p.mechanic || p.duration));
-
-        if (focusChecked) {
-            const p = getMechanicPart('Focus for Duration');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
-        }
-        if (noHarmChecked) {
-            const p = getMechanicPart('No Harm or Adaptation for Duration');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
-        }
-        if (endsOnceChecked) {
-            const p = getMechanicPart('Duration Ends On Activation');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
-        }
-        if (sustainValue > 0) {
-            const p = getMechanicPart('Sustain for Duration');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, sustainValue - 1), opt2Level: 0, opt3Level: 0, applyDuration: false });
-        }
-
-        if (durationType === 'permanent') {
-            const p = getMechanicPart('Duration (Permanent)');
-            if (p) mechanicParts.push({ part: p, opt1Level: 0, opt2Level: 0, opt3Level: 0, applyDuration: false });
-        } else if (durationType === 'days') {
-            const p = getMechanicPart('Duration (Days)');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0, applyDuration: false });
-        } else if (durationType === 'hours') {
-            const p = getMechanicPart('Duration (Hour)');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0, applyDuration: false });
-        } else if (durationType === 'minutes') {
-            const p = getMechanicPart('Duration (Minute)');
-            if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx), opt2Level: 0, opt3Level: 0, applyDuration: false });
-        } else if (durationType === 'rounds') {
-            if (durationValue > 1) {
-                const p = getMechanicPart('Duration (Round)');
-                if (p) mechanicParts.push({ part: p, opt1Level: Math.max(0, idx - 1), opt2Level: 0, opt3Level: 0, applyDuration: false });
-            }
-        }
-
-        // Range
         const rangeSteps = range;
         if (rangeSteps > 0) {
             const rangePart = powerParts.find(p => p.name === 'Power Range' && p.mechanic);
-            if (rangePart) {
-                mechanicParts.push({ part: rangePart, opt1Level: Math.max(0, rangeSteps - 1), opt2Level: 0, opt3Level: 0, applyDuration: false });
-            }
+            if (rangePart) mechanicParts.push({ part: rangePart, op_1_lvl: Math.max(0, rangeSteps - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
         }
-
         return mechanicParts;
     }
 
@@ -1082,27 +988,27 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
         const allParts = [
             ...selectedPowerParts.map(p => ({
                 part: p.part,
-                opt1Level: p.opt1Level,
-                opt2Level: p.opt2Level,
-                opt3Level: p.opt3Level,
+                op_1_lvl: p.op_1_lvl || 0,
+                op_2_lvl: p.op_2_lvl || 0,
+                op_3_lvl: p.op_3_lvl || 0,
                 applyDuration: p.applyDuration || false
             })),
             ...mechanicParts,
             ...selectedAdvancedParts.map(p => ({
                 part: p.part,
-                opt1Level: p.opt1Level,
-                opt2Level: p.opt2Level,
-                opt3Level: p.opt3Level,
-                applyDuration: false // Advanced parts default to false
+                op_1_lvl: p.op_1_lvl || 0,
+                op_2_lvl: p.op_2_lvl || 0,
+                op_3_lvl: p.op_3_lvl || 0,
+                applyDuration: false
             }))
         ];
 
         // Map to compact structure
         const partsPayload = allParts.map(p => ({
             name: p.part.name,
-            op_1_lvl: p.opt1Level || 0,
-            op_2_lvl: p.opt2Level || 0,
-            op_3_lvl: p.opt3Level || 0,
+            op_1_lvl: p.op_1_lvl || 0,
+            op_2_lvl: p.op_2_lvl || 0,
+            op_3_lvl: p.op_3_lvl || 0,
             applyDuration: p.applyDuration || false
         }));
 
@@ -1199,9 +1105,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
 
                 selectedPowerParts.push({
                     part: partObj,
-                    opt1Level: p.op_1_lvl ?? p.opt1Level ?? 0,
-                    opt2Level: p.op_2_lvl ?? p.opt2Level ?? 0,
-                    opt3Level: p.op_3_lvl ?? p.opt3Level ?? 0,
+                    op_1_lvl: p.op_1_lvl ?? p.opt1Level ?? 0,
+                    op_2_lvl: p.op_2_lvl ?? p.opt2Level ?? 0,
+                    op_3_lvl: p.op_3_lvl ?? p.opt3Level ?? 0,
                     applyDuration: p.applyDuration || false
                 });
             }
@@ -1269,11 +1175,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
             onAuthStateChanged(auth, (user) => {
                 const savePowerButton = document.getElementById('savePowerButton');
                 if (user) {
-                    console.log('User is signed in:', user);
                     savePowerButton.textContent = 'Save Power';
                     savePowerButton.addEventListener('click', () => savePowerToLibrary(functions, user.uid));
                 } else {
-                    console.log('No user is signed in');
                     savePowerButton.textContent = 'Login to Save Powers';
                     savePowerButton.addEventListener('click', () => {
                         window.location.href = '/login.html';

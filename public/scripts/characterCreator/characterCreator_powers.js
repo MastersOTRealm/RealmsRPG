@@ -3,6 +3,8 @@ import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/fireb
 import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 import { getDefaultTrainingPoints } from './characterCreator_utils.js';
+import { calculateTechniqueCosts, deriveTechniqueDisplay } from '../technique_calc.js';
+import { calculatePowerCosts, derivePowerDisplay } from '../power_calc.js';
 
 export let selectedPowersTechniques = [];
 let powersInitialized = false;
@@ -101,81 +103,6 @@ async function loadTechniqueParts(database) {
   return [];
 }
 
-// Calculate power costs
-function calculatePowerCosts(parts, powerPartsDb) {
-  let flat_normal = 0;
-  let flat_duration = 0;
-  let perc_all = 1;
-  let perc_dur = 1;
-  let dur_all = 1;
-  let hasDurationParts = false;
-  let totalTP = 0;
-
-  parts.forEach((partData) => {
-    const part = powerPartsDb.find(p => p.name === partData.name);
-    if (!part) return;
-    
-    let partContribution = part.base_en + (part.op_1_en * (partData.op_1_lvl || 0)) + (part.op_2_en * (partData.op_2_lvl || 0)) + (part.op_3_en * (partData.op_3_lvl || 0));
-    const applyToDuration = partData.applyDuration || false;
-
-    if (part.duration) {
-      dur_all *= partContribution;
-      hasDurationParts = true;
-    } else if (part.percentage) {
-      perc_all *= partContribution;
-      if (applyToDuration) perc_dur *= partContribution;
-    } else {
-      flat_normal += partContribution;
-      if (applyToDuration) flat_duration += partContribution;
-    }
-
-    let partTP = part.base_tp;
-    totalTP += partTP;
-    const opt1TP = (part.op_1_tp || 0) * (partData.op_1_lvl || 0);
-    const opt2TP = (part.op_2_tp || 0) * (partData.op_2_lvl || 0);
-    const opt3TP = (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
-    totalTP += opt1TP + opt2TP + opt3TP;
-  });
-
-  if (!hasDurationParts) dur_all = 0;
-  const PowerEnergy = (flat_normal * perc_all) + ((dur_all + 1) * flat_duration * perc_dur) - (flat_duration * perc_dur);
-
-  return { totalEnergy: PowerEnergy, totalTP };
-}
-
-// Calculate technique costs
-function calculateTechniqueCosts(parts, techniquePartsDb) {
-  let sumNonPercentage = 0;
-  let productPercentage = 1;
-  let totalTP = 0;
-
-  parts.forEach((partData) => {
-    const part = techniquePartsDb.find(tp => tp.name === partData.name);
-    if (!part) return;
-    
-    let partContribution = part.base_en +
-      (part.op_1_en || 0) * (partData.op_1_lvl || 0) +
-      (part.op_2_en || 0) * (partData.op_2_lvl || 0) +
-      (part.op_3_en || 0) * (partData.op_3_lvl || 0);
-    
-    if (part.percentage) {
-      productPercentage *= partContribution;
-    } else {
-      sumNonPercentage += partContribution;
-    }
-    
-    let partTP = part.base_tp;
-    totalTP += partTP;
-    const opt1TP = (part.op_1_tp || 0) * (partData.op_1_lvl || 0);
-    const opt2TP = (part.op_2_tp || 0) * (partData.op_2_lvl || 0);
-    const opt3TP = (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
-    totalTP += opt1TP + opt2TP + opt3TP;
-  });
-
-  const finalEnergy = sumNonPercentage * productPercentage;
-  return { totalEnergy: finalEnergy, totalTP };
-}
-
 // Fetch powers from user's library
 async function fetchPowersFromLibrary() {
   const user = await waitForAuth();
@@ -196,15 +123,16 @@ async function fetchPowersFromLibrary() {
     const powers = [];
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
-      const costs = calculatePowerCosts(data.parts || [], powerPartsDb);
+      const display = derivePowerDisplay(data, powerPartsDb);
       
       powers.push({
         id: docSnap.id,
-        name: data.name,
-        description: data.description,
+        name: display.name,
+        description: display.description,
         parts: data.parts || [],
-        totalEnergy: Math.ceil(costs.totalEnergy),
-        totalTP: costs.totalTP
+        totalEnergy: display.energy,
+        totalTP: display.tp,
+        display // keep full display for chips
       });
     });
     
@@ -218,40 +146,34 @@ async function fetchPowersFromLibrary() {
 // Fetch techniques from user's library
 async function fetchTechniquesFromLibrary() {
   const user = await waitForAuth();
-  if (!user) {
-    console.log('No user authenticated, skipping technique fetch');
-    return [];
-  }
-
+  if (!user) return [];
   try {
     const database = getDatabase();
     const techniquePartsDb = await loadTechniqueParts(database);
-    if (!techniquePartsDb || techniquePartsDb.length === 0) return [];
-
+    if (!techniquePartsDb.length) return [];
     const db = getFirestore();
     const techniquesRef = collection(db, 'users', user.uid, 'techniqueLibrary');
     const snapshot = await getDocs(techniquesRef);
-    
     const techniques = [];
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       const parts = Array.isArray(data.parts) ? data.parts : [];
-      const costs = calculateTechniqueCosts(parts, techniquePartsDb);
+      const display = deriveTechniqueDisplay(data, techniquePartsDb);
       techniques.push({
         id: docSnap.id,
-        name: data.name,
-        description: data.description,
-        parts: parts,
+        name: display.name,
+        description: display.description,
+        parts,
         weapon: data.weapon,
         damage: data.damage,
-        totalEnergy: Math.ceil(costs.totalEnergy), // rounded up
-        totalTP: costs.totalTP
+        totalEnergy: Math.ceil(display.energy),
+        totalTP: display.tp,
+        display // keep full display for parts chips
       });
     });
-    
     return techniques;
-  } catch (error) {
-    console.error('Error fetching techniques:', error);
+  } catch (e) {
+    console.error('Error fetching techniques:', e);
     return [];
   }
 }
@@ -281,6 +203,7 @@ function populatePowers() {
 
   powers.forEach(power => {
     const selected = selectedPowersTechniques.includes(power.id);
+    const partChipsHTML = power.display ? power.display.partChipsHTML : '';
     
     const row = document.createElement('tr');
     if (selected) row.classList.add('selected-equipment');
@@ -298,26 +221,10 @@ function populatePowers() {
     detailsRow.innerHTML = `
       <td colspan="4" class="equipment-details-cell">
         ${power.description ? `<div class="equipment-description">${power.description}</div>` : ''}
-        ${power.parts && power.parts.length > 0 ? `
-          <h4 style="margin: 0 0 8px 0; color: var(--primary);">Parts & Proficiencies</h4>
-          <div class="equipment-properties-list">
-            ${power.parts.map(p => {
-              const def = powerPartsCache?.find(x => x.name === p.name);
-              if (!def) return '';
-              const tp = (def.base_tp || 0)
-                + (def.op_1_tp || 0) * (p.op_1_lvl || 0)
-                + (def.op_2_tp || 0) * (p.op_2_lvl || 0)
-                + (def.op_3_tp || 0) * (p.op_3_lvl || 0);
-              let text = def.name;
-              if (p.op_1_lvl > 0) text += ` (Opt 1: ${p.op_1_lvl})`;
-              if (p.op_2_lvl > 0) text += ` (Opt 2: ${p.op_2_lvl})`;
-              if (p.op_3_lvl > 0) text += ` (Opt 3: ${p.op_3_lvl})`;
-              if (tp > 0) text += ` | TP: ${tp}`;
-              const chipClass = tp > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
-              return `<div class="${chipClass}" title="${def.description || ''}">${text}</div>`;
-            }).join('')}
-          </div>
-        ` : ''}
+        ${partChipsHTML ? `
+          <h4 style="margin:0 0 8px 0;color:var(--primary);">Parts & Proficiencies</h4>
+          <div class="equipment-properties-list">${partChipsHTML}</div>` : ''
+        }
       </td>
     `;
     
@@ -358,18 +265,13 @@ function populateTechniques() {
     if (selected) row.classList.add('selected-equipment');
     row.dataset.itemId = tech.id;
     
-    let damageStr = '';
-    if (tech.damage && tech.damage.amount && tech.damage.size && tech.damage.amount !== '0' && tech.damage.size !== '0') {
-      damageStr = `+${tech.damage.amount}d${tech.damage.size}`;
-    }
-    
-    const weaponName = tech.weapon?.name || 'Unarmed';
-    
+    const damageStr = tech.display ? tech.display.damageStr : '';
+    const partChipsHTML = tech.display ? tech.display.partChipsHTML : '';
     row.innerHTML = `
       <td><span class="expand-icon-equipment">▶</span>${tech.name}</td>
       <td>${tech.totalEnergy}</td>
       <td>${tech.totalTP}</td>
-      <td>${weaponName}</td>
+      <td>${tech.weapon?.name || 'Unarmed'}</td>
       <td>${damageStr}</td>
       <td><button class="equipment-add-btn ${selected ? 'selected' : ''}" data-id="${tech.id}">${selected ? '✓' : '+'}</button></td>
     `;
@@ -379,33 +281,10 @@ function populateTechniques() {
     detailsRow.innerHTML = `
       <td colspan="6" class="equipment-details-cell">
         ${tech.description ? `<div class="equipment-description">${tech.description}</div>` : ''}
-        ${tech.parts && tech.parts.length > 0 ? `
-          <h4 style="margin: 0 0 8px 0; color: var(--primary);">Parts & Proficiencies</h4>
-          <div class="equipment-properties-list">
-            ${tech.parts.map(p => {
-              const def = techniquePartsCache?.find(x => x.name === p.name);
-              if (!def) return '';
-              let tp = (def.base_tp || 0)
-                + (def.op_1_tp || 0) * (p.op_1_lvl || 0)
-                + (def.op_2_tp || 0) * (p.op_2_lvl || 0)
-                + (def.op_3_tp || 0) * (p.op_3_lvl || 0);
-              // Mirror Library behavior for Additional Damage TP rounding if needed
-              if (def.name === 'Additional Damage') {
-                tp = (def.base_tp || 0)
-                  + Math.floor((def.op_1_tp || 0) * (p.op_1_lvl || 0))
-                  + (def.op_2_tp || 0) * (p.op_2_lvl || 0)
-                  + (def.op_3_tp || 0) * (p.op_3_lvl || 0);
-              }
-              let text = def.name;
-              if (p.op_1_lvl > 0) text += ` (Opt 1: ${p.op_1_lvl})`;
-              if (p.op_2_lvl > 0) text += ` (Opt 2: ${p.op_2_lvl})`;
-              if (p.op_3_lvl > 0) text += ` (Opt 3: ${p.op_3_lvl})`;
-              if (tp > 0) text += ` | TP: ${tp}`;
-              const chipClass = tp > 0 ? 'equipment-property-chip proficiency-chip' : 'equipment-property-chip';
-              return `<div class="${chipClass}" title="${def.description || ''}">${text}</div>`;
-            }).join('')}
-          </div>
-        ` : ''}
+        ${partChipsHTML ? `
+          <h4 style="margin:0 0 8px 0;color:var(--primary);">Parts & Proficiencies</h4>
+          <div class="equipment-properties-list">${partChipsHTML}</div>` : ''
+        }
       </td>
     `;
     
@@ -452,39 +331,38 @@ function extractPowersProficiencies() {
     const item = power || tech;
     if (!item || !item.parts) return;
     const partsDb = power ? powerPartsCache : techniquePartsCache;
+
     item.parts.forEach(partData => {
       const partDef = partsDb?.find(p => p.name === partData.name);
       if (!partDef) return;
-      // ROUND DOWN TP
-      const baseTP = Math.floor(partDef.base_tp || 0);
-      let op1TP = (partDef.op_1_tp || 0) * (partData.op_1_lvl || 0);
-      if (!power && partDef.name === 'Additional Damage') {
-        op1TP = Math.floor((partDef.op_1_tp || 0) * (partData.op_1_lvl || 0));
-      } else {
-        op1TP = Math.floor(op1TP);
-      }
-      const op2TP = Math.floor((partDef.op_2_tp || 0) * (partData.op_2_lvl || 0));
-      const op3TP = Math.floor((partDef.op_3_tp || 0) * (partData.op_3_lvl || 0));
-      const totalTP = baseTP + op1TP + op2TP + op3TP;
-      if (totalTP <= 0) return;
+      const lvl1 = partData.op_1_lvl || 0;
+      const lvl2 = partData.op_2_lvl || 0;
+      const lvl3 = partData.op_3_lvl || 0;
+      const rawTP =
+        (partDef.base_tp || 0) +
+        (partDef.op_1_tp || 0) * lvl1 +
+        (partDef.op_2_tp || 0) * lvl2 +
+        (partDef.op_3_tp || 0) * lvl3;
+      const finalTP = Math.floor(rawTP);
+      if (finalTP <= 0) return;
+
       const key = partDef.name;
       if (proficiencies.has(key)) {
-        const existing = proficiencies.get(key);
-        existing.op1Lvl = Math.max(existing.op1Lvl, partData.op_1_lvl || 0);
-        existing.op2Lvl = Math.max(existing.op2Lvl, partData.op_2_lvl || 0);
-        existing.op3Lvl = Math.max(existing.op3Lvl, partData.op_3_lvl || 0);
+        const ex = proficiencies.get(key);
+        ex.op1Lvl = Math.max(ex.op1Lvl, lvl1);
+        ex.op2Lvl = Math.max(ex.op2Lvl, lvl2);
+        ex.op3Lvl = Math.max(ex.op3Lvl, lvl3);
       } else {
         proficiencies.set(key, {
           name: partDef.name,
           description: partDef.description || '',
-          baseTP: baseTP,
-          op1Lvl: partData.op_1_lvl || 0,
-          op2Lvl: partData.op_2_lvl || 0,
-          op3Lvl: partData.op_3_lvl || 0,
+          baseTP: partDef.base_tp || 0,
+          op1Lvl: lvl1,
           op1TP: partDef.op_1_tp || 0,
+          op2Lvl: lvl2,
           op2TP: partDef.op_2_tp || 0,
-          op3TP: partDef.op_3_tp || 0,
-          isAdditionalDamage: partDef.name === 'Additional Damage'
+          op3Lvl: lvl3,
+          op3TP: partDef.op_3_tp || 0
         });
       }
     });
@@ -492,19 +370,17 @@ function extractPowersProficiencies() {
   return proficiencies;
 }
 
+// Total TP from proficiencies
 export function getTotalPowersTP() {
-  const proficiencies = extractPowersProficiencies();
+  const profs = extractPowersProficiencies();
   let total = 0;
-  proficiencies.forEach(prof => {
-    let op1TP = prof.op1TP * prof.op1Lvl;
-    if (prof.isAdditionalDamage) {
-      op1TP = Math.floor(prof.op1TP * prof.op1Lvl);
-    } else {
-      op1TP = Math.floor(op1TP);
-    }
-    const op2TP = Math.floor(prof.op2TP * prof.op2Lvl);
-    const op3TP = Math.floor(prof.op3TP * prof.op3Lvl);
-    total += Math.floor(prof.baseTP + op1TP + op2TP + op3TP);
+  profs.forEach(p => {
+    const rawTP =
+      (p.baseTP || 0) +
+      (p.op1TP || 0) * p.op1Lvl +
+      (p.op2TP || 0) * p.op2Lvl +
+      (p.op3TP || 0) * p.op3Lvl;
+    total += Math.floor(rawTP);
   });
   return total;
 }
@@ -514,51 +390,36 @@ function updatePowersProficienciesDisplay() {
   const profList = document.getElementById('powers-proficiencies-list');
   if (!profList) return;
 
-  const proficiencies = extractPowersProficiencies();
-
-  if (proficiencies.size === 0) {
+  const profs = extractPowersProficiencies();
+  if (profs.size === 0) {
     profList.innerHTML = '<p class="no-skills-message">No proficiencies from selected powers/techniques</p>';
-    // Update header to show 0 TP
     const header = document.querySelector('#content-powers .section-header[data-section="powers-proficiencies"] h3');
-    if (header) header.innerHTML = 'Proficiencies <span style="margin-left: auto; font-weight: normal; color: #666;">Total TP Cost: 0</span>';
+    if (header) header.innerHTML = 'Proficiencies <span style="margin-left:auto;font-weight:normal;color:#666;">Total TP Cost: 0</span>';
     return;
   }
 
   let totalTP = 0;
-  const chips = Array.from(proficiencies.values()).map(prof => {
-    let op1TP = prof.op1TP * prof.op1Lvl;
-    if (prof.isAdditionalDamage) {
-      op1TP = Math.floor(prof.op1TP * prof.op1Lvl);
-    } else {
-      op1TP = Math.floor(op1TP);
-    }
-    const op2TP = Math.floor(prof.op2TP * prof.op2Lvl);
-    const op3TP = Math.floor(prof.op3TP * prof.op3Lvl);
-    const partTotal = Math.ceil(prof.baseTP + op1TP + op2TP + op3TP);
-    totalTP += partTotal;
-    
-    let text = prof.name;
-    if (prof.op1Lvl > 0) text += ` (Opt 1: ${prof.op1Lvl})`;
-    if (prof.op2Lvl > 0) text += ` (Opt 2: ${prof.op2Lvl})`;
-    if (prof.op3Lvl > 0) text += ` (Opt 3: ${prof.op3Lvl})`;
-    
-    let tpText = ` | TP: ${Math.ceil(prof.baseTP)}`;
-    if (op1TP > 0) tpText += ` + ${Math.ceil(op1TP)}`;
-    if (op2TP > 0) tpText += ` + ${Math.ceil(op2TP)}`;
-    if (op3TP > 0) tpText += ` + ${Math.ceil(op3TP)}`;
-    text += tpText;
-    
-    return `<div class="equipment-property-chip proficiency-chip" title="${prof.description}">${text}</div>`;
+  const chips = Array.from(profs.values()).map(p => {
+    const rawTP =
+      (p.baseTP || 0) +
+      (p.op1TP || 0) * p.op1Lvl +
+      (p.op2TP || 0) * p.op2Lvl +
+      (p.op3TP || 0) * p.op3Lvl;
+    const finalTP = Math.floor(rawTP);
+    totalTP += finalTP;
+
+    let text = p.name;
+    if (p.op1Lvl > 0) text += ` (Opt1 ${p.op1Lvl})`;
+    if (p.op2Lvl > 0) text += ` (Opt2 ${p.op2Lvl})`;
+    if (p.op3Lvl > 0) text += ` (Opt3 ${p.op3Lvl})`;
+    text += ` | TP: ${finalTP}`;
+    return `<div class="equipment-property-chip proficiency-chip" title="${p.description}">${text}</div>`;
   }).join('');
 
   profList.innerHTML = chips;
-  
-  // Update header to show total TP
   const header = document.querySelector('#content-powers .section-header[data-section="powers-proficiencies"] h3');
-  if (header) header.innerHTML = `Proficiencies <span style="margin-left: auto; font-weight: normal; color: #666;">Total TP Cost: ${totalTP}</span>`;
-  
-  // Update training points display
-  updateTrainingPointsDisplay();
+  if (header) header.innerHTML = `Proficiencies <span style="margin-left:auto;font-weight:normal;color:#666;">Total TP Cost: ${totalTP}</span>`;
+  if (window.updateTrainingPointsDisplay) window.updateTrainingPointsDisplay();
 }
 
 function getSpentEnergy() {

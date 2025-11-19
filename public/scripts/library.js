@@ -3,12 +3,16 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
-import { 
-    calculateItemCosts, 
-    calculateGoldCostAndRarity, 
-    formatRange,
-    formatDamage as formatItemDamage
-} from '../itemcreator/itemMechanics.js';
+import {
+  calculateItemCosts,
+  calculateCurrencyCostAndRarity,
+  formatRange,
+  formatDamage as formatItemDamage,
+  deriveItemDisplay,
+  formatProficiencyChip
+} from './item_calc.js';
+import { calculateTechniqueCosts, computeActionType, formatTechniqueDamage, deriveTechniqueDisplay } from './technique_calc.js';
+import { calculatePowerCosts, derivePowerDisplay } from './power_calc.js';
 
 // Add sorting state
 let sortState = {
@@ -114,86 +118,10 @@ async function fetchPowerParts(database) {
     return [];
 }
 
-// NEW: Calculate power costs dynamically (matching powerCreator logic)
-function calculatePowerCosts(parts, powerPartsDb) {
-    let flat_normal = 0;
-    let flat_duration = 0;
-    let perc_all = 1;
-    let perc_dur = 1;
-    let dur_all = 1;
-    let hasDurationParts = false;
-    let totalTP = 0;
-    let tpSources = [];
-
-    parts.forEach((partData) => {
-        const part = powerPartsDb.find(p => p.name === partData.name);
-        if (!part) return;
-        
-        let partContribution = part.base_en + (part.op_1_en * (partData.op_1_lvl || 0)) + (part.op_2_en * (partData.op_2_lvl || 0)) + (part.op_3_en * (partData.op_3_lvl || 0));
-        const applyToDuration = partData.applyDuration || false;
-
-        if (part.duration) {
-            dur_all *= partContribution;
-            hasDurationParts = true;
-        } else if (part.percentage) {
-            perc_all *= partContribution;
-            if (applyToDuration) perc_dur *= partContribution;
-        } else {
-            flat_normal += partContribution;
-            if (applyToDuration) flat_duration += partContribution;
-        }
-
-        // TP calculation (matching powerCreator)
-        let partTP = part.base_tp;
-        totalTP += partTP;
-        const opt1TP = (part.op_1_tp || 0) * (partData.op_1_lvl || 0);
-        const opt2TP = (part.op_2_tp || 0) * (partData.op_2_lvl || 0);
-        const opt3TP = (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
-        totalTP += opt1TP + opt2TP + opt3TP;
-        const totalPartTP = Math.floor(partTP + opt1TP + opt2TP + opt3TP);
-        totalTP = totalTP - (partTP + opt1TP + opt2TP + opt3TP) + totalPartTP;
-        if (totalPartTP > 0) {
-            let partSource = `${totalPartTP} TP: ${part.name}`;
-            if (opt1TP > 0) partSource += ` (Option 1 Level ${partData.op_1_lvl}: ${opt1TP} TP)`;
-            if (opt2TP > 0) partSource += ` (Option 2 Level ${partData.op_2_lvl}: ${opt2TP} TP)`;
-            if (opt3TP > 0) partSource += ` (Option 3 Level ${partData.op_3_lvl}: ${opt3TP} TP)`;
-            tpSources.push(partSource);
-        }
-    });
-
-    if (!hasDurationParts) dur_all = 0;
-    const PowerEnergy = (flat_normal * perc_all) + ((dur_all + 1) * flat_duration * perc_dur) - (flat_duration * perc_dur);
-
-    return {
-        totalEnergy: PowerEnergy,
-        totalTP,
-        tpSources
-    };
-}
-
-// NEW: Compute action type from parts (similar to technique)
-function computeActionTypeForPower(parts) {
-    let actionType = 'Basic';
-    let isReaction = false;
-    for (let p of parts) {
-        if (p.name === 'Power Reaction') isReaction = true;
-        if (p.name === 'Power Quick or Free Action') {
-            if (p.op_1_lvl == 0) actionType = 'Quick';
-            else actionType = 'Free';
-        }
-        if (p.name === 'Power Long Action') {
-            if (p.op_1_lvl == 0) actionType = 'Long (3)';
-            else actionType = 'Long (4)';
-        }
-    }
-    return isReaction ? `${actionType} Reaction` : `${actionType} Action`;
-}
-
 async function showSavedPowers(db, userId) {
     const powersList = document.getElementById('powersList');
     powersList.innerHTML = '';
 
-    // NEW: Fetch power parts for calculation
     const database = getDatabase();
     const powerPartsDb = await fetchPowerParts(database);
 
@@ -225,10 +153,7 @@ async function showSavedPowers(db, userId) {
 }
 
 function createPowerCard(power, db, userId, powerPartsDb) {
-    // NEW: Calculate costs dynamically
-    const calc = calculatePowerCosts(power.parts || [], powerPartsDb);
-    const energy = Math.ceil(calc.totalEnergy) || 1;
-
+    const display = derivePowerDisplay(power, powerPartsDb);
     const card = document.createElement('div');
     card.className = 'library-card';
 
@@ -236,112 +161,46 @@ function createPowerCard(power, db, userId, powerPartsDb) {
     header.className = 'library-header';
     header.onclick = () => toggleExpand(card);
 
-    // NEW: Use computed action type
-    const actionType = computeActionTypeForPower(power.parts || []);
-
-    // NEW: Derive range from 'Power Range' part
-    let rangeStr = '1 space';
-    const rangePart = (power.parts || []).find(p => p.name === 'Power Range');
-    if (rangePart) {
-        const lvl = rangePart.op_1_lvl || 0;
-        const spaces = 3 + (3 * lvl);
-        rangeStr = `${spaces} spaces`;
-    }
-
-    // NEW: Derive area from area effect parts
-    let areaStr = '1 target';
-    const areaParts = ['Sphere of Effect', 'Cylinder of Effect', 'Cone of Effect', 'Line of Effect', 'Trail of Effect'];
-    for (const areaName of areaParts) {
-        if ((power.parts || []).some(p => p.name === areaName)) {
-            areaStr = areaName.split(' ')[0]; // e.g., "Sphere"
-            break;
-        }
-    }
-
-    // NEW: Derive duration from duration parts
-    let durationStr = '1 round';
-    const durationParts = (power.parts || []);
-    const roundPart = durationParts.find(p => p.name === 'Duration (Round)');
-    const minutePart = durationParts.find(p => p.name === 'Duration (Minute)');
-    const hourPart = durationParts.find(p => p.name === 'Duration (Hour)');
-    const dayPart = durationParts.find(p => p.name === 'Duration (Days)');
-    const permanentPart = durationParts.find(p => p.name === 'Duration (Permanent)');
-    
-    if (permanentPart) {
-        durationStr = 'Permanent';
-    } else if (roundPart) {
-        const lvl = roundPart.op_1_lvl || 0;
-        const rounds = 2 + lvl;
-        durationStr = `${rounds} rounds`;
-    } else if (minutePart) {
-        const lvl = minutePart.op_1_lvl || 0;
-        const minutes = [1, 10, 30][lvl] || 1;
-        durationStr = `${minutes} minute${minutes > 1 ? 's' : ''}`;
-    } else if (hourPart) {
-        const lvl = hourPart.op_1_lvl || 0;
-        const hours = [1, 6, 12][lvl] || 1;
-        durationStr = `${hours} hour${hours > 1 ? 's' : ''}`;
-    } else if (dayPart) {
-        const lvl = dayPart.op_1_lvl || 0;
-        const days = [1, 10, 20, 30][lvl] || 1;
-        durationStr = `${days} day${days > 1 ? 's' : ''}`;
-    }
-
     header.innerHTML = `
-        <div class="col">${power.name}</div>
-        <div class="col">${energy}</div>
-        <div class="col">${actionType}</div>
-        <div class="col">${durationStr}</div>
-        <div class="col">${rangeStr}</div>
-        <div class="col">${areaStr}</div>
-        <div class="col">-</div> <!-- Target placeholder -->
+        <div class="col">${display.name}</div>
+        <div class="col">${display.energy}</div>
+        <div class="col">${display.actionType}</div>
+        <div class="col">${display.duration}</div>
+        <div class="col">${display.range}</div>
+        <div class="col">${display.area}</div>
+        <div class="col">-</div>
         <span class="expand-icon">▼</span>
     `;
 
     const body = document.createElement('div');
     body.className = 'library-body';
 
-    if (power.description) {
-        body.innerHTML += `<div class="library-description">${power.description}</div>`;
+    if (display.description) {
+        body.innerHTML += `<div class="library-description">${display.description}</div>`;
     }
 
     const detailsHTML = `
         <div class="library-details">
             <div class="detail-field">
                 <label>Training Points:</label>
-                <span>${calc.totalTP}</span>
+                <span>${display.tp}</span>
             </div>
         </div>
     `;
     body.innerHTML += detailsHTML;
 
     if (power.parts && power.parts.length > 0) {
-        const partsHTML = `
-            <div class="library-parts">
-                ${power.parts.map(partData => {
-                    const part = powerPartsDb.find(p => p.name === partData.name);
-                    if (!part) return '';
-                    // Calculate TP for display
-                    const tp = part.base_tp + (part.op_1_tp * (partData.op_1_lvl || 0)) + (part.op_2_tp * (partData.op_2_lvl || 0)) + (part.op_3_tp * (partData.op_3_lvl || 0));
-                    let text = part.name;
-                    if (partData.op_1_lvl > 0) text += ` (Opt 1: ${partData.op_1_lvl})`;
-                    if (partData.op_2_lvl > 0) text += ` (Opt 2: ${partData.op_2_lvl})`;
-                    if (partData.op_3_lvl > 0) text += ` (Opt 3: ${partData.op_3_lvl})`;
-                    if (tp > 0) text += ` | TP: ${tp}`;
-                    const chipClass = tp > 0 ? 'part-chip proficiency-chip' : 'part-chip';
-                    return `<div class="${chipClass}" title="${part.description}">${text}</div>`;
-                }).join('')}
-            </div>
+        body.innerHTML += `
+          <h4 style="margin:16px 0 8px;color:var(--primary);">Parts & Proficiencies</h4>
+          <div class="library-parts">${display.partChipsHTML}</div>
         `;
-        body.innerHTML += partsHTML;
     }
 
-    // NEW: Add proficiencies section
-    if (calc.tpSources.length > 0) {
+    if (display.tpSources.length > 0) {
         const profHTML = `
             <div class="power-summary-proficiencies">
                 <h4>Proficiencies:</h4>
-                <div>${calc.tpSources.map(source => `<p>${source}</p>`).join('')}</div>
+                <div>${display.tpSources.map(source => `<p>${source}</p>`).join('')}</div>
             </div>
         `;
         body.innerHTML += profHTML;
@@ -352,7 +211,7 @@ function createPowerCard(power, db, userId, powerPartsDb) {
     deleteBtn.textContent = 'Delete Power';
     deleteBtn.onclick = async (e) => {
         e.stopPropagation();
-        if (confirm(`Are you sure you want to delete ${power.name}?`)) {
+        if (confirm(`Are you sure you want to delete ${display.name}?`)) {
             try {
                 await deleteDoc(doc(db, 'users', userId, 'library', power.docId));
                 card.remove();
@@ -388,13 +247,13 @@ async function showSavedItems(db, userId, database) {
         querySnapshot.forEach((docSnapshot) => {
             const item = docSnapshot.data();
             const costs = calculateItemCosts(item.properties || [], propertiesData);
-            const { goldCost, rarity } = calculateGoldCostAndRarity(costs.totalCurrency, costs.totalIP);
-            
-            items.push({ 
-                ...item, 
+            const { currencyCost, rarity } = calculateCurrencyCostAndRarity(costs.totalCurrency, costs.totalIP);
+            items.push({
+                ...item,
                 docId: docSnapshot.id,
                 costs,
-                goldCost,
+                currencyCost,
+                goldCost: currencyCost, // legacy
                 rarity
             });
         });
@@ -433,7 +292,7 @@ function createItemCard(item, db, userId, propertiesData) {
         <div class="col">${item.name}</div>
         <div class="col">${item.armamentType || 'Weapon'}</div>
         <div class="col">${item.rarity}</div>
-        <div class="col">${Math.round(item.goldCost)}</div>
+        <div class="col">${Math.round(item.currencyCost ?? item.goldCost ?? 0)}</div>
         <div class="col">${Math.round(item.costs.totalTP)}</div>
         <div class="col">${rangeStr}</div>
         <div class="col">${damageStr || '-'}</div>
@@ -590,158 +449,51 @@ async function showSavedTechniques(db, userId) {
     }
 }
 
-// --- Dynamic calculation for technique costs and TP ---
-function calculateTechniqueCosts(parts, techniquePartsDb) {
-    // Ensure parts is always an array
-    if (!Array.isArray(parts)) parts = [];
-    let sumNonPercentage = 0;
-    let productPercentage = 1;
-    let totalTP = 0;
-    let tpSources = [];
-
-    parts.forEach((partData) => {
-        const part = techniquePartsDb.find(tp => tp.name === partData.name);
-        if (!part) return;
-        // Calculate energy
-        let partContribution = part.base_en +
-            (part.op_1_en || 0) * (partData.op_1_lvl || 0) +
-            (part.op_2_en || 0) * (partData.op_2_lvl || 0) +
-            (part.op_3_en || 0) * (partData.op_3_lvl || 0);
-        if (part.percentage) {
-            productPercentage *= partContribution;
-        } else {
-            sumNonPercentage += partContribution;
-        }
-        // Calculate TP
-        let partTP = part.base_tp;
-        totalTP += partTP;
-        const opt1TP = (part.op_1_tp || 0) * (partData.op_1_lvl || 0);
-        const opt2TP = (part.op_2_tp || 0) * (partData.op_2_lvl || 0);
-        const opt3TP = (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
-        let adjustedOpt1TP = part.name === 'Additional Damage' ? Math.floor(opt1TP) : opt1TP;
-        totalTP += adjustedOpt1TP + opt2TP + opt3TP;
-        if (partTP > 0 || adjustedOpt1TP > 0 || opt2TP > 0 || opt3TP > 0) {
-            let partSource = `${partTP} TP: ${part.name}`;
-            if (adjustedOpt1TP > 0) partSource += ` (Opt 1 ${partData.op_1_lvl}: ${adjustedOpt1TP} TP)`;
-            if (opt2TP > 0) partSource += ` (Opt 2 ${partData.op_2_lvl}: ${opt2TP} TP)`;
-            if (opt3TP > 0) partSource += ` (Opt 3 ${partData.op_3_lvl}: ${opt3TP} TP)`;
-            tpSources.push({ name: part.name, tp: partTP + adjustedOpt1TP + opt2TP + opt3TP, part, partData });
-        }
-    });
-
-    const finalEnergy = sumNonPercentage * productPercentage;
-    return {
-        totalEnergy: finalEnergy,
-        totalTP,
-        tpSources
-    };
-}
-
-// Helper function to compute action type from parts
-function computeActionType(parts) {
-    if (!Array.isArray(parts)) return 'Basic Action';
-    let actionType = 'Basic';
-    let isReaction = false;
-    for (let p of parts) {
-        if (p.name === 'Reaction') {
-            isReaction = true;
-        } else if (p.name === 'Quick or Free Action') {
-            if (p.op_1_lvl == 0) actionType = 'Quick';
-            else if (p.op_1_lvl == 1) actionType = 'Free';
-        } else if (p.name === 'Long Action') {
-            if (p.op_1_lvl == 0) actionType = 'Long (3)';
-            else if (p.op_1_lvl == 1) actionType = 'Long (4)';
-        }
-    }
-    return isReaction ? `${actionType} Reaction` : `${actionType} Action`;
-}
-
-// --- Technique card with dynamic calculation ---
+// --- Technique card with centralized display builder ---
 function createTechniqueCardDynamic(technique, techniquePartsDb, db, userId) {
-    // Ensure technique.parts is always an array
     const partsArr = Array.isArray(technique.parts) ? technique.parts : [];
-
+    const display = deriveTechniqueDisplay(technique, techniquePartsDb);
     const card = document.createElement('div');
     card.className = 'library-card';
-
     const header = document.createElement('div');
     header.className = 'library-header technique-header';
     header.style.gridTemplateColumns = '1.5fr 0.8fr 0.8fr 1fr 1fr 1fr';
     header.onclick = () => toggleExpand(card);
-
-    // Calculate costs
-    const calc = calculateTechniqueCosts(partsArr, techniquePartsDb);
-
-    // Damage display
-    let damageStr = "";
-    if (technique.damage && typeof technique.damage === 'object' && technique.damage.amount && technique.damage.size && technique.damage.amount !== '0' && technique.damage.size !== '0') {
-        damageStr = `+${technique.damage.amount}d${technique.damage.size}`;
-    }
-
     header.innerHTML = `
-        <div class="col">${technique.name}</div>
-        <div class="col">${calc.totalEnergy.toFixed(2)}</div>
-        <div class="col">${calc.totalTP}</div>
-        <div class="col">${computeActionType(technique.parts)}</div>
-        <div class="col">${technique.weapon && technique.weapon.name ? technique.weapon.name : "Unarmed"}</div>
-        <div class="col">${damageStr}</div>
+        <div class="col">${display.name}</div>
+        <div class="col">${display.energy}</div> <!-- CHANGED: was toFixed(2) -->
+        <div class="col">${display.tp}</div>
+        <div class="col">${display.actionType}</div>
+        <div class="col">${display.weaponName}</div>
+        <div class="col">${display.damageStr}</div>
         <span class="expand-icon">▼</span>
     `;
-
     const body = document.createElement('div');
     body.className = 'library-body';
-
-    if (technique.description) {
-        body.innerHTML += `<div class="library-description">${technique.description}</div>`;
+    if (display.description) {
+        body.innerHTML += `<div class="library-description">${display.description}</div>`;
     }
-
-    // Parts/proficiencies chips
-    if (partsArr && partsArr.length > 0) {
-        const partsHTML = `
-            <h4 style="margin: 16px 0 8px 0; color: var(--primary);">Technique Parts & Proficiencies</h4>
-            <div class="library-parts">
-                ${partsArr.map(partData => {
-                    const part = techniquePartsDb.find(tp => tp.name === partData.name);
-                    if (!part) return '';
-                    let tp = part.base_tp +
-                        (part.op_1_tp || 0) * (partData.op_1_lvl || 0) +
-                        (part.op_2_tp || 0) * (partData.op_2_lvl || 0) +
-                        (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
-                    if (part.name === 'Additional Damage') {
-                        tp = part.base_tp + Math.floor((part.op_1_tp || 0) * (partData.op_1_lvl || 0)) +
-                            (part.op_2_tp || 0) * (partData.op_2_lvl || 0) +
-                            (part.op_3_tp || 0) * (partData.op_3_lvl || 0);
-                    }
-                    let text = part.name;
-                    if (partData.op_1_lvl > 0) text += ` (Opt 1: ${partData.op_1_lvl})`;
-                    if (partData.op_2_lvl > 0) text += ` (Opt 2: ${partData.op_2_lvl})`;
-                    if (partData.op_3_lvl > 0) text += ` (Opt 3: ${partData.op_3_lvl})`;
-                    if (tp > 0) text += ` | TP: ${tp}`;
-                    return `<div class="part-chip proficiency-chip" title="${part.description}">${text}</div>`;
-                }).join('')}
-            </div>
+    if (partsArr.length > 0) {
+        body.innerHTML += `
+            <h4 style="margin:16px 0 8px;color:var(--primary);">Technique Parts & Proficiencies</h4>
+            <div class="library-parts">${display.partChipsHTML}</div>
         `;
-        body.innerHTML += partsHTML;
     }
-
-    // Delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-button';
     deleteBtn.textContent = 'Delete Technique';
     deleteBtn.onclick = async (e) => {
         e.stopPropagation();
-        if (confirm(`Are you sure you want to delete ${technique.name}?`)) {
+        if (confirm(`Are you sure you want to delete ${display.name}?`)) {
             try {
                 await deleteDoc(doc(db, 'users', userId, 'techniqueLibrary', technique.docId));
                 card.remove();
             } catch (error) {
-                console.error('Error deleting technique: ', error);
                 alert('Error deleting technique');
             }
         }
     };
     body.appendChild(deleteBtn);
-
     card.appendChild(header);
     card.appendChild(body);
     return card;
