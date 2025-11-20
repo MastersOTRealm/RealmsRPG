@@ -203,9 +203,9 @@ export function deriveTechniqueDisplay(techniqueDoc, partsDb) {
   const partsPayload = Array.isArray(techniqueDoc.parts)
     ? techniqueDoc.parts.map(p => ({
         name: p.name,
-        op_1_lvl: p.op_1_lvl || p.opt1Level || 0,
-        op_2_lvl: p.op_2_lvl || p.opt2Level || 0,
-        op_3_lvl: p.op_3_lvl || p.opt3Level || 0
+        op_1_lvl: p.op_1_lvl || 0,
+        op_2_lvl: p.op_2_lvl || 0,
+        op_3_lvl: p.op_3_lvl || 0
       }))
     : [];
 

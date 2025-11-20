@@ -451,52 +451,59 @@ async function showSavedTechniques(db, userId) {
 
 // --- Technique card with centralized display builder ---
 function createTechniqueCardDynamic(technique, techniquePartsDb, db, userId) {
-    const partsArr = Array.isArray(technique.parts) ? technique.parts : [];
-    const display = deriveTechniqueDisplay(technique, techniquePartsDb);
-    const card = document.createElement('div');
-    card.className = 'library-card';
-    const header = document.createElement('div');
-    header.className = 'library-header technique-header';
-    header.style.gridTemplateColumns = '1.5fr 0.8fr 0.8fr 1fr 1fr 1fr';
-    header.onclick = () => toggleExpand(card);
-    header.innerHTML = `
-        <div class="col">${display.name}</div>
-        <div class="col">${display.energy}</div> <!-- CHANGED: was toFixed(2) -->
-        <div class="col">${display.tp}</div>
-        <div class="col">${display.actionType}</div>
-        <div class="col">${display.weaponName}</div>
-        <div class="col">${display.damageStr}</div>
-        <span class="expand-icon">▼</span>
-    `;
-    const body = document.createElement('div');
-    body.className = 'library-body';
-    if (display.description) {
-        body.innerHTML += `<div class="library-description">${display.description}</div>`;
-    }
-    if (partsArr.length > 0) {
-        body.innerHTML += `
-            <h4 style="margin:16px 0 8px;color:var(--primary);">Technique Parts & Proficiencies</h4>
-            <div class="library-parts">${display.partChipsHTML}</div>
-        `;
-    }
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-button';
-    deleteBtn.textContent = 'Delete Technique';
-    deleteBtn.onclick = async (e) => {
-        e.stopPropagation();
-        if (confirm(`Are you sure you want to delete ${display.name}?`)) {
-            try {
-                await deleteDoc(doc(db, 'users', userId, 'techniqueLibrary', technique.docId));
-                card.remove();
-            } catch (error) {
-                alert('Error deleting technique');
-            }
-        }
-    };
-    body.appendChild(deleteBtn);
-    card.appendChild(header);
-    card.appendChild(body);
-    return card;
+  const partsArr = Array.isArray(technique.parts)
+    ? technique.parts.map(p => ({
+        name: p.name,
+        op_1_lvl: p.op_1_lvl || 0,
+        op_2_lvl: p.op_2_lvl || 0,
+        op_3_lvl: p.op_3_lvl || 0
+      }))
+    : [];
+  const display = deriveTechniqueDisplay({ ...technique, parts: partsArr }, techniquePartsDb);
+  const card = document.createElement('div');
+  card.className = 'library-card';
+  const header = document.createElement('div');
+  header.className = 'library-header technique-header';
+  header.style.gridTemplateColumns = '1.5fr 0.8fr 0.8fr 1fr 1fr 1fr';
+  header.onclick = () => toggleExpand(card);
+  header.innerHTML = `
+      <div class="col">${display.name}</div>
+      <div class="col">${display.energy}</div> <!-- CHANGED: was toFixed(2) -->
+      <div class="col">${display.tp}</div>
+      <div class="col">${display.actionType}</div>
+      <div class="col">${display.weaponName}</div>
+      <div class="col">${display.damageStr}</div>
+      <span class="expand-icon">▼</span>
+  `;
+  const body = document.createElement('div');
+  body.className = 'library-body';
+  if (display.description) {
+      body.innerHTML += `<div class="library-description">${display.description}</div>`;
+  }
+  if (partsArr.length > 0) {
+      body.innerHTML += `
+          <h4 style="margin:16px 0 8px;color:var(--primary);">Technique Parts & Proficiencies</h4>
+          <div class="library-parts">${display.partChipsHTML}</div>
+      `;
+  }
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-button';
+  deleteBtn.textContent = 'Delete Technique';
+  deleteBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (confirm(`Are you sure you want to delete ${display.name}?`)) {
+          try {
+              await deleteDoc(doc(db, 'users', userId, 'techniqueLibrary', technique.docId));
+              card.remove();
+          } catch (error) {
+              alert('Error deleting technique');
+          }
+      }
+  };
+  body.appendChild(deleteBtn);
+  card.appendChild(header);
+  card.appendChild(body);
+  return card;
 }
 
 async function showSavedCreatures(db, userId) {

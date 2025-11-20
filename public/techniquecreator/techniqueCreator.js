@@ -30,7 +30,7 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         // Add the first available part of any type (base, increase, decrease), excluding mechanic parts
         const allParts = techniqueParts.filter(p => !p.mechanic);
         if (allParts.length === 0) return;
-        selectedTechniqueParts.push({ part: allParts[0], opt1Level: 0, opt2Level: 0, opt3Level: 0, useAltCost: false });
+        selectedTechniqueParts.push({ part: allParts[0], op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, useAltCost: false });
 
         renderTechniqueParts();
         updateTotalCosts();
@@ -173,9 +173,9 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
     function updateSelectedPart(index, selectedValue) {
         const selectedPart = techniqueParts[selectedValue];
         selectedTechniqueParts[index].part = selectedPart;
-        selectedTechniqueParts[index].opt1Level = 0;
-        selectedTechniqueParts[index].opt2Level = 0;
-        selectedTechniqueParts[index].opt3Level = 0;
+        selectedTechniqueParts[index].op_1_lvl = 0;
+        selectedTechniqueParts[index].op_2_lvl = 0;
+        selectedTechniqueParts[index].op_3_lvl = 0;
         selectedTechniqueParts[index].useAltCost = false;
 
         // Preserve the selected category
@@ -187,13 +187,11 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
     }
 
     function changeOptionLevel(index, option, delta) {
-        const part = selectedTechniqueParts[index];
-        const levelKey = `${option}Level`;
-
-        part[levelKey] = Math.max(0, part[levelKey] + delta);
-
-        document.getElementById(`${levelKey}-${index}`).textContent = part[levelKey];
-
+        const keyMap = { opt1: 'op_1_lvl', opt2: 'op_2_lvl', opt3: 'op_3_lvl' };
+        const levelKey = keyMap[option] || 'op_1_lvl';
+        const partData = selectedTechniqueParts[index];
+        if (!partData) return;
+        partData[levelKey] = Math.max(0, (partData[levelKey] || 0) + delta);
         renderTechniqueParts();
         updateTotalCosts();
     }
@@ -257,12 +255,11 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
     }
 
     function updateTotalCosts() {
-        // Collect user-selected (non mechanic) parts into payload
         const userPartsPayload = selectedTechniqueParts.map(p => ({
             name: p.part.name,
-            op_1_lvl: p.opt1Level || 0,
-            op_2_lvl: p.opt2Level || 0,
-            op_3_lvl: p.opt3Level || 0
+            op_1_lvl: p.op_1_lvl || 0,
+            op_2_lvl: p.op_2_lvl || 0,
+            op_3_lvl: p.op_3_lvl || 0
         }));
 
         // Read current UI selections
@@ -285,12 +282,21 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         // Combined payload
         const allPartsPayload = [...userPartsPayload, ...mechanicParts];
 
-        // Calculate totals
-        const { totalEnergy, totalTP, tpSources: newTPSources } = calculateTechniqueCosts(allPartsPayload, techniqueParts);
+        // Calculate totals (NOW capturing energyRaw)
+        const { totalEnergy, totalTP, tpSources: newTPSources, energyRaw } = calculateTechniqueCosts(allPartsPayload, techniqueParts);
         tpSources = newTPSources;
 
-        document.getElementById("totalEnergy").textContent = totalEnergy; // CHANGED: remove toFixed(2)
+        // Display decimal (unrounded) energy like power creator
+        const rawDisplay = Number.isFinite(energyRaw) ? energyRaw : totalEnergy;
+        document.getElementById("totalEnergy").textContent = rawDisplay.toFixed(1);
         document.getElementById("totalTP").textContent = totalTP;
+
+        // Keep summary in sync
+        const summaryEnergyEl = document.getElementById("summaryEnergy");
+        if (summaryEnergyEl) summaryEnergyEl.textContent = rawDisplay.toFixed(1);
+        const summaryTPEl = document.getElementById("summaryTP");
+        if (summaryTPEl) summaryTPEl.textContent = totalTP;
+
         updateTechniqueSummary();
     }
 
@@ -312,7 +318,7 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         // Update the summary parts
         const summaryPartsContainer = document.getElementById('summaryParts');
         summaryPartsContainer.innerHTML = '';
-        selectedTechniqueParts.forEach((partData, partIndex) => {
+        selectedTechniqueParts.forEach((partData) => {
             const part = partData.part;
             const partElement = document.createElement('div');
             partElement.innerHTML = `
@@ -320,9 +326,9 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
                 <p>Energy: ${part.base_en}</p>
                 <p>Training Points: ${part.base_tp}</p>
                 <p>${part.description}</p>
-                ${part.op_1_desc ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.opt1Level})</p>` : ''}
-                ${part.op_2_desc ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.opt2Level})</p>` : ''}
-                ${part.op_3_desc ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.opt3Level})</p>` : ''}
+                ${part.op_1_desc ? `<p>Option 1: ${part.op_1_desc} (Level: ${partData.op_1_lvl || 0})</p>` : ''}
+                ${part.op_2_desc ? `<p>Option 2: ${part.op_2_desc} (Level: ${partData.op_2_lvl || 0})</p>` : ''}
+                ${part.op_3_desc ? `<p>Option 3: ${part.op_3_desc} (Level: ${partData.op_3_lvl || 0})</p>` : ''}
                 ${part.alt_desc ? `<p>Alternate Energy: ${part.alt_desc}</p>` : ''}
             `;
             summaryPartsContainer.appendChild(partElement);
@@ -459,7 +465,7 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
             techniquePartSection.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <select onchange="updateSelectedPart(${partIndex}, this.value)">
-                        ${filteredParts.map((part, index) => `<option value="${techniqueParts.indexOf(part)}" ${partData.part === part ? 'selected' : ''}>${part.name}</option>`).join('')}
+                        ${filteredParts.map(part => `<option value="${techniqueParts.indexOf(part)}" ${partData.part === part ? 'selected' : ''}>${part.name}</option>`).join('')}
                     </select>
                     <select id="categorySelect-${partIndex}" onchange="filterPartsByCategory(${partIndex}, this.value)">
                         <option value="any" ${selectedCategory === 'any' ? 'selected' : ''}>Any</option>
@@ -676,9 +682,9 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
             .filter(p => p && p.part)
             .map(p => ({
                 name: p.part.name,
-                op_1_lvl: p.opt1Level || 0,
-                op_2_lvl: p.opt2Level || 0,
-                op_3_lvl: p.opt3Level || 0
+                op_1_lvl: p.op_1_lvl || 0,
+                op_2_lvl: p.op_2_lvl || 0,
+                op_3_lvl: p.op_3_lvl || 0
             }));
 
         // Unified payload
@@ -756,14 +762,12 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         selectedTechniqueParts.length = 0;
         savedParts.forEach(p => {
             const partObj = techniqueParts.find(tp => tp.name === p.name);
-            if (partObj) {
-                // Skip mechanic parts so updateTotalCosts can re-add dynamically
-                if (partObj.mechanic) return;
+            if (partObj && !partObj.mechanic) {
                 selectedTechniqueParts.push({
                     part: partObj,
-                    opt1Level: p.op_1_lvl ?? p.opt1Level ?? 0,
-                    opt2Level: p.op_2_lvl ?? p.opt2Level ?? 0,
-                    opt3Level: p.op_3_lvl ?? p.opt3Level ?? 0,
+                    op_1_lvl: p.op_1_lvl || 0,
+                    op_2_lvl: p.op_2_lvl || 0,
+                    op_3_lvl: p.op_3_lvl || 0,
                     useAltCost: false
                 });
             }

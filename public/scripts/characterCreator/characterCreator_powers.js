@@ -157,18 +157,23 @@ async function fetchTechniquesFromLibrary() {
     const techniques = [];
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
-      const parts = Array.isArray(data.parts) ? data.parts : [];
-      const display = deriveTechniqueDisplay(data, techniquePartsDb);
+      const parts = Array.isArray(data.parts) ? data.parts.map(p => ({
+        name: p.name,
+        op_1_lvl: p.op_1_lvl || 0,
+        op_2_lvl: p.op_2_lvl || 0,
+        op_3_lvl: p.op_3_lvl || 0
+      })) : [];
+      const display = deriveTechniqueDisplay({ ...data, parts }, techniquePartsDb);
       techniques.push({
         id: docSnap.id,
         name: display.name,
         description: display.description,
-        parts,
+        parts, // standardized
         weapon: data.weapon,
         damage: data.damage,
         totalEnergy: Math.ceil(display.energy),
         totalTP: display.tp,
-        display // keep full display for parts chips
+        display
       });
     });
     return techniques;
