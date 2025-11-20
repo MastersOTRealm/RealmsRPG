@@ -123,3 +123,127 @@
     .finalize-health-energy { flex-direction: column; gap: 18px; }
     .finalize-health-energy > div { min-width: 120px; }
 }
+
+/* Finalize: Complete Character button */
+#content-finalize #complete-character-btn {
+    background: linear-gradient(180deg, #1a73e8, #1558b0);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 28px;
+    font-weight: 600;
+    box-shadow: 0 6px 14px rgba(26, 115, 232, 0.25);
+    transition: transform 0.05s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+#content-finalize #complete-character-btn:hover {
+    box-shadow: 0 8px 18px rgba(26, 115, 232, 0.35);
+}
+#content-finalize #complete-character-btn:active {
+    transform: translateY(1px);
+    background: linear-gradient(180deg, #1558b0, #0f3f82);
+}
+
+/* Finalize: health/energy +/- buttons */
+#content-finalize .finalize-health-energy .small-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(26,115,232,0.25);
+    transition: transform 0.05s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+#content-finalize .finalize-health-energy .small-button:hover {
+    box-shadow: 0 6px 12px rgba(26,115,232,0.35);
+}
+#content-finalize .finalize-health-energy .small-button:active {
+    transform: translateY(1px);
+    background: #1558b0;
+}
+
+/* Finalize: Size select aesthetics */
+#finalize-size {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #cfd8dc;
+    background: #f8fbff;
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: #0f3f82;
+    min-width: 180px;
+    outline: none;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+#finalize-size:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
+}
+#finalize-size:disabled {
+    color: #78909c;
+    background: #f1f1f1;
+}
+
+/* Species warning containers */
+#species-warning,
+#ancestry-warning {
+    border-left: 4px solid #ff9800;
+    background: #fff8e1;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+/* Warning: Go to Species button */
+#species-warning .small-button,
+#ancestry-warning .small-button {
+    background: linear-gradient(180deg, #1a73e8, #1558b0);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(26,115,232,0.25);
+    transition: transform 0.05s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+#species-warning .small-button:hover,
+#ancestry-warning .small-button:hover {
+    box-shadow: 0 6px 12px rgba(26,115,232,0.35);
+}
+#species-warning .small-button:active,
+#ancestry-warning .small-button:active {
+    transform: translateY(1px);
+    background: #1558b0;
+}
+
+/* Finalize: Validation modal 'Got it!' button */
+#validation-modal #validation-ok-btn {
+    background: linear-gradient(180deg, #1a73e8, #1558b0);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-weight: 600;
+    font-size: 0.98rem;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(26, 115, 232, 0.25);
+    transition: transform 0.05s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+#validation-modal #validation-ok-btn:hover {
+    box-shadow: 0 8px 18px rgba(26, 115, 232, 0.35);
+}
+#validation-modal #validation-ok-btn:active {
+    transform: translateY(1px);
+    background: linear-gradient(180deg, #1558b0, #0f3f82);
+}
+
+/* Optional: make the modal close icon feel consistent */
+#validation-modal .close-button {
+    color: #7a8aa0;
+    transition: color 0.2s ease;
+}
+#validation-modal .close-button:hover {
+    color: #0f3f82;
+}

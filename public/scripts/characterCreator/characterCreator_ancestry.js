@@ -94,7 +94,15 @@ function setupModal() {
 
     window.character = window.character || {};
     window.character.speciesName = chosenSpecies.name;
+    // NEW: reset size when species changes
+    delete window.character.size;
     saveCharacter();
+
+    // NEW: update finalize tab (Size dropdown) immediately
+    window.updateFinalizeTab?.();
+
+    // NEW: show ancestry main content and hide warning
+    updateAncestryVisibility();
 
     closeModal();
     document.querySelector('.tab[data-tab="ancestry"]').click();
@@ -248,6 +256,9 @@ function showTraitSelection(species) {
 }
 
 document.querySelector('.tab[data-tab="ancestry"]')?.addEventListener('click', () => {
+  // NEW: update visibility each time tab is entered
+  updateAncestryVisibility();
+
   if (window.character && window.character.speciesName) {
     const species = allSpecies.find(s => s.name === window.character.speciesName);
     if (species) {
@@ -255,6 +266,21 @@ document.querySelector('.tab[data-tab="ancestry"]')?.addEventListener('click', (
       restoreTraitSelections();
     }
   }
+});
+
+// NEW: Toggle visibility of ancestry tab content based on species selection
+function updateAncestryVisibility() {
+  const warning = document.getElementById('ancestry-warning');
+  const main = document.getElementById('ancestry-main');
+  if (!warning || !main) return;
+  const hasSpecies = !!(window.character && window.character.speciesName);
+  warning.style.display = hasSpecies ? 'none' : 'block';
+  main.style.display = hasSpecies ? '' : 'none';
+}
+
+// Wire "Go to Species" button
+document.getElementById('go-to-species-from-ancestry')?.addEventListener('click', () => {
+  document.querySelector('.tab[data-tab="species"]')?.click();
 });
 
 function restoreTraitSelections() {
@@ -287,6 +313,7 @@ function restoreTraitSelections() {
 
 export function restoreAncestry() {
   // Called by storage module
+  updateAncestryVisibility(); // NEW: ensure proper visibility on restore
   if (window.character?.speciesName) {
     const species = allSpecies.find(s => s.name === window.character.speciesName);
     if (species) {

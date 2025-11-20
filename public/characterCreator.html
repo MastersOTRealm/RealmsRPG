@@ -44,6 +44,11 @@
             <!-- Archetype Tab -->
             <div id="content-archetype" class="content active">
                 <h1>Choose Your Archetype</h1>
+                <!-- NEW: species warning -->
+                <div id="species-warning" style="display:none;margin:12px 0;padding:10px;border-left:4px solid #ff9800;background:#fff8e1;border-radius:6px;">
+                    <strong>First, choose a species!</strong>
+                    <button id="go-to-species-btn" class="small-button blue-button" style="margin-left:8px;">Go to Species</button>
+                </div>
                 <p class="description">
                     Thrilling! Now you must pick your Power Ability. These reflect your character's physical combat style and approach to challenges as well as your connection to supernatural, magical, or extraordinary abilities.
                 </p>
@@ -189,62 +194,71 @@
                     You gain all species traits, one ancestry trait (or two if you pick a flaw) and a characteristic.
                 </p>
 
-                <!-- Species Details -->
-                <div class="species-details-section">
-                    <div class="species-header">
-                        <div class="species-img-large" id="selected-species-img"></div>
-                        <div class="species-info">
-                            <h2 id="selected-species-name"></h2>
-                            <p id="selected-species-description"></p>
-                            <div class="species-stats">
-                                <div class="stat-item"><strong>Average Height:</strong> <span id="selected-stat-height"></span></div>
-                                <div class="stat-item"><strong>Average Weight:</strong> <span id="selected-stat-weight"></span></div>
-                                <div class="stat-item"><strong>Species Type:</strong> <span id="selected-stat-type"></span></div>
-                                <div class="stat-item"><strong>Skills:</strong> <span id="selected-stat-skills"></span></div>
-                                <div class="stat-item"><strong>Adulthood:</strong> <span id="selected-stat-adulthood"></span></div>
-                                <div class="stat-item"><strong>Languages:</strong> <span id="selected-stat-languages"></span></div>
-                                <div class="stat-item"><strong>Max Age:</strong> <span id="selected-stat-maxage"></span></div>
+                <!-- NEW: Warning shown when no species is selected -->
+                <div id="ancestry-warning" style="display:none;margin:12px 0;padding:12px;border-left:4px solid #ff9800;background:#fff8e1;border-radius:6px;">
+                    <strong>First, choose a species!</strong>
+                    <button id="go-to-species-from-ancestry" class="small-button blue-button" style="margin-left:8px;">Go to Species</button>
+                </div>
+
+                <!-- NEW: Main ancestry content wrapper (hidden until species selected) -->
+                <div id="ancestry-main">
+                    <!-- Species Details -->
+                    <div class="species-details-section">
+                        <div class="species-header">
+                            <div class="species-img-large" id="selected-species-img"></div>
+                            <div class="species-info">
+                                <h2 id="selected-species-name"></h2>
+                                <p id="selected-species-description"></p>
+                                <div class="species-stats">
+                                    <div class="stat-item"><strong>Average Height:</strong> <span id="selected-stat-height"></span></div>
+                                    <div class="stat-item"><strong>Average Weight:</strong> <span id="selected-stat-weight"></span></div>
+                                    <div class="stat-item"><strong>Species Type:</strong> <span id="selected-stat-type"></span></div>
+                                    <div class="stat-item"><strong>Skills:</strong> <span id="selected-stat-skills"></span></div>
+                                    <div class="stat-item"><strong>Adulthood:</strong> <span id="selected-stat-adulthood"></span></div>
+                                    <div class="stat-item"><strong>Languages:</strong> <span id="selected-stat-languages"></span></div>
+                                    <div class="stat-item"><strong>Max Age:</strong> <span id="selected-stat-maxage"></span></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="ancestry-trait-section">
-                    <div class="section-header" data-section="species">
-                        <h3>Species Traits <span class="section-note">(You gain all of these!)</span></h3>
-                        <span class="toggle-arrow">▼</span>
+                    <div class="ancestry-trait-section">
+                        <div class="section-header" data-section="species">
+                            <h3>Species Traits <span class="section-note">(You gain all of these!)</span></h3>
+                            <span class="toggle-arrow">▼</span>
+                        </div>
+                        <div class="section-body" id="species-section-body"></div>
                     </div>
-                    <div class="section-body" id="species-section-body"></div>
-                </div>
 
-                <div class="ancestry-trait-section">
-                    <div class="section-header" data-section="ancestry">
-                        <h3>Ancestry Trait <span class="section-note">(Choose one; or two if you choose a flaw!)</span></h3>
-                        <span class="toggle-arrow">▼</span>
+                    <div class="ancestry-trait-section">
+                        <div class="section-header" data-section="ancestry">
+                            <h3>Ancestry Trait <span class="section-note">(Choose one; or two if you choose a flaw!)</span></h3>
+                            <span class="toggle-arrow">▼</span>
+                        </div>
+                        <div class="section-body" id="ancestry-section-body"></div>
+                        <div class="trait-definition" id="ancestry-definition"></div>
                     </div>
-                    <div class="section-body" id="ancestry-section-body"></div>
-                    <div class="trait-definition" id="ancestry-definition"></div>
-                </div>
 
-                <div class="ancestry-trait-section">
-                    <div class="section-header" data-section="characteristic">
-                        <h3>Characteristic <span class="section-note">(Choose one)</span></h3>
-                        <span class="toggle-arrow">▼</span>
+                    <div class="ancestry-trait-section">
+                        <div class="section-header" data-section="characteristic">
+                            <h3>Characteristic <span class="section-note">(Choose one)</span></h3>
+                            <span class="toggle-arrow">▼</span>
+                        </div>
+                        <div class="section-body" id="characteristic-section-body"></div>
+                        <div class="trait-definition" id="characteristic-definition"></div>
                     </div>
-                    <div class="section-body" id="characteristic-section-body"></div>
-                    <div class="trait-definition" id="characteristic-definition"></div>
-                </div>
 
-                <div class="ancestry-trait-section">
-                    <div class="section-header" data-section="flaw">
-                        <h3>Flaws <span class="section-note">(Optionally choose one)</span></h3>
-                        <span class="toggle-arrow">▼</span>
+                    <div class="ancestry-trait-section">
+                        <div class="section-header" data-section="flaw">
+                            <h3>Flaws <span class="section-note">(Optionally choose one)</span></h3>
+                            <span class="toggle-arrow">▼</span>
+                        </div>
+                        <div class="section-body" id="flaw-section-body"></div>
                     </div>
-                    <div class="section-body" id="flaw-section-body"></div>
-                </div>
 
-                <div class="ancestry-actions">
-                    <button id="ancestry-continue">Continue to Abilities</button>
+                    <div class="ancestry-actions">
+                        <button id="ancestry-continue">Continue to Abilities</button>
+                    </div>
                 </div>
             </div>
 
@@ -620,12 +634,23 @@
                         <input type="number" id="finalize-height" min="50" max="300" placeholder="Height in cm">
                         <label for="finalize-weight"><strong>Weight (kg):</strong></label>
                         <input type="number" id="finalize-weight" min="20" max="300" placeholder="Weight in kg">
+                        <!-- NEW: Size dropdown -->
+                        <label for="finalize-size"><strong>Size:</strong></label>
+                        <select id="finalize-size">
+                            <option value="" disabled selected>Select species first</option>
+                        </select>
                         <label for="finalize-appearance"><strong>Appearance Description:</strong></label>
                         <textarea id="finalize-appearance" rows="2" placeholder="Describe your character's appearance"></textarea>
                         <label for="finalize-archetype-desc"><strong>Archetype Description:</strong></label>
                         <textarea id="finalize-archetype-desc" rows="2" placeholder="Describe your archetype"></textarea>
                         <label for="finalize-notes"><strong>Notes:</strong></label>
                         <textarea id="finalize-notes" rows="2" placeholder="Any notes about your character"></textarea>
+
+                        <!-- NEW: Size dropdown -->
+                        <label for="finalize-size"><strong>Size:</strong></label>
+                        <select id="finalize-size">
+                            <option value="" disabled selected>Select species first</option>
+                        </select>
                     </div>
                     <div class="finalize-health-energy" style="display:flex;flex-direction:row;justify-content:center;align-items:center;gap:32px;padding:32px 0;">
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
@@ -653,11 +678,28 @@
     </div>
 </div>
                 </div>
+                
+                <!-- NEW: Complete Character Button -->
+                <div style="display: flex; justify-content: flex-end; margin-top: 32px;">
+                    <button id="complete-character-btn" class="medium-button blue-button" style="padding: 12px 32px; font-size: 1.1em;">
+                        Complete Character
+                    </button>
+                </div>
             </div>
         </div>
     </main>
 
     <footer id="footer"></footer>
+
+    <!-- NEW: Validation Modal -->
+    <div id="validation-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-button" id="close-validation-modal">&times;</span>
+            <h2 id="validation-title">Character Validation</h2>
+            <div id="validation-results" style="margin: 20px 0;"></div>
+            <button id="validation-ok-btn" class="medium-button blue-button" style="margin-top: 16px;">Got it!</button>
+        </div>
+    </div>
 
     <script type="module" src="/scripts/characterCreator/characterCreator_main.js"></script>
 </body>
