@@ -18,10 +18,10 @@
  * @param {Array<{name, op_1_lvl, op_2_lvl, op_3_lvl, applyDuration}>} partsPayload
  * @param {Array} partsDb
  * @returns {{
- *   totalEnergy:number,        // rounded up
+ *   totalEnergy:number,        // rounded up to whole number
  *   totalTP:number,
  *   tpSources:string[],
- *   energyRaw:number           // NEW: unrounded (decimal) for creators
+ *   energyRaw:number           // unrounded decimal for creators
  * }}
  */
 export function calculatePowerCosts(partsPayload = [], partsDb = []) {
@@ -47,21 +47,24 @@ export function calculatePowerCosts(partsPayload = [], partsDb = []) {
     const def = partsDb.find(p => p.name === name);
     if (!def) return;
 
-    // Energy contribution
+    // Energy contribution (effective energy)
     const energyContribution =
       (def.base_en || 0) +
       (def.op_1_en || 0) * l1 +
       (def.op_2_en || 0) * l2 +
       (def.op_3_en || 0) * l3;
 
-    // Categorize energy contribution
+    // Categorize energy contribution based on part flags
     if (def.duration) {
+      // Duration part: multiply into dur_all
       dur_all *= energyContribution;
       hasDurationParts = true;
     } else if (def.percentage) {
+      // Percentage part: multiply into perc_all (and perc_dur if applyDuration checked)
       perc_all *= energyContribution;
       if (applyToDuration) perc_dur *= energyContribution;
     } else {
+      // Flat part: add to flat_normal (and flat_duration if applyDuration checked)
       flat_normal += energyContribution;
       if (applyToDuration) flat_duration += energyContribution;
     }
@@ -84,12 +87,12 @@ export function calculatePowerCosts(partsPayload = [], partsDb = []) {
     totalTP += partTP;
   });
 
-  // If no duration parts, dur_all = 0
+  // If no duration parts exist, dur_all should be 0 (not 1)
   if (!hasDurationParts) dur_all = 0;
 
   // Unified power energy equation
   const totalEnergyRaw = (flat_normal * perc_all) + ((dur_all + 1) * flat_duration * perc_dur) - (flat_duration * perc_dur);
-  const totalEnergy = Math.ceil(totalEnergyRaw); // Round up for non-creator displays
+  const totalEnergy = Math.ceil(totalEnergyRaw); // Round up for display contexts
 
   return { totalEnergy, totalTP, tpSources, energyRaw: totalEnergyRaw };
 }

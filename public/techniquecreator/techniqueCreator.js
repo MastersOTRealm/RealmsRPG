@@ -286,17 +286,11 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         const { totalEnergy, totalTP, tpSources: newTPSources, energyRaw } = calculateTechniqueCosts(allPartsPayload, techniqueParts);
         tpSources = newTPSources;
 
-        // Display decimal (unrounded) energy like power creator
-        const rawDisplay = Number.isFinite(energyRaw) ? energyRaw : totalEnergy;
-        document.getElementById("totalEnergy").textContent = rawDisplay.toFixed(1);
+        // Display decimal energy (one decimal, rounded UP) in the creator UI
+        const displayEnergy = Math.ceil(energyRaw * 10) / 10;
+        document.getElementById("totalEnergy").textContent = displayEnergy.toFixed(1);
         document.getElementById("totalTP").textContent = totalTP;
-
-        // Keep summary in sync
-        const summaryEnergyEl = document.getElementById("summaryEnergy");
-        if (summaryEnergyEl) summaryEnergyEl.textContent = rawDisplay.toFixed(1);
-        const summaryTPEl = document.getElementById("summaryTP");
-        if (summaryTPEl) summaryTPEl.textContent = totalTP;
-
+    
         updateTechniqueSummary();
     }
 

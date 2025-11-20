@@ -830,6 +830,22 @@ button:hover {
     margin-top: 8px;
 }
 
+/* Style for Apply Duration checkbox in chip descriptions */
+.chip-description label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.chip-description label input[type="checkbox"] {
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+}
+
 /* Category colors for added parts */
 .added-advanced-parts .chip.action {
     background: #e7f0ff;

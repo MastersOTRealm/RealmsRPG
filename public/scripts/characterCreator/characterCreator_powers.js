@@ -130,7 +130,7 @@ async function fetchPowersFromLibrary() {
         name: display.name,
         description: display.description,
         parts: data.parts || [],
-        totalEnergy: display.energy,
+        totalEnergy: display.energy, // Already rounded up by derivePowerDisplay
         totalTP: display.tp,
         display // keep full display for chips
       });
@@ -171,7 +171,7 @@ async function fetchTechniquesFromLibrary() {
         parts, // standardized
         weapon: data.weapon,
         damage: data.damage,
-        totalEnergy: Math.ceil(display.energy),
+        totalEnergy: display.energy, // Already rounded up by deriveTechniqueDisplay
         totalTP: display.tp,
         display
       });
@@ -461,7 +461,7 @@ function updatePowersTechniquesBonusDisplay() {
     const tech = techniquesLibrary.find(t => t.id === id);
     const item = power || tech;
     if (!item) return '';
-    const energyInt = Math.ceil(item.totalEnergy || 0);
+    const energyInt = item.totalEnergy; // Already a whole number, no need for Math.ceil
     const type = power ? 'Power' : 'Technique';
     return `
       <div class="skill-bonus-item">

@@ -449,12 +449,6 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         // Combine selected parts and mechanic parts
         const allParts = [...selectedPowerParts, ...mechanicParts, ...selectedAdvancedParts];
     
-        // Temporary console log: Show all current parts with option levels
-        // console.log('Current parts in power:');
-        // allParts.forEach(partData => {
-        //     console.log(`${partData.part.name}: opt1=${partData.opt1Level}, opt2=${partData.opt2Level}, opt3=${partData.opt3Level}, applyDuration=${partData.applyDuration || false}`);
-        // });
-    
         // Use centralized calculator
         const payloadForCalc = allParts.map(p => p.part ? ({
             name: p.part.name,
@@ -467,8 +461,9 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         const { totalEnergy, totalTP, tpSources: newTPSources, energyRaw } = calculatePowerCosts(payloadForCalc, powerParts);
         tpSources = newTPSources;
 
-        // Display decimal energy (one decimal) in the creator UI
-        document.getElementById("totalEnergy").textContent = (Number.isFinite(energyRaw) ? energyRaw : totalEnergy).toFixed(1);
+        // Display energy rounded to the tenth (ceiling at one decimal place)
+        const displayEnergy = Math.ceil(energyRaw * 10) / 10;
+        document.getElementById("totalEnergy").textContent = displayEnergy.toFixed(1);
         document.getElementById("totalTP").textContent = totalTP;
     
         updatePowerSummary();
@@ -679,7 +674,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
     function addAdvancedPart(part) {
         const existing = selectedAdvancedParts.find(ap => ap.part.name === part.name);
         if (!existing) {
-            selectedAdvancedParts.push({ part, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0 });
+            selectedAdvancedParts.push({ part, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
             renderAddedAdvancedParts();
             updateTotalCosts();
         }
@@ -703,7 +698,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         selectedAdvancedParts.forEach((partData, idx) => {
             const part = partData.part;
             const chip = document.createElement('span');
-            chip.className = 'chip ' + (classMap[part.category] || 'special'); // Use classMap for accurate mapping
+            chip.className = 'chip ' + (classMap[part.category] || 'special');
             chip.textContent = part.name;
 
             // Add remove button
@@ -752,6 +747,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
                         <p>${part.op_3_desc}</p>
                     </div>
                 </div>` : ''}
+                <label><input type="checkbox" id="applyDurationAdv-${idx}" onclick="event.stopPropagation(); toggleAdvancedApplyDuration(${idx})" ${partData.applyDuration ? 'checked' : ''}> Apply Duration</label>
             `;
 
             // Add click event to toggle description
@@ -776,7 +772,13 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         updateTotalCosts();
     }
 
-    // NEW: Function to remove advanced part
+    // NEW: Function to toggle apply duration for advanced parts
+    function toggleAdvancedApplyDuration(idx) {
+        selectedAdvancedParts[idx].applyDuration = !selectedAdvancedParts[idx].applyDuration;
+        updateTotalCosts();
+    }
+
+    // NEW: Function to remove an advanced part
     function removeAdvancedPart(idx) {
         selectedAdvancedParts.splice(idx, 1);
         renderAddedAdvancedParts();
@@ -991,25 +993,25 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
                 op_1_lvl: p.op_1_lvl || 0,
                 op_2_lvl: p.op_2_lvl || 0,
                 op_3_lvl: p.op_3_lvl || 0,
-                applyDuration: p.applyDuration || false
+                applyDuration: p.applyDuration || false // ✓ SAVED
             })),
-            ...mechanicParts,
+            ...mechanicParts, // ✓ Built by buildMechanicPartsForSave with applyDuration
             ...selectedAdvancedParts.map(p => ({
                 part: p.part,
                 op_1_lvl: p.op_1_lvl || 0,
                 op_2_lvl: p.op_2_lvl || 0,
                 op_3_lvl: p.op_3_lvl || 0,
-                applyDuration: false
+                applyDuration: p.applyDuration || false // ✓ SAVED (but always false in current implementation)
             }))
         ];
 
-        // Map to compact structure
+        // Map to compact structure - THIS PRESERVES applyDuration
         const partsPayload = allParts.map(p => ({
             name: p.part.name,
             op_1_lvl: p.op_1_lvl || 0,
             op_2_lvl: p.op_2_lvl || 0,
             op_3_lvl: p.op_3_lvl || 0,
-            applyDuration: p.applyDuration || false
+            applyDuration: p.applyDuration || false // ✓ PRESERVED IN SAVE
         }));
 
         try {
@@ -1092,30 +1094,126 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
             document.getElementById('damageType2').value = dmg2.type || 'none';
         }
 
-        // Load parts (new key: parts; fallback to legacy powerParts)
+        // CHANGED: Load ALL parts, including mechanic parts, to preserve applyDuration state
         const savedParts = power.parts || power.powerParts || [];
         selectedPowerParts.length = 0;
         selectedAdvancedParts.length = 0;
 
+        // Track mechanic parts to restore UI state
+        let savedRange = 0;
+        let savedAreaEffect = 'none';
+        let savedAreaEffectLevel = 1;
+        let savedAreaEffectApplyDuration = false;
+        let savedActionType = 'basic';
+        let savedReaction = false;
+        let savedDurationType = 'rounds';
+        let savedDurationValue = 1;
+        let savedFocus = false;
+        let savedNoHarm = false;
+        let savedEndsOnce = false;
+        let savedSustain = 0;
+
         savedParts.forEach(p => {
             const partObj = powerParts.find(pp => pp.name === p.name || pp.name === p.part);
-            if (partObj) {
-                // Skip mechanic parts - they'll be recreated from UI state
-                if (partObj.mechanic || partObj.duration) return;
+            if (!partObj) return;
 
-                selectedPowerParts.push({
-                    part: partObj,
-                    op_1_lvl: p.op_1_lvl ?? p.opt1Level ?? 0,
-                    op_2_lvl: p.op_2_lvl ?? p.opt2Level ?? 0,
-                    op_3_lvl: p.op_3_lvl ?? p.opt3Level ?? 0,
-                    applyDuration: p.applyDuration || false
-                });
+            // Restore UI state from mechanic parts
+            if (partObj.mechanic || partObj.duration) {
+                if (partObj.name === 'Power Range') {
+                    savedRange = (p.op_1_lvl || 0) + 1;
+                } else if (partObj.name === 'Sphere of Effect') {
+                    savedAreaEffect = 'sphere';
+                    savedAreaEffectLevel = (p.op_1_lvl || 0) + 1;
+                    savedAreaEffectApplyDuration = p.applyDuration || false;
+                } else if (partObj.name === 'Cylinder of Effect') {
+                    savedAreaEffect = 'cylinder';
+                    savedAreaEffectLevel = (p.op_1_lvl || 0) + 1;
+                    savedAreaEffectApplyDuration = p.applyDuration || false;
+                } else if (partObj.name === 'Cone of Effect') {
+                    savedAreaEffect = 'cone';
+                    savedAreaEffectLevel = (p.op_1_lvl || 0) + 1;
+                    savedAreaEffectApplyDuration = p.applyDuration || false;
+                } else if (partObj.name === 'Line of Effect') {
+                    savedAreaEffect = 'line';
+                    savedAreaEffectLevel = (p.op_1_lvl || 0) + 1;
+                    savedAreaEffectApplyDuration = p.applyDuration || false;
+                } else if (partObj.name === 'Trail of Effect') {
+                    savedAreaEffect = 'space';
+                    savedAreaEffectLevel = (p.op_1_lvl || 0) + 1;
+                    savedAreaEffectApplyDuration = p.applyDuration || false;
+                } else if (partObj.name === 'Power Reaction') {
+                    savedReaction = true;
+                } else if (partObj.name === 'Power Quick or Free Action') {
+                    savedActionType = (p.op_1_lvl || 0) === 0 ? 'quick' : 'free';
+                } else if (partObj.name === 'Power Long Action') {
+                    savedActionType = (p.op_1_lvl || 0) === 0 ? 'long3' : 'long4';
+                } else if (partObj.name === 'Focus for Duration') {
+                    savedFocus = true;
+                } else if (partObj.name === 'No Harm or Adaptation for Duration') {
+                    savedNoHarm = true;
+                } else if (partObj.name === 'Duration Ends On Activation') {
+                    savedEndsOnce = true;
+                } else if (partObj.name === 'Sustain for Duration') {
+                    savedSustain = (p.op_1_lvl || 0) + 1;
+                } else if (partObj.name === 'Duration (Permanent)') {
+                    savedDurationType = 'permanent';
+                    savedDurationValue = 1;
+                } else if (partObj.name === 'Duration (Days)') {
+                    savedDurationType = 'days';
+                    savedDurationValue = (p.op_1_lvl || 0) + 1;
+                } else if (partObj.name === 'Duration (Hour)') {
+                    savedDurationType = 'hours';
+                    savedDurationValue = (p.op_1_lvl || 0) + 1;
+                } else if (partObj.name === 'Duration (Minute)') {
+                    savedDurationType = 'minutes';
+                    savedDurationValue = (p.op_1_lvl || 0) + 1;
+                } else if (partObj.name === 'Duration (Round)') {
+                    savedDurationType = 'rounds';
+                    savedDurationValue = (p.op_1_lvl || 0) + 2; // 0 → 2 rounds, 1 → 3 rounds, etc.
+                }
+                // Don't add mechanic parts to selectedPowerParts or selectedAdvancedParts
+                return;
             }
+
+            // Restore non-mechanic parts
+            selectedPowerParts.push({
+                part: partObj,
+                op_1_lvl: p.op_1_lvl ?? p.opt1Level ?? 0,
+                op_2_lvl: p.op_2_lvl ?? p.opt2Level ?? 0,
+                op_3_lvl: p.op_3_lvl ?? p.opt3Level ?? 0,
+                applyDuration: p.applyDuration || false
+            });
         });
+
+        // Restore UI state
+        range = savedRange;
+        const displayRange = range === 0 ? 1 : range * 3;
+        document.getElementById('rangeValue').textContent = displayRange;
+        document.getElementById('rangeValue').nextSibling.textContent = displayRange > 1 ? ' spaces' : ' space';
+
+        document.getElementById('areaEffect').value = savedAreaEffect;
+        areaEffectLevel = savedAreaEffectLevel;
+        document.getElementById('areaEffectLevelValue').textContent = areaEffectLevel;
+        document.getElementById('areaEffectApplyDuration').checked = savedAreaEffectApplyDuration;
+        updateAreaEffect(); // Update description
+
+        document.getElementById('actionType').value = savedActionType;
+        document.getElementById('reactionCheckbox').checked = savedReaction;
+        updateActionType(); // Update description
+
+        document.getElementById('durationType').value = savedDurationType;
+        changeDurationType(); // Populate dropdown
+        document.getElementById('durationValue').value = savedDurationValue;
+        duration = savedDurationValue;
+
+        document.getElementById('focusCheckbox').checked = savedFocus;
+        document.getElementById('noHarmCheckbox').checked = savedNoHarm;
+        document.getElementById('endsOnceCheckbox').checked = savedEndsOnce;
+        document.getElementById('sustainValue').value = savedSustain;
 
         renderPowerParts();
         renderAddedAdvancedParts();
-        updateTotalCosts(); // Recalculate from current definitions
+        updateTotalCosts(); // Recalculate with restored UI state
     }
     
     function openModal() {
@@ -1212,6 +1310,8 @@ window.closeModal = closeModal;
 window.toggleApplyDuration = toggleApplyDuration; // NEW
 window.toggleAdvancedMechanics = toggleAdvancedMechanics; // NEW
 window.changeAdvancedOptionLevel = changeAdvancedOptionLevel; // NEW
+window.toggleAdvancedApplyDuration = toggleAdvancedApplyDuration; // NEW
+window.removeAdvancedPart = removeAdvancedPart; // NEW
 window.populateAdvancedMechanics = populateAdvancedMechanics; // NEW
 
 })();
