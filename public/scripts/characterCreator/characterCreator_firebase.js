@@ -10,6 +10,8 @@ export async function initializeFirebase() {
   const firebaseConfig = await response.json();
   firebaseConfig.authDomain = 'realmsroleplaygame.com';
   const app = initializeApp(firebaseConfig);
+  // NEW: expose app for other modules (auth/functions binding)
+  window.firebaseApp = app;
   initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
     isTokenAutoRefreshEnabled: true

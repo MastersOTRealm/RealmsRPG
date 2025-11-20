@@ -10,8 +10,8 @@ export let selectedPowersTechniques = [];
 let powersInitialized = false;
 let powerPartsCache = null;
 let techniquePartsCache = null;
-let powersLibrary = [];
-let techniquesLibrary = [];
+export let powersLibrary = [];
+export let techniquesLibrary = [];
 let authReady = false;
 let currentUser = null;
 

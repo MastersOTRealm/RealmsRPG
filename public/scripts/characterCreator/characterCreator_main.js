@@ -329,6 +329,8 @@ function displayValidationResults(issues) {
                 All requirements have been met. Your hero is prepared to face whatever challenges await!
             </p>
         `;
+        // NEW: Save character to Firestore
+        saveCharacterToFirestore();
     } else {
         titleEl.textContent = '📋 Almost There!';
         titleEl.style.color = '#ff9800';
@@ -347,6 +349,198 @@ function displayValidationResults(issues) {
     }
     
     modal.style.display = 'block';
+}
+
+// NEW: Save character to Firestore using Cloud Function (matches item/power/technique creators)
+async function saveCharacterToFirestore() {
+    const char = window.character || {};
+    // Use the initialized app instance for auth and functions
+    const app = window.firebaseApp || window.db?.app || undefined;
+    const { getAuth } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js');
+    const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js');
+    const auth = getAuth(app);
+    // Bind to project region explicitly
+    const functions = getFunctions(app, 'us-central1');
+    const user = auth.currentUser;
+    if (!user) {
+        alert('You must be logged in to save your character.');
+        return;
+    }
+
+    // Ensure a fresh token
+    try { await user.getIdToken(true); } catch (_) {}
+
+    // Martial/Power proficiency logic
+    let mart_prof = 0, pow_prof = 0, pow_abil = null, mart_abil = null;
+    if (char.archetype?.type === 'martial') {
+        mart_prof = 2; pow_prof = 0; mart_abil = char.archetype.abilities;
+    } else if (char.archetype?.type === 'powered-martial') {
+        mart_prof = 1; pow_prof = 1;
+        pow_abil = char.archetype.abilities?.power;
+        mart_abil = char.archetype.abilities?.martial;
+    } else if (char.archetype?.type === 'power') {
+        mart_prof = 0; pow_prof = 2; pow_abil = char.archetype.abilities;
+    }
+
+    // Traits: ancestryTraits, flawTrait, characteristicTrait
+    const traits = [
+        ...(char.ancestryTraits || []),
+        ...(char.flawTrait ? [char.flawTrait] : []),
+        ...(char.characteristicTrait ? [char.characteristicTrait] : [])
+    ];
+
+    // Skills: name, skill_val, ability, prof: true
+    const skillsArr = (char.skills || []).map(skillName => ({
+        name: skillName,
+        skill_val: (char.skillVals?.[skillName] ?? 0),
+        ability: char.skillAbilities?.[skillName] ?? null,
+        prof: true
+    }));
+
+    // Feats: both archetype and character
+    const featsArr = [
+        ...(char.feats?.archetype || []),
+        ...(char.feats?.character || [])
+    ];
+
+    // Equipment, weapons, armor
+    const equipmentArr = char.equipment || [];
+    let armamentsArr = [];
+    let weaponsArr = [];
+    let armorArr = [];
+    let weaponLibrary = [];
+    let armorLibrary = [];
+    let generalEquipment = [];
+    try {
+        const eqMod = await import('./characterCreator_equipment.js');
+        weaponLibrary = eqMod.weaponLibrary || [];
+        armorLibrary = eqMod.armorLibrary || [];
+        generalEquipment = eqMod.generalEquipment || [];
+    } catch (e) {
+        weaponLibrary = [];
+        armorLibrary = [];
+        generalEquipment = [];
+    }
+    equipmentArr.forEach(id => {
+        const weapon = weaponLibrary.find(w => w.id === id);
+        const armor = armorLibrary.find(a => a.id === id);
+        if (weapon) {
+            armamentsArr.push(weapon.name);
+            weaponsArr.push(weapon.name);
+        } else if (armor) {
+            armamentsArr.push(armor.name);
+            armorArr.push(armor.name);
+        } else {
+            const general = generalEquipment.find(g => g.id === id);
+            if (general) armamentsArr.push(general.name);
+        }
+    });
+
+    // Powers & Techniques
+    let selectedPowersTechniques = [];
+    let powersLibrary = [];
+    let techniquesLibrary = [];
+    try {
+        const powMod = await import('./characterCreator_powers.js');
+        selectedPowersTechniques = powMod.selectedPowersTechniques || [];
+        powersLibrary = powMod.powersLibrary || [];
+        techniquesLibrary = powMod.techniquesLibrary || [];
+    } catch (e) {
+        selectedPowersTechniques = [];
+        powersLibrary = [];
+        techniquesLibrary = [];
+    }
+    const powersArr = [];
+    const techniquesArr = [];
+    (selectedPowersTechniques || []).forEach(id => {
+        const power = powersLibrary.find(p => p.id === id);
+        const tech = techniquesLibrary.find(t => t.id === id);
+        if (power) powersArr.push(power.name);
+        if (tech) techniquesArr.push(tech.name);
+    });
+
+    // Health/Energy allocation
+    const baseHealth = getBaseHealth();
+    const baseEnergy = getBaseEnergy();
+    const health = char.finalizeHealth ?? baseHealth;
+    const energy = char.finalizeEnergy ?? baseEnergy;
+    const health_energy_points = {
+        health: health - baseHealth,
+        energy: energy - baseEnergy
+    };
+
+    // Final object
+    const characterData = {
+        name: char.name || '',
+        species: char.speciesName || '',
+        traits,
+        size: char.size || '',
+        mart_prof,
+        pow_prof,
+        strength: char.abilities?.strength ?? 0,
+        vitality: char.abilities?.vitality ?? 0,
+        agility: char.abilities?.agility ?? 0,
+        acuity: char.abilities?.acuity ?? 0,
+        intelligence: char.abilities?.intelligence ?? 0,
+        charisma: char.abilities?.charisma ?? 0,
+        skills: skillsArr,
+        feats: featsArr,
+        equipment: equipmentArr.map(id => {
+            const weapon = weaponLibrary.find(w => w.id === id);
+            const armor = armorLibrary.find(a => a.id === id);
+            const general = generalEquipment.find(g => g.id === id);
+            return weapon?.name || armor?.name || general?.name || id;
+        }),
+        armaments: armamentsArr,
+        weapons: weaponsArr,
+        armor: armorArr,
+        powers: powersArr,
+        techniques: techniquesArr,
+        health_energy_points,
+        appearance: char.appearance || '',
+        archetype_desc: char.archetypeDesc || '',
+        notes: char.notes || '',
+        weight: char.weight || '',
+        height: char.height || ''
+    };
+
+    // Add optional fields only if they have a value
+    if (pow_abil) characterData.pow_abil = pow_abil;
+    if (mart_abil) characterData.mart_abil = mart_abil;
+
+    try {
+        const saveCharacterFn = httpsCallable(functions, 'saveCharacterToLibrary');
+        const result = await saveCharacterFn(characterData);
+        console.log('Character saved via callable:', result.data);
+        alert(result.data?.message || 'Character saved to your library!');
+    } catch (e) {
+        console.error('Callable error saving character:', e);
+        // Fallback: direct HTTP call using Bearer token (mirrors power/technique pattern)
+        try {
+            const idToken = await auth.currentUser.getIdToken();
+            const projectId = (app && app.options && app.options.projectId) || 'realmsrpg-b3366';
+            const url = `https://us-central1-${projectId}.cloudfunctions.net/saveCharacterToLibraryHttp`;
+            console.log('Attempting HTTP fallback to:', url);
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify(characterData)
+            });
+            if (!resp.ok) {
+                const text = await resp.text().catch(() => '');
+                throw new Error(`HTTP ${resp.status}: ${text}`);
+            }
+            const data = await resp.json();
+            console.log('Character saved via HTTP:', data);
+            alert(data?.message || 'Character saved to your library!');
+        } catch (err) {
+            console.error('HTTP fallback error saving character:', err);
+            alert('Error saving character to library');
+        }
+    }
 }
 
 // NEW: Setup validation modal events

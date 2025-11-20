@@ -17,9 +17,10 @@ export let selectedEquipment = [];
 export let selectedEquipmentQuantities = {}; // { id: quantity }
 let equipmentInitialized = false;
 let itemPropertiesCache = null;
-let weaponLibrary = [];
-let armorLibrary = [];
-let generalEquipment = [];
+// NEW: export these libraries for other modules
+export let weaponLibrary = [];
+export let armorLibrary = [];
+export let generalEquipment = [];
 let authReady = false;
 let currentUser = null;
 
