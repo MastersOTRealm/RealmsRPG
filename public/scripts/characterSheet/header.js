@@ -8,7 +8,7 @@ export function renderHeader(character) {
     const maxHealth = character.hitPoints || 0;
     const currentEnergy = character.currentEnergy ?? character.energy ?? 0;
     const maxEnergy = character.energy || 0;
-    const terminal = character.terminal || Math.floor(maxHealth / 2);
+    const terminal = Math.ceil(maxHealth / 4);
     const innateEnergy = character.innateEnergy || 0;
 
     container.innerHTML = `
@@ -68,6 +68,9 @@ export function renderHeader(character) {
             // Trigger save if needed
             document.getElementById('save-character')?.click();
         });
+        healthInput.addEventListener('change', () => {
+            window.updateResourceColors?.();
+        });
     }
 
     if (energyInput) {
@@ -78,5 +81,10 @@ export function renderHeader(character) {
             // Trigger save if needed
             document.getElementById('save-character')?.click();
         });
+        energyInput.addEventListener('change', () => {
+            window.updateResourceColors?.();
+        });
     }
+
+    window.updateResourceColors?.();
 }

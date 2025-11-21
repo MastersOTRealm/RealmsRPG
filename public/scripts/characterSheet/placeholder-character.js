@@ -3,18 +3,19 @@
 
 export const PLACEHOLDER_CHARACTER = {
   // Basic Info
-  name: "Gath the Destroyer",
+  name: "Gath",
   species: "Mountain Dwarf",
   size: "Medium",
   gender: "male",
-  level: 5,
-  xp: 150,
+  level: 1,
+  xp: 0,
   portrait: null, // Will show placeholder
   
   // Archetype
   mart_prof: 2,
   pow_prof: 0,
   mart_abil: "Strength",
+  pow_abil: "Charisma", // Explicitly set power ability (even though pow_prof is 0)
   
   // Abilities (grouped)
   abilities: {
@@ -26,7 +27,7 @@ export const PLACEHOLDER_CHARACTER = {
     charisma: -2
   },
   
-  // Defense values (grouped, similar to abilities)
+  // Defense investments (NOT scores or bonuses)
   defenseVals: {
     might: 0,
     fortitude: 0,
@@ -49,27 +50,33 @@ export const PLACEHOLDER_CHARACTER = {
   skills: [
     {
       name: "Athletics",
-      skill_val: 3,
+      skill_val: 2,
       ability: "Strength",
       prof: true
     },
     {
       name: "Intimidation",
-      skill_val: 2,
+      skill_val: 1,
       ability: "Strength",
       prof: true
     },
     {
       name: "Survival",
-      skill_val: 1,
+      skill_val: 0,
       ability: "Acuity",
-      prof: true
+      prof: false // -1 acuity, unprof -> -1 * 2 = -2 bonus
     },
     {
       name: "Craft",
-      skill_val: 2,
+      skill_val: 1,
       ability: "Intelligence",
       prof: true
+    },
+    {
+      name: "Deception",
+      skill_val: 0,
+      ability: "Charisma",
+      prof: false // -2 charisma, unprof -> -2 * 2 = -4 bonus
     }
   ],
   
@@ -78,16 +85,16 @@ export const PLACEHOLDER_CHARACTER = {
     {
       name: "Blacksmithing",
       baseSkill: "Craft",
-      skill_val: 3,
+      skill_val: 2,
       ability: "Intelligence",
       prof: true
     },
     {
       name: "Climbing",
       baseSkill: "Athletics",
-      skill_val: 3,
+      skill_val: 0,
       ability: "Strength",
-      prof: true
+      prof: false
     }
   ],
   
@@ -207,8 +214,8 @@ export const PLACEHOLDER_CHARACTER = {
   },
   
   // Current resources (tracked separately from max)
-  currentHealth: undefined, // Will be calculated from max
-  currentEnergy: undefined, // Will be calculated from max
+  currentHealth: undefined,
+  currentEnergy: undefined,
   
   // Character Details
   appearance: "A stocky dwarf with a braided black beard adorned with iron rings. Battle scars cross his weathered face, and his eyes gleam with fierce determination. He carries a massive greataxe on his back.",
@@ -218,11 +225,15 @@ export const PLACEHOLDER_CHARACTER = {
   height: "140",
   
   // Additional metadata
-  speed: 5, // Dwarf base speed
   innateEnergy: 0
 };
 
 // Helper function to get placeholder character (for testing)
 export function getPlaceholderCharacter() {
-  return JSON.parse(JSON.stringify(PLACEHOLDER_CHARACTER)); // Deep clone
+  const clone = JSON.parse(JSON.stringify(PLACEHOLDER_CHARACTER));
+  // Strip any accidental precomputed defense data (must be recalculated)
+  delete clone.defenses;
+  delete clone.defenseBonuses;
+  delete clone.defenseScores;
+  return clone;
 }

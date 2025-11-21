@@ -7,32 +7,40 @@ const defenseDisplayNames = ['Might', 'Fortitude', 'Reflex', 'Discernment', 'Men
 export function renderAbilities(charData, calculatedData) {
     const container = document.getElementById('abilities-section');
     container.innerHTML = '';
-    
-    const abilities = document.createElement('div');
-    abilities.className = 'abilities';
-    
-    abilityNames.forEach((ability, index) => {
-        const value = charData.abilities[ability] || 0;
-        const defense = defenseNames[index];
-        const defenseName = defenseDisplayNames[index];
-        const defenseValue = calculatedData.defenses[defense];
-        
-        const abilityDiv = document.createElement('div');
-        abilityDiv.className = 'ability';
-        abilityDiv.innerHTML = `
-            <div class="ability-name">${ability}</div>
-            <button class="ability-mod" onclick="rollAbility('${ability}', ${value})">${formatBonus(value)}</button>
+
+    const abilitiesWrapper = document.createElement('div');
+    abilitiesWrapper.className = 'abilities';
+
+    const abilityOrder = [
+        { abil: 'strength', defKey: 'might', label: 'Might' },
+        { abil: 'vitality', defKey: 'fortitude', label: 'Fortitude' },
+        { abil: 'agility', defKey: 'reflex', label: 'Reflex' },
+        { abil: 'acuity', defKey: 'discernment', label: 'Discernment' },
+        { abil: 'intelligence', defKey: 'mentalFortitude', label: 'Mental Fort.' },
+        { abil: 'charisma', defKey: 'resolve', label: 'Resolve' }
+    ];
+
+    abilityOrder.forEach(entry => {
+        const abilVal = charData.abilities?.[entry.abil] || 0;
+        const defVal = charData.defenseVals?.[entry.defKey] || 0;
+        const defenseBonus = abilVal + defVal;
+        const defenseScore = defenseBonus + 10;
+
+        const div = document.createElement('div');
+        div.className = 'ability';
+        div.innerHTML = `
+            <div class="ability-name">${entry.abil}</div>
+            <button class="ability-mod" onclick="rollAbility('${entry.abil}', ${abilVal})">${formatBonus(abilVal)}</button>
             <div class="sub-ability">
-                <div class="sub-ability-title">${defenseName}</div>
+                <div class="sub-ability-title">${entry.label}</div>
                 <div class="sub-ability-label">SCORE</div>
-                <div class="sub-ability-score">${defenseValue}</div>
+                <div class="sub-ability-score">${defenseScore}</div>
                 <div class="sub-ability-label">BONUS</div>
-                <button class="sub-ability-bonus" onclick="rollDefense('${defenseName}', ${value})">${formatBonus(value)}</button>
+                <button class="sub-ability-bonus" onclick="rollDefense('${entry.label}', ${defenseBonus})">${formatBonus(defenseBonus)}</button>
             </div>
         `;
-        
-        abilities.appendChild(abilityDiv);
+        abilitiesWrapper.appendChild(div);
     });
-    
-    container.appendChild(abilities);
+
+    container.appendChild(abilitiesWrapper);
 }

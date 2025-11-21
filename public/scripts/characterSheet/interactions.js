@@ -4,52 +4,48 @@ function sanitizeId(str) {
     return str.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
+window.updateResourceColors = function() {
+    const h = document.getElementById('currentHealth');
+    const e = document.getElementById('currentEnergy');
+    if (h) {
+        const hv = parseInt(h.value) || 0;
+        h.style.color = hv <= 0 ? 'red' : 'black';
+    }
+    if (e) {
+        const ev = parseInt(e.value) || 0;
+        e.style.color = ev <= 0 ? 'red' : 'black';
+    }
+};
+
 window.changeHealth = function(delta) {
     const input = document.getElementById('currentHealth');
+    if (!input) return;
     const current = parseInt(input.value) || 0;
-    const max = parseInt(input.max) || 0;
-    const newValue = Math.max(0, Math.min(max, current + delta));
+    // Health allowed to exceed max and go below 0
+    const newValue = current + delta;
     input.value = newValue;
-    
-    // Update character data
-    const charData = window.currentCharacterData();
+    const charData = window.currentCharacterData?.();
     if (charData) {
         charData.currentHealth = newValue;
-        window.scheduleAutoSave();
+        window.scheduleAutoSave?.();
     }
-    
-    // Visual feedback
-    if (newValue === 0) {
-        input.style.color = 'var(--danger-red)';
-    } else if (newValue < max * 0.3) {
-        input.style.color = 'var(--warning-orange)';
-    } else {
-        input.style.color = 'var(--success-green)';
-    }
+    window.updateResourceColors();
 };
 
 window.changeEnergy = function(delta) {
     const input = document.getElementById('currentEnergy');
+    if (!input) return;
     const current = parseInt(input.value) || 0;
-    const max = parseInt(input.max) || 0;
-    const newValue = Math.max(0, Math.min(max, current + delta));
+    const max = parseInt(input.dataset.max) || 0; // use data-max
+    let newValue = current + delta;
+    newValue = Math.max(0, Math.min(max, newValue)); // clamp energy
     input.value = newValue;
-    
-    // Update character data
-    const charData = window.currentCharacterData();
+    const charData = window.currentCharacterData?.();
     if (charData) {
         charData.currentEnergy = newValue;
-        window.scheduleAutoSave();
+        window.scheduleAutoSave?.();
     }
-    
-    // Visual feedback
-    if (newValue === 0) {
-        input.style.color = 'var(--danger-red)';
-    } else if (newValue < max * 0.3) {
-        input.style.color = 'var(--warning-orange)';
-    } else {
-        input.style.color = 'var(--primary-blue)';
-    }
+    window.updateResourceColors();
 };
 
 window.rollSkill = function(skillName, bonus) {

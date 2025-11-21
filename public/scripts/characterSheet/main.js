@@ -1,6 +1,6 @@
 import { initializeFirebase } from './firebase-config.js';
 import { getCharacterData, saveCharacterData } from './data.js';
-import { calculateDefenses, calculateHealthEnergy, calculateBonuses } from './calculations.js';
+import { calculateDefenses, calculateSpeed, calculateEvasion, calculateMaxHealth, calculateMaxEnergy, calculateBonuses } from './calculations.js';
 import { renderHeader } from './components/header.js';
 import { renderAbilities } from './components/abilities.js';
 import { renderSkills } from './components/skills.js';
@@ -16,6 +16,10 @@ let autoSaveTimeout = null;
 // Auto-save functionality
 function scheduleAutoSave() {
     if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+    
+    // Don't auto-save in placeholder mode
+    if (currentCharacterId === 'placeholder') return;
+    
     autoSaveTimeout = setTimeout(async () => {
         if (currentCharacterId && currentCharacterData) {
             await saveCharacterData(currentCharacterId, currentCharacterData);
@@ -45,15 +49,19 @@ function longRest() {
         // Restore health and energy
         const healthInput = document.getElementById('currentHealth');
         const energyInput = document.getElementById('currentEnergy');
-        if (healthInput) healthInput.value = healthInput.max;
-        if (energyInput) energyInput.value = energyInput.max;
         
-        // Update character data
-        if (currentCharacterData.health_energy_points) {
-            currentCharacterData.currentHealth = parseInt(healthInput?.max || 0);
-            currentCharacterData.currentEnergy = parseInt(energyInput?.max || 0);
+        const maxHealth = parseInt(healthInput?.dataset.max || 0);
+        const maxEnergy = parseInt(energyInput?.dataset.max || 0);
+        
+        if (healthInput) {
+            healthInput.value = maxHealth;
+            currentCharacterData.currentHealth = maxHealth;
         }
-        
+        if (energyInput) {
+            energyInput.value = maxEnergy;
+            currentCharacterData.currentEnergy = maxEnergy;
+        }
+        window.updateResourceColors?.();
         scheduleAutoSave();
         showNotification('Long rest completed - all resources restored!', 'success');
     }
@@ -95,19 +103,54 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         currentCharacterData = charData;
         
+        // Determine archetype ability for energy calculation
+        let archetypeAbility = null;
+        if (charData.pow_prof > 0) {
+            archetypeAbility = charData.pow_abil;
+        } else if (charData.mart_prof > 0) {
+            archetypeAbility = charData.mart_abil;
+        }
+        
         // Calculate derived values
+        const defensesCalc = calculateDefenses(charData.abilities, charData.defenseVals);
+        const speed = calculateSpeed(charData.abilities?.agility || 0);
+        const evasion = calculateEvasion(charData.abilities?.agility || 0);
+        const maxHealth = calculateMaxHealth(
+            charData.health_energy_points?.health || 0,
+            charData.abilities?.vitality || 0,
+            charData.level || 1,
+            archetypeAbility,
+            charData.abilities
+        );
+        const maxEnergy = calculateMaxEnergy(
+            charData.health_energy_points?.energy || 0,
+            archetypeAbility,
+            charData.abilities,
+            charData.level || 1
+        );
+        
+        // Attach to character (optional)
+        charData.defenses = defensesCalc.defenseScores;
+        charData.defenseBonuses = defensesCalc.defenseBonuses;
+
         const calculatedData = {
-            defenses: calculateDefenses(charData.abilities, charData.defenseVals),
-            healthEnergy: calculateHealthEnergy(charData.health_energy_points, charData.abilities),
-            bonuses: calculateBonuses(charData.mart_prof, charData.pow_prof, charData.abilities)
+            defenseScores: defensesCalc.defenseScores,
+            defenseBonuses: defensesCalc.defenseBonuses,
+            healthEnergy: {
+                maxHealth,
+                maxEnergy
+            },
+            bonuses: calculateBonuses(charData.mart_prof, charData.pow_prof, charData.abilities, charData.pow_abil || 'charisma'), // Pass power ability
+            speed,
+            evasion
         };
         
         // Set current health/energy if not already set
         if (charData.currentHealth === undefined) {
-            charData.currentHealth = calculatedData.healthEnergy.maxHealth;
+            charData.currentHealth = maxHealth;
         }
         if (charData.currentEnergy === undefined) {
-            charData.currentEnergy = calculatedData.healthEnergy.maxEnergy;
+            charData.currentEnergy = maxEnergy;
         }
         
         // Render all sections

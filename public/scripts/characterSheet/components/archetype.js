@@ -60,8 +60,10 @@ export function renderArchetype(charData, calculatedData) {
     bonusesSection.appendChild(bonusesTable);
     container.appendChild(bonusesSection);
     
-    // Power Potency
-    const powerPotency = (charData.abilities?.charisma || 0) + (charData.pow_prof || 0) + 10;
+    // Power Potency: 10 + pow_prof + pow_abil
+    const powAbil = charData.pow_abil || 'charisma';
+    const powAbilValue = charData.abilities?.[powAbil.toLowerCase()] || 0;
+    const powerPotency = 10 + (charData.pow_prof || 0) + powAbilValue;
     const potencyDiv = document.createElement('div');
     potencyDiv.className = 'power-potency';
     potencyDiv.textContent = `POWER POTENCY ${powerPotency}`;

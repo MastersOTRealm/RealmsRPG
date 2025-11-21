@@ -6,7 +6,7 @@ export function renderHeader(charData, calculatedData) {
     
     const currentHealth = charData.currentHealth ?? calculatedData.healthEnergy.maxHealth;
     const currentEnergy = charData.currentEnergy ?? calculatedData.healthEnergy.maxEnergy;
-    const terminal = Math.floor(calculatedData.healthEnergy.maxHealth / 3);
+    const terminal = Math.ceil(calculatedData.healthEnergy.maxHealth / 4);
     
     // Gender symbol
     const genderSymbol = charData.gender === 'female' ? '♀' : 
@@ -22,46 +22,111 @@ export function renderHeader(charData, calculatedData) {
             <div class="character-details">
                 <h1 class="name">${genderSymbol ? genderSymbol + ' ' : ''}${charData.name || 'Unnamed Character'}</h1>
                 <div class="race-class">${charData.species || 'Unknown Species'}</div>
-                <div class="race-class">${formatArchetype(charData.archetype)}</div>
                 <div class="xp-level">XP: ${charData.xp || 0}</div>
                 <div class="xp-level">LEVEL ${charData.level || 1}</div>
             </div>
         </div>
-        <div class="stats">
-            <div class="stat-row top-row">
-                <div class="speed" title="Movement speed in spaces per turn">
-                    <span class="icon">→</span> SPEED ${charData.speed || 6}
-                </div>
-                <div class="evasion" title="Difficulty to hit with attacks">
-                    <span class="icon">👣</span> EVASION ${calculatedData.defenses.reflex}
-                </div>
+        <div class="header-middle">
+            <div class="speed" title="Movement speed in spaces per turn">
+                <div class="stat-label">SPEED</div>
+                <div class="stat-value">${calculatedData.speed}</div>
             </div>
-            <div class="stat-row bars-row">
-                <div class="bar health-bar">
-                    <span class="bar-label">HEALTH</span>
-                    <button onclick="changeHealth(1)" title="Increase health">▲</button>
-                    <input type="number" id="currentHealth" value="${currentHealth}" min="0" max="${calculatedData.healthEnergy.maxHealth}" readonly>
-                    <span class="bar-separator">/</span>
-                    <span class="bar-max">${calculatedData.healthEnergy.maxHealth}</span>
-                    <button onclick="changeHealth(-1)" title="Decrease health">▼</button>
-                </div>
-                <div class="bar energy-bar">
-                    <span class="bar-label">ENERGY</span>
-                    <button onclick="changeEnergy(1)" title="Increase energy">▲</button>
-                    <input type="number" id="currentEnergy" value="${currentEnergy}" min="0" max="${calculatedData.healthEnergy.maxEnergy}" readonly>
-                    <span class="bar-separator">/</span>
-                    <span class="bar-max">${calculatedData.healthEnergy.maxEnergy}</span>
-                    <button onclick="changeEnergy(-1)" title="Decrease energy">▼</button>
-                </div>
+            <div class="evasion" title="Difficulty to hit with attacks">
+                <div class="stat-label">EVASION</div>
+                <div class="stat-value">${calculatedData.evasion}</div>
             </div>
-            <div class="terminal-innate">
-                <div title="Health threshold for dying condition">TERMINAL ${terminal}</div>
-                <div title="Energy from innate powers">INNATE ENERGY ${charData.innateEnergy || 0}</div>
+        </div>
+        <div class="header-right">
+            <div class="resources-grid">
+                <div class="resource-section health-section">
+                    <div class="bar health-bar">
+                        <span class="bar-label">HEALTH</span>
+                        <div class="bar-controls">
+                            <button onclick="changeHealth(1)" title="Increase health">▲</button>
+                            <input type="text" id="currentHealth" value="${currentHealth}" data-max="${calculatedData.healthEnergy.maxHealth}">
+                            <span class="bar-separator">/</span>
+                            <span class="bar-max">${calculatedData.healthEnergy.maxHealth}</span>
+                            <button onclick="changeHealth(-1)" title="Decrease health">▼</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="resource-section energy-section">
+                    <div class="bar energy-bar">
+                        <span class="bar-label">ENERGY</span>
+                        <div class="bar-controls">
+                            <button onclick="changeEnergy(1)" title="Increase energy">▲</button>
+                            <input type="text" id="currentEnergy" value="${currentEnergy}" data-max="${calculatedData.healthEnergy.maxEnergy}">
+                            <span class="bar-separator">/</span>
+                            <span class="bar-max">${calculatedData.healthEnergy.maxEnergy}</span>
+                            <button onclick="changeEnergy(-1)" title="Decrease energy">▼</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="resource-section terminal-section">
+                    <span class="stat-label">TERMINAL</span>
+                    <span class="stat-value">${terminal}</span>
+                </div>
+                <div class="resource-section innate-section">
+                    <span class="stat-label">INNATE ENERGY</span>
+                    <span class="stat-value">${charData.innateEnergy || 0}</span>
+                </div>
             </div>
         </div>
     `;
     
     container.appendChild(header);
+
+    const healthInput = document.getElementById('currentHealth');
+    const energyInput = document.getElementById('currentEnergy');
+
+    if (healthInput) {
+        healthInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const raw = e.target.value.trim();
+                const currentVal = parseInt(charData.currentHealth) || 0;
+                let newValue;
+                if (/^[+]/.test(raw)) newValue = currentVal + (parseInt(raw.substring(1)) || 0);
+                else if (/^-/.test(raw)) newValue = currentVal - (parseInt(raw.substring(1)) || 0);
+                else newValue = parseInt(raw) || 0;
+                e.target.value = newValue;
+                charData.currentHealth = newValue;
+                window.updateCharacterData?.({ currentHealth: newValue });
+                window.updateResourceColors?.();
+            }
+        });
+        healthInput.addEventListener('blur', () => {
+            healthInput.value = charData.currentHealth;
+            window.updateResourceColors?.();
+        });
+    }
+
+    if (energyInput) {
+        energyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const raw = e.target.value.trim();
+                const currentVal = parseInt(charData.currentEnergy) || 0;
+                const maxEnergy = parseInt(e.target.dataset.max) || 0;
+                let newValue;
+                if (/^[+]/.test(raw)) newValue = currentVal + (parseInt(raw.substring(1)) || 0);
+                else if (/^-/.test(raw)) newValue = currentVal - (parseInt(raw.substring(1)) || 0);
+                else newValue = parseInt(raw) || 0;
+                newValue = Math.max(0, Math.min(maxEnergy, newValue));
+                e.target.value = newValue;
+                charData.currentEnergy = newValue;
+                window.updateCharacterData?.({ currentEnergy: newValue });
+                window.updateResourceColors?.();
+            }
+        });
+        energyInput.addEventListener('blur', () => {
+            energyInput.value = charData.currentEnergy;
+            window.updateResourceColors?.();
+        });
+    }
+
+    // Initial color state
+    window.updateResourceColors?.();
 }
 
 function formatArchetype(archetype) {

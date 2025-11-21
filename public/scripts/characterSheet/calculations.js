@@ -1,47 +1,83 @@
 export function calculateDefenses(abilities, defenseVals) {
-    return {
-        might: 10 + abilities.strength + (defenseVals?.might || 0),
-        fortitude: 10 + abilities.vitality + (defenseVals?.fortitude || 0),
-        reflex: 10 + abilities.agility + (defenseVals?.reflex || 0),
-        discernment: 10 + abilities.acuity + (defenseVals?.discernment || 0),
-        mentalFortitude: 10 + abilities.intelligence + (defenseVals?.mentalFortitude || 0),
-        resolve: 10 + abilities.charisma + (defenseVals?.resolve || 0)
+    const a = abilities || {};
+    const d = defenseVals || {};
+    const defenseBonuses = {
+        might: (a.strength || 0) + (d.might || 0),
+        fortitude: (a.vitality || 0) + (d.fortitude || 0),
+        reflex: (a.agility || 0) + (d.reflex || 0),
+        discernment: (a.acuity || 0) + (d.discernment || 0),
+        mentalFortitude: (a.intelligence || 0) + (d.mentalFortitude || 0),
+        resolve: (a.charisma || 0) + (d.resolve || 0)
     };
+    const defenseScores = {
+        might: 10 + defenseBonuses.might,
+        fortitude: 10 + defenseBonuses.fortitude,
+        reflex: 10 + defenseBonuses.reflex,
+        discernment: 10 + defenseBonuses.discernment,
+        mentalFortitude: 10 + defenseBonuses.mentalFortitude,
+        resolve: 10 + defenseBonuses.resolve
+    };
+    return { defenseBonuses, defenseScores };
 }
 
-export function calculateHealthEnergy(points, abilities) {
-    // Base health/energy from abilities, distributed from pool
-    const baseHealth = abilities.vitality || 0;
-    const baseEnergy = Math.max(
-        abilities.strength, abilities.agility, abilities.acuity,
-        abilities.intelligence, abilities.charisma
-    ) || 0;
+export function calculateSpeed(agility) {
+    // Speed = 6 + (agility / 2) rounded up
+    return 6 + Math.ceil(agility / 2);
+}
+
+export function calculateEvasion(agility, reflexDefense) {
+    // Evasion = 10 + agility
+    return 10 + agility;
+}
+
+export function calculateMaxHealth(healthPoints, vitality, level, archetypeAbility, abilities) {
+    // Determine if vitality is the highest archetype ability
+    const useStrength = (archetypeAbility === 'Vitality' || archetypeAbility === 'vitality');
+    const abilityMod = useStrength ? (abilities?.strength || 0) : vitality;
+    
+    if (abilityMod < 0) {
+        return 8 + abilityMod + healthPoints;
+    } else {
+        return 8 + (abilityMod * level) + healthPoints;
+    }
+}
+
+export function calculateMaxEnergy(energyPoints, archetypeAbility, abilities, level) {
+    // Energy = archetype_ability * level + energy_points
+    const abilityMod = abilities?.[archetypeAbility?.toLowerCase()] || 0;
+    return (abilityMod * level) + energyPoints;
+}
+
+export function calculateBonuses(martProf, powProf, abilities, powAbil) {
+    const mart = martProf || 0;
+    const pow = powProf || 0;
+    
+    // Get power ability value
+    const powerAbilityValue = powAbil ? (abilities?.[powAbil.toLowerCase()] || 0) : (abilities?.charisma || 0);
+    
+    // Helper: for unprof bonuses, if ability is negative, double it; otherwise divide by 2 rounded up
+    const unprofBonus = (abilityValue) => {
+        return abilityValue < 0 ? abilityValue * 2 : Math.ceil(abilityValue / 2);
+    };
     
     return {
-        health: baseHealth + (points?.health || 0),
-        energy: baseEnergy + (points?.energy || 0),
-        maxHealth: baseHealth + (points?.health || 0),
-        maxEnergy: baseEnergy + (points?.energy || 0)
-    };
-}
-
-export function calculateBonuses(martialProf, powerProf, abilities) {
-    return {
+        martial: mart,
+        power: pow,
         strength: {
-            prof: abilities.strength + martialProf,
-            unprof: abilities.strength
+            prof: mart + (abilities?.strength || 0),
+            unprof: unprofBonus(abilities?.strength || 0)
         },
         agility: {
-            prof: abilities.agility + martialProf,
-            unprof: abilities.agility
+            prof: mart + (abilities?.agility || 0),
+            unprof: unprofBonus(abilities?.agility || 0)
         },
         acuity: {
-            prof: abilities.acuity + martialProf,
-            unprof: abilities.acuity
+            prof: mart + (abilities?.acuity || 0),
+            unprof: unprofBonus(abilities?.acuity || 0)
         },
         power: {
-            prof: abilities.charisma + powerProf,
-            unprof: abilities.charisma
+            prof: pow + powerAbilityValue,
+            unprof: unprofBonus(powerAbilityValue)
         }
     };
 }
