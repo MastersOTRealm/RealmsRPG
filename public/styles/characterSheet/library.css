@@ -1,0 +1,210 @@
+#library-section {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.tabs {
+    display: flex;
+    background: var(--bg-light);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tab {
+    flex: 1;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 12px 16px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.tab:hover {
+    background: rgba(26, 115, 232, 0.1);
+    color: var(--primary-blue);
+}
+
+.tab.active {
+    background: var(--primary-blue);
+    color: white;
+}
+
+.tab-content {
+    padding: 20px;
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.feat, .technique, .power, .inventory-item {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.feat:hover, .technique:hover, .power:hover, .inventory-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateX(2px);
+}
+
+.feat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.feat-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--primary-dark);
+}
+
+.feat-category {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.feat-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.feat-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.uses {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.uses-separator {
+    color: var(--text-secondary);
+    margin: 0 2px;
+}
+
+.recovery-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-left: 8px;
+    text-transform: uppercase;
+}
+
+.use-button {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--primary-blue);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.use-button:hover {
+    background: var(--primary-blue);
+    color: white;
+    border-color: var(--primary-blue);
+}
+
+.use-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toggle {
+    width: 50px;
+    height: 26px;
+    background-color: #ccc;
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.toggle::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background-color: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle.active {
+    background-color: var(--success-green);
+}
+
+.toggle.active::after {
+    left: 26px;
+}
+
+.category-divider {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 10px 16px;
+    margin: 20px -20px;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.category-divider:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, #041f33 100%);
+}
+
+.category-arrow {
+    font-size: 12px;
+    transition: transform 0.3s;
+}
+
+.category-arrow.collapsed {
+    transform: rotate(-90deg);
+}
+
+.category-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.category-content.collapsed {
+    max-height: 0;
+}

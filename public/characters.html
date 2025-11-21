@@ -7,94 +7,105 @@
     <link rel="stylesheet" href="/styles/main.css">
 </head>
 <body>
-    <header id="header"></header>
-    <main>
-        <section id="characters-section">
-            <h2>Characters</h2>
+<header id="header"></header>
+<main>
+    <section id="characters-section">
+        <h2>Characters</h2>
+        <div class="character-grid" id="character-grid">
+            <!-- dynamically populated -->
+        </div>
+    </section>
+</main>
+<footer id="footer"></footer>
+<script type="module">
+  import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
 
-            <div class="character-grid">
-                <!-- ==== SLOT 1 – Sample Character ==== -->
-                <a href="/character/characterSheet.html" class="character-card sample">
-                    <div class="portrait">
-                        <img src="/images/sample-paris.jpg" alt="Paris Capaxiah">
-                    </div>
-                    <p class="name">PARIS CAPAXIAH</p>
-                </a>
+  async function loadHeaderFooter() {
+    const header = document.getElementById('header');
+    const footer = document.getElementById('footer');
+    if (header) header.innerHTML = await fetch('/header.html').then(r => r.text());
+    if (footer) footer.innerHTML = await fetch('/footer.html').then(r => r.text());
+  }
+  loadHeaderFooter();
 
-                <!-- ==== SLOT 2 – Existing Character (example) ==== -->
-                <div class="character-card">
-                    <div class="portrait">
-                        <img src="/images/sleek.jpg" alt="Sleek">
-                    </div>
-                    <p class="name">SLEEK</p>
-                </div>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const { auth, db } = await initializeFirebase();
+    handleAuthStateChange(auth, db);
 
-                <!-- ==== SLOT 3 – Add New ==== -->
-                <div class="character-card add-new" id="add-character-slot">
-                    <div class="portrait placeholder">
-                        <span class="plus">+</span>
-                    </div>
-                    <p class="name add-text">Add Character</p>
-                </div>
-            </div>
-        </section>
-    </main>
-    <footer id="footer"></footer>
-    <script type="module">
-      import { initializeFirebase, handleAuthStateChange } from './scripts/auth.js';
+    const grid = document.getElementById('character-grid');
 
-      async function loadHeaderFooter() {
-        const header = document.getElementById('header');
-        const footer = document.getElementById('footer');
-        if (header) {
-          header.innerHTML = await fetch('/header.html').then(response => response.text());
-        }
-        if (footer) {
-          footer.innerHTML = await fetch('/footer.html').then(response => response.text());
-        }
-      }
-      loadHeaderFooter();
+    function addPlaceholderCharacter() {
+      const placeholderCard = document.createElement('a');
+      placeholderCard.href = '/characterSheet.html?id=placeholder';
+      placeholderCard.className = 'character-card sample';
+      placeholderCard.innerHTML = `
+        <div class="portrait">
+          <img src="https://via.placeholder.com/180x180/8b7355/ffffff?text=Gath" alt="Gath the Destroyer">
+        </div>
+        <p class="name">GATH (SAMPLE)</p>
+      `;
+      grid.appendChild(placeholderCard);
+    }
 
-      document.addEventListener('DOMContentLoaded', async () => {
-        const { auth, db } = await initializeFirebase();
-        handleAuthStateChange(auth, db);
-
-        const grid = document.querySelector('.character-grid');
-        const addSlot = document.getElementById('add-character-slot');
-
-        // ---- Click on “Add” → go to creator ----
-        addSlot.addEventListener('click', () => {
-          window.location.href = '/characterCreator.html';
-        });
-
-        // ---- Load user characters from Firestore ----
-        if (auth.currentUser) {
-          const uid = auth.currentUser.uid;
-          const snap = await db.collection('users').doc(uid).collection('characters')
-                        .orderBy('createdAt', 'desc').get();
-
-          // Remove placeholder cards except the “add” one
-          grid.innerHTML = '';
-          grid.appendChild(addSlot);   // keep the + at the end
-
-          snap.forEach(doc => {
-            const data = doc.data();
-            const card = document.createElement('div');
-            card.className = 'character-card';
-            card.innerHTML = `
-              <div class="portrait">
-                <img src="${data.portrait || '/images/default-avatar.png'}" alt="${data.name}">
-              </div>
-              <p class="name">${(data.name || 'Unnamed').toUpperCase()}</p>
-            `;
-            // Click → open character sheet
-            card.addEventListener('click', () => {
-              window.location.href = `/character/${doc.id}/sheet.html`;
-            });
-            grid.insertBefore(card, addSlot);   // insert before the + slot
-          });
-        }
+    function addCharacterSlot() {
+      const addSlot = document.createElement('div');
+      addSlot.className = 'character-card add-new';
+      addSlot.innerHTML = `
+        <div class="portrait placeholder"><span class="plus">+</span></div>
+        <p class="name add-text">Add Character</p>
+      `;
+      addSlot.addEventListener('click', () => {
+        window.location.href = '/characterCreator.html';
       });
-    </script>
+      grid.appendChild(addSlot);
+    }
+
+    async function loadCharacters() {
+      grid.innerHTML = '';
+      
+      // Always add placeholder character first for testing
+      addPlaceholderCharacter();
+      
+      if (!auth.currentUser) {
+        addCharacterSlot();
+        return;
+      }
+      // Fetch saved characters (collection 'character')
+      const snap = await db.collection('users').doc(auth.currentUser.uid).collection('character').get();
+      if (snap.empty) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.padding = '16px';
+        emptyMsg.style.opacity = '.75';
+        emptyMsg.textContent = 'You have no saved characters yet.';
+        grid.appendChild(emptyMsg);
+        addCharacterSlot();
+        return;
+      }
+      snap.forEach(doc => {
+        const data = doc.data();
+        const card = document.createElement('div');
+        card.className = 'character-card';
+        card.innerHTML = `
+          <div class="portrait">
+            <img src="${data.portrait || '/images/default-avatar.png'}" alt="${data.name || 'Character'}">
+          </div>
+          <p class="name">${(data.name || 'Unnamed').toUpperCase()}</p>
+        `;
+        card.addEventListener('click', () => {
+          window.location.href = `/characterSheet.html?id=${doc.id}`;
+        });
+        grid.appendChild(card);
+      });
+      addCharacterSlot();
+    }
+
+    // Wait a short delay if auth might not be ready
+    if (!auth.currentUser) {
+      setTimeout(loadCharacters, 400);
+    } else {
+      loadCharacters();
+    }
+  });
+</script>
 </body>
 </html>

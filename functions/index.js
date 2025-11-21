@@ -393,123 +393,6 @@ exports.saveCreatureToLibrary = onCall(async (data, context) => {
     }
 });
 
-exports.saveCharacterToLibrary = onCall(async (data, context) => {
-    const uid = context.auth?.uid;
-    if (!uid) {
-        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
-    }
-
-    // Validate required fields
-    const {
-        name,
-        species,
-        traits,
-        size,
-        mart_prof,
-        pow_prof,
-        pow_abil,
-        mart_abil,
-        strength,
-        vitality,
-        agility,
-        acuity,
-        intelligence,
-        charisma,
-        skills,
-        feats,
-        equipment,
-        armaments,
-        weapons,
-        armor,
-        powers,
-        techniques,
-        health_energy_points,
-        appearance,
-        archetype_desc,
-        notes,
-        weight,
-        height
-    } = data;
-
-    if (!(typeof name === "string") || name.trim().length === 0) {
-        throw new HttpsError("invalid-argument", "Character name is required.");
-    }
-    if (!(typeof species === "string") || species.trim().length === 0) {
-        throw new HttpsError("invalid-argument", "Species is required.");
-    }
-    if (!Array.isArray(traits)) {
-        throw new HttpsError("invalid-argument", "Traits must be an array.");
-    }
-    if (!Array.isArray(skills)) {
-        throw new HttpsError("invalid-argument", "Skills must be an array.");
-    }
-    if (!Array.isArray(feats)) {
-        throw new HttpsError("invalid-argument", "Feats must be an array.");
-    }
-    if (!Array.isArray(equipment)) {
-        throw new HttpsError("invalid-argument", "Equipment must be an array.");
-    }
-    if (!Array.isArray(armaments)) {
-        throw new HttpsError("invalid-argument", "Armaments must be an array.");
-    }
-    if (!Array.isArray(weapons)) {
-        throw new HttpsError("invalid-argument", "Weapons must be an array.");
-    }
-    if (!Array.isArray(armor)) {
-        throw new HttpsError("invalid-argument", "Armor must be an array.");
-    }
-    if (!Array.isArray(powers)) {
-        throw new HttpsError("invalid-argument", "Powers must be an array.");
-    }
-    if (!Array.isArray(techniques)) {
-        throw new HttpsError("invalid-argument", "Techniques must be an array.");
-    }
-    if (!health_energy_points || typeof health_energy_points !== "object") {
-        throw new HttpsError("invalid-argument", "health_energy_points must be an object.");
-    }
-
-    try {
-        const db = getFirestore();
-        const charDocId = name.trim();
-        await db.collection('users').doc(uid).collection('character').doc(charDocId).set({
-            name,
-            species,
-            traits,
-            size,
-            mart_prof,
-            pow_prof,
-            pow_abil,
-            mart_abil,
-            strength,
-            vitality,
-            agility,
-            acuity,
-            intelligence,
-            charisma,
-            skills,
-            feats,
-            equipment,
-            armaments,
-            weapons,
-            armor,
-            powers,
-            techniques,
-            health_energy_points,
-            appearance,
-            archetype_desc,
-            notes,
-            weight,
-            height,
-            timestamp: new Date()
-        });
-        logger.info('Character saved for user:', uid, 'character:', charDocId);
-        return { message: 'Character saved successfully', docId: charDocId };
-    } catch (error) {
-        logger.error('Error saving character:', error, data);
-        throw new HttpsError('internal', 'Error saving character: ' + error.message);
-    }
-});
-
 exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
   cors(req, res, async () => {
     // Verify the ID token from the Authorization header
@@ -532,29 +415,24 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
         pow_prof,
         pow_abil,
         mart_abil,
-        strength,
-        vitality,
-        agility,
-        acuity,
-        intelligence,
-        charisma,
+        abilities,
+        defenseVals,      // NEW: Accept defense values
         skills,
         feats,
         equipment,
-        armaments,
         weapons,
         armor,
         powers,
         techniques,
         health_energy_points,
         appearance,
-        archetype_desc,
+        archetypeDesc,
         notes,
         weight,
         height
       } = req.body || {};
 
-      // Basic validation (same as callable)
+      // Basic validation
       if (!(typeof name === "string") || name.trim().length === 0) {
         res.status(400).json({ error: "Character name is required." });
         return;
@@ -564,9 +442,10 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
         return;
       }
       if (!Array.isArray(traits) || !Array.isArray(skills) || !Array.isArray(feats) ||
-          !Array.isArray(equipment) || !Array.isArray(armaments) || !Array.isArray(weapons) ||
-          !Array.isArray(armor) || !Array.isArray(powers) || !Array.isArray(techniques) ||
-          !health_energy_points || typeof health_energy_points !== 'object') {
+          !Array.isArray(equipment) || !Array.isArray(weapons) || !Array.isArray(armor) ||
+          !Array.isArray(powers) || !Array.isArray(techniques) ||
+          !health_energy_points || typeof health_energy_points !== 'object' ||
+          !abilities || typeof abilities !== 'object') {
         res.status(400).json({ error: "Invalid payload." });
         return;
       }
@@ -574,7 +453,7 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
       const db = getFirestore();
       const charDocId = name.trim();
       
-      // Build document data, excluding undefined fields
+      // Build document data
       const docData = {
         name,
         species,
@@ -582,27 +461,21 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
         size,
         mart_prof,
         pow_prof,
-        strength,
-        vitality,
-        agility,
-        acuity,
-        intelligence,
-        charisma,
+        abilities,
+        defenseVals: defenseVals || {},  // NEW: Include defense values with default
         skills,
         feats,
         equipment,
-        armaments,
         weapons,
         armor,
         powers,
         techniques,
         health_energy_points,
         appearance,
-        archetype_desc,
+        archetypeDesc,
         notes,
         weight,
-        height,
-        timestamp: new Date()
+        height
       };
       
       // Only add pow_abil and mart_abil if they have values
@@ -611,10 +484,10 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
 
       await db.collection('users').doc(uid).collection('character').doc(charDocId).set(docData);
 
-      logger.info('Character (HTTP) saved for user:', uid, 'character:', charDocId);
+      logger.info('Character saved for user:', uid, 'character:', charDocId);
       res.status(200).json({ message: 'Character saved successfully', docId: charDocId });
     } catch (error) {
-      logger.error('Error saving character (HTTP):', error);
+      logger.error('Error saving character:', error);
       res.status(500).json({ error: 'Error saving character: ' + error.message });
     }
   });

@@ -8,8 +8,9 @@ import './characterCreator_abilities.js';
 import './characterCreator_skills.js';
 import './characterCreator_feats.js';
 import './characterCreator_equipment.js';
-import './characterCreator_powers.js'; // NEW
+import './characterCreator_powers.js';
 import { getArchetypeAbilityScore, getBaseHealth, getBaseEnergy, getDefaultTrainingPoints } from './characterCreator_utils.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 
 // Global character object
 window.character = {};
@@ -351,16 +352,10 @@ function displayValidationResults(issues) {
     modal.style.display = 'block';
 }
 
-// NEW: Save character to Firestore using Cloud Function (matches item/power/technique creators)
+// NEW: Save character to Firestore using HTTP endpoint
 async function saveCharacterToFirestore() {
     const char = window.character || {};
-    // Use the initialized app instance for auth and functions
-    const app = window.firebaseApp || window.db?.app || undefined;
-    const { getAuth } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js');
-    const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js');
-    const auth = getAuth(app);
-    // Bind to project region explicitly
-    const functions = getFunctions(app, 'us-central1');
+    const auth = getAuth();
     const user = auth.currentUser;
     if (!user) {
         alert('You must be logged in to save your character.');
@@ -405,9 +400,9 @@ async function saveCharacterToFirestore() {
 
     // Equipment, weapons, armor
     const equipmentArr = char.equipment || [];
-    let armamentsArr = [];
     let weaponsArr = [];
     let armorArr = [];
+    let generalEquipmentArr = [];
     let weaponLibrary = [];
     let armorLibrary = [];
     let generalEquipment = [];
@@ -425,14 +420,12 @@ async function saveCharacterToFirestore() {
         const weapon = weaponLibrary.find(w => w.id === id);
         const armor = armorLibrary.find(a => a.id === id);
         if (weapon) {
-            armamentsArr.push(weapon.name);
             weaponsArr.push(weapon.name);
         } else if (armor) {
-            armamentsArr.push(armor.name);
             armorArr.push(armor.name);
         } else {
             const general = generalEquipment.find(g => g.id === id);
-            if (general) armamentsArr.push(general.name);
+            if (general) generalEquipmentArr.push(general.name);
         }
     });
 
@@ -469,6 +462,26 @@ async function saveCharacterToFirestore() {
         energy: energy - baseEnergy
     };
 
+    // Abilities grouped together
+    const abilities = {
+        strength: char.abilities?.strength ?? 0,
+        vitality: char.abilities?.vitality ?? 0,
+        agility: char.abilities?.agility ?? 0,
+        acuity: char.abilities?.acuity ?? 0,
+        intelligence: char.abilities?.intelligence ?? 0,
+        charisma: char.abilities?.charisma ?? 0
+    };
+
+    // NEW: Defense values grouped together
+    const defenseVals = {
+        might: char.defenseVals?.might ?? 0,
+        fortitude: char.defenseVals?.fortitude ?? 0,
+        reflex: char.defenseVals?.reflex ?? 0,
+        discernment: char.defenseVals?.discernment ?? 0,
+        mentalFortitude: char.defenseVals?.mentalFortitude ?? 0,
+        resolve: char.defenseVals?.resolve ?? 0
+    };
+
     // Final object
     const characterData = {
         name: char.name || '',
@@ -477,28 +490,18 @@ async function saveCharacterToFirestore() {
         size: char.size || '',
         mart_prof,
         pow_prof,
-        strength: char.abilities?.strength ?? 0,
-        vitality: char.abilities?.vitality ?? 0,
-        agility: char.abilities?.agility ?? 0,
-        acuity: char.abilities?.acuity ?? 0,
-        intelligence: char.abilities?.intelligence ?? 0,
-        charisma: char.abilities?.charisma ?? 0,
+        abilities,
+        defenseVals,  // NEW: Add defense values
         skills: skillsArr,
         feats: featsArr,
-        equipment: equipmentArr.map(id => {
-            const weapon = weaponLibrary.find(w => w.id === id);
-            const armor = armorLibrary.find(a => a.id === id);
-            const general = generalEquipment.find(g => g.id === id);
-            return weapon?.name || armor?.name || general?.name || id;
-        }),
-        armaments: armamentsArr,
+        equipment: generalEquipmentArr,
         weapons: weaponsArr,
         armor: armorArr,
         powers: powersArr,
         techniques: techniquesArr,
         health_energy_points,
         appearance: char.appearance || '',
-        archetype_desc: char.archetypeDesc || '',
+        archetypeDesc: char.archetypeDesc || '',
         notes: char.notes || '',
         weight: char.weight || '',
         height: char.height || ''
@@ -509,37 +512,27 @@ async function saveCharacterToFirestore() {
     if (mart_abil) characterData.mart_abil = mart_abil;
 
     try {
-        const saveCharacterFn = httpsCallable(functions, 'saveCharacterToLibrary');
-        const result = await saveCharacterFn(characterData);
-        console.log('Character saved via callable:', result.data);
-        alert(result.data?.message || 'Character saved to your library!');
-    } catch (e) {
-        console.error('Callable error saving character:', e);
-        // Fallback: direct HTTP call using Bearer token (mirrors power/technique pattern)
-        try {
-            const idToken = await auth.currentUser.getIdToken();
-            const projectId = (app && app.options && app.options.projectId) || 'realmsrpg-b3366';
-            const url = `https://us-central1-${projectId}.cloudfunctions.net/saveCharacterToLibraryHttp`;
-            console.log('Attempting HTTP fallback to:', url);
-            const resp = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify(characterData)
-            });
-            if (!resp.ok) {
-                const text = await resp.text().catch(() => '');
-                throw new Error(`HTTP ${resp.status}: ${text}`);
-            }
-            const data = await resp.json();
-            console.log('Character saved via HTTP:', data);
-            alert(data?.message || 'Character saved to your library!');
-        } catch (err) {
-            console.error('HTTP fallback error saving character:', err);
-            alert('Error saving character to library');
+        const idToken = await user.getIdToken();
+        const url = 'https://us-central1-realmsrpg-b3366.cloudfunctions.net/saveCharacterToLibraryHttp';
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify(characterData)
+        });
+        if (!resp.ok) {
+            const text = await resp.text().catch(() => '');
+            throw new Error(`HTTP ${resp.status}: ${text}`);
         }
+        const data = await resp.json();
+        console.log('Character saved successfully:', data);
+        alert(data?.message || 'Character saved to your library!');
+        window.location.href = '/characters.html';
+    } catch (err) {
+        console.error('Error saving character:', err);
+        alert('Error saving character to library: ' + err.message);
     }
 }
 

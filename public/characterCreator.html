@@ -349,7 +349,7 @@
 
                 <div class="skill-points">Skill Points: <span id="skill-points">5</span></div>
 
-                <!-- NEW: Skills Bonus Section -->
+                <!-- Skills Bonus Section -->
                 <div class="skills-bonus-section">
                     <h3>Your Skills</h3>
                     <div id="skills-bonus-list" class="skills-bonus-list">
@@ -366,6 +366,56 @@
                         <input type="text" id="skills-search" class="search-input" placeholder="Search skills...">
                         <div class="feats-list" id="skills-list">
                             <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Defenses Section (moved here, after Skills) -->
+                <div class="defenses-section" style="margin-top: 32px;">
+                    <h3>Defenses</h3>
+                    <p class="description" style="font-size: 0.9em; margin-bottom: 16px;">
+                        Increase your defenses by spending 2 skill points per increase. Your defense bonus equals your ability modifier plus any increases.
+                    </p>
+                    
+                    <div class="abilities-controls">
+                        <div class="ability-name">MIGHT</div>
+                        <div class="ability-name">FORTITUDE</div>
+                        <div class="ability-name">REFLEX</div>
+                        <div class="ability-name">DISCERNMENT</div>
+                        <div class="ability-name">MENTAL FORTITUDE</div>
+                        <div class="ability-name">RESOLVE</div>
+                    </div>
+
+                    <div class="abilities-values">
+                        <div class="defense-control" data-defense="might">
+                            <button class="dec">-</button>
+                            <span class="value defense-value" data-defense="might">0</span>
+                            <button class="inc">+</button>
+                        </div>
+                        <div class="defense-control" data-defense="fortitude">
+                            <button class="dec">-</button>
+                            <span class="value defense-value" data-defense="fortitude">0</span>
+                            <button class="inc">+</button>
+                        </div>
+                        <div class="defense-control" data-defense="reflex">
+                            <button class="dec">-</button>
+                            <span class="value defense-value" data-defense="reflex">0</span>
+                            <button class="inc">+</button>
+                        </div>
+                        <div class="defense-control" data-defense="discernment">
+                            <button class="dec">-</button>
+                            <span class="value defense-value" data-defense="discernment">0</span>
+                            <button class="inc">+</button>
+                        </div>
+                        <div class="defense-control" data-defense="mentalFortitude">
+                            <button class="dec">-</button>
+                            <span class="value defense-value" data-defense="mentalFortitude">0</span>
+                            <button class="inc">+</button>
+                        </div>
+                        <div class="defense-control" data-defense="resolve">
+                            <button class="dec">-</button>
+                            <span class="value defense-value" data-defense="resolve">0</span>
+                            <button class="inc">+</button>
                         </div>
                     </div>
                 </div>

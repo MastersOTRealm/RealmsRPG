@@ -1,0 +1,337 @@
+#header-section {
+    margin-bottom: 24px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-medium);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.portrait {
+    width: 100px;
+    height: 100px;
+    background-color: white;
+    border-radius: 12px;
+    border: 3px solid var(--primary-blue);
+    background-size: cover;
+    background-position: center;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.portrait-placeholder {
+    font-size: 48px;
+    color: var(--text-secondary);
+}
+
+.character-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.name {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.race-class {
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.xp-level {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.top-row {
+    margin-bottom: 4px;
+}
+
+.speed, .evasion {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.speed .icon, .evasion .icon {
+    font-size: 16px;
+}
+
+.bars-row {
+    display: flex;
+    gap: 12px;
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.health-bar {
+    border-color: var(--success-green);
+}
+
+.energy-bar {
+    border-color: #ffc107;
+}
+
+.bar-label {
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.bar input {
+    width: 50px;
+    text-align: center;
+    border: none;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--primary-dark);
+    background: transparent;
+}
+
+.bar-separator {
+    margin: 0 2px;
+    color: var(--text-secondary);
+}
+
+.bar-max {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.bar button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--primary-blue);
+    padding: 2px 4px;
+    line-height: 1;
+    font-weight: bold;
+}
+
+.bar button:hover {
+    color: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+.health-bar button {
+    color: var(--success-green);
+}
+
+.health-bar button:hover {
+    color: #1e7e34;
+}
+
+.energy-bar button {
+    color: #e0a800;
+}
+
+.energy-bar button:hover {
+    color: #d39e00;
+}
+
+.terminal-innate {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.terminal-innate > div {
+    cursor: help;
+}
+
+.header-stats {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.speed-evasion-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stat-box {
+    background: var(--card-bg);
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 100px;
+}
+
+.stat-label {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.health-energy-group {
+    display: flex;
+    gap: 24px;
+}
+
+.health-box,
+.energy-box {
+    background: var(--card-bg);
+    padding: 16px 24px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.health-label,
+.energy-label {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.health-value,
+.energy-value {
+    font-size: 2em;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.health-input,
+.energy-input {
+    width: 80px;
+    padding: 4px 8px;
+    font-size: 2em;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.health-input:hover,
+.energy-input:hover {
+    border-color: var(--primary-light);
+    background: rgba(26, 115, 232, 0.05);
+}
+
+.health-input:focus,
+.energy-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(26, 115, 232, 0.1);
+}
+
+.health-sublabel,
+.energy-sublabel {
+    font-size: 0.75em;
+    color: #666;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+@media (max-width: 1024px) {
+    .header {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .stats {
+        width: 100%;
+        align-items: stretch;
+    }
+    
+    .stat-row {
+        justify-content: space-between;
+    }
+    
+    .bars-row {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-left {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .bars-row {
+        flex-direction: column;
+    }
+    
+    .terminal-innate {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+}

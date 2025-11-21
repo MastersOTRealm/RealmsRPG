@@ -11,7 +11,6 @@ import {
   formatProficiencyChip,
   computeSplits
 } from '/scripts/item_calc.js';
-import { computeSplits } from '/scripts/technique_calc.js';
 
 let appCheckInitialized = false;
 

@@ -39,6 +39,14 @@ function initAbilities() {
       import('./characterCreator_skills.js').then(m => m.updateSkillsBonusDisplay?.());
     }
 
+    // Update defenses display if skills tab has been initialized
+    import('./characterCreator_skills.js').then(mod => {
+      if (typeof mod.updateDefensesDisplay === 'function') {
+        // Need to expose updateDefensesDisplay from skills module
+        document.dispatchEvent(new CustomEvent('abilities-changed'));
+      }
+    });
+
     // Update training points and finalize tab globally
     window.updateTrainingPointsDisplay?.();
     window.updateFinalizeTab?.();

@@ -2,6 +2,17 @@ import { allSkills, allSpecies } from './characterCreator_firebase.js';
 import { saveCharacter } from './characterCreator_storage.js';
 
 export let selectedSkills = [];
+export let selectedSkillAbilities = {};
+export let selectedSkillVals = {};
+export let defenseVals = {
+  might: 0,
+  fortitude: 0,
+  reflex: 0,
+  discernment: 0,
+  mentalFortitude: 0,
+  resolve: 0
+};
+
 let skillsInitialized = false;
 
 export function populateSkills() {
@@ -99,11 +110,74 @@ function getRemainingSkillPoints() {
   return 5 - selectedSkills.length - getSkillValsTotal();
 }
 
+function getAbilityForDefense(defenseName) {
+  const abilityMap = {
+    might: 'strength',
+    fortitude: 'vitality',
+    reflex: 'agility',
+    discernment: 'acuity',
+    mentalFortitude: 'intelligence',
+    resolve: 'charisma'
+  };
+  const abilityName = abilityMap[defenseName];
+  return window.character?.abilities?.[abilityName] || 0;
+}
+
+// NEW: Check if defense can be increased (ability must be 0 or less)
+function canIncreaseDefense(defenseName) {
+  const abilityValue = getAbilityForDefense(defenseName);
+  return abilityValue < 1;
+}
+
+// NEW: Reset def_vals for defenses whose abilities are 1+
+function resetDefensesWithPositiveAbilities() {
+  const defenses = ['might', 'fortitude', 'reflex', 'discernment', 'mentalFortitude', 'resolve'];
+  let changed = false;
+  defenses.forEach(def => {
+    if (!canIncreaseDefense(def) && defenseVals[def] > 0) {
+      defenseVals[def] = 0;
+      changed = true;
+    }
+  });
+  if (changed) {
+    updateDefensesDisplay();
+    updateSkillPoints();
+    saveCharacter();
+  }
+}
+
+function getDefenseBonus(defenseName) {
+  const abilityValue = getAbilityForDefense(defenseName);
+  const defVal = defenseVals[defenseName] || 0;
+  return abilityValue + defVal;
+}
+
+function updateDefensesDisplay() {
+  const defenses = ['might', 'fortitude', 'reflex', 'discernment', 'mentalFortitude', 'resolve'];
+  defenses.forEach(def => {
+    const bonus = getDefenseBonus(def);
+    const valueEl = document.querySelector(`.defense-value[data-defense="${def}"]`);
+    if (valueEl) {
+      valueEl.textContent = bonus > 0 ? `+${bonus}` : bonus;
+    }
+  });
+}
+
 function updateSkillPoints() {
-  const points = 5 - selectedSkills.length - getSkillValsTotal();
+  let spent = selectedSkills.length;
+  selectedSkills.forEach(skill => {
+    spent += selectedSkillVals[skill] || 0;
+  });
+  Object.values(defenseVals).forEach(val => {
+    spent += val * 2;
+  });
+  
+  const remaining = 5 - spent;
   const el = document.getElementById('skill-points');
-  if (el) el.textContent = points;
-  updateSkillsBonusDisplay();
+  if (el) el.textContent = remaining;
+  
+  if (!window.character) window.character = {};
+  window.character.defenseVals = { ...defenseVals };
 }
 
 export function updateSkillsBonusDisplay() {
@@ -283,6 +357,37 @@ function initSkills() {
       });
     }
 
+    document.querySelectorAll('.defense-control').forEach(control => {
+      const defenseName = control.dataset.defense;
+      const incBtn = control.querySelector('.inc');
+      const decBtn = control.querySelector('.dec');
+      
+      incBtn.addEventListener('click', () => {
+        // NEW: Check if ability is 1 or higher
+        if (!canIncreaseDefense(defenseName)) {
+          alert('Cannot increase this defense - the associated ability is already 1 or higher.');
+          return;
+        }
+        
+        const currentPoints = parseInt(document.getElementById('skill-points')?.textContent) || 0;
+        if (currentPoints >= 2) {
+          defenseVals[defenseName] = (defenseVals[defenseName] || 0) + 1;
+          updateDefensesDisplay();
+          updateSkillPoints();
+          saveCharacter();
+        }
+      });
+      
+      decBtn.addEventListener('click', () => {
+        if (defenseVals[defenseName] > 0) {
+          defenseVals[defenseName]--;
+          updateDefensesDisplay();
+          updateSkillPoints();
+          saveCharacter();
+        }
+      });
+    });
+    
     skillsInitialized = true;
   }
 
@@ -306,6 +411,7 @@ function initSkills() {
 
   populateSkills();
   updateSkillsBonusDisplay();
+  updateDefensesDisplay();
 }
 
 document.querySelector('.tab[data-tab="skills"]')?.addEventListener('click', async () => {
@@ -318,5 +424,20 @@ export function restoreSkills() {
   if (window.character?.skills) {
     selectedSkills = window.character.skills;
   }
+  if (window.character?.skillAbilities) {
+    selectedSkillAbilities = window.character.skillAbilities;
+  }
+  if (window.character?.skillVals) {
+    selectedSkillVals = window.character.skillVals;
+  }
+  if (window.character?.defenseVals) {
+    defenseVals = { ...window.character.defenseVals };
+  }
   initSkills();
 }
+
+// NEW: Listen for ability changes and reset defenses
+document.addEventListener('abilities-changed', () => {
+  resetDefensesWithPositiveAbilities();
+  updateDefensesDisplay();
+});

@@ -1,0 +1,51 @@
+#skills-column {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.skills-section, .subskills-section {
+    margin-bottom: 20px;
+}
+
+.skills-section:last-child, .subskills-section:last-child {
+    margin-bottom: 0;
+}
+
+.skills-table, .subskills-table {
+    margin: 0;
+}
+
+.bonus-button {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.bonus-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.bonus-button:active {
+    transform: scale(0.98);
+}
+
+.skill-name {
+    text-align: left;
+    font-weight: 500;
+    padding-left: 12px;
+}
+
+.ability-abbr {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 11px;
+}

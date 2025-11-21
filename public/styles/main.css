@@ -512,6 +512,26 @@ main {
 /* Sample-character special link styling */
 .character-card.sample {
     text-decoration: none;
+    border: 2px solid #8b7355;
+    position: relative;
+}
+
+.character-card.sample::before {
+    content: 'TEST';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ff9800;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.character-card.sample:hover {
+    border-color: #6d5a3f;
 }
 
 /* Responsive Design */
