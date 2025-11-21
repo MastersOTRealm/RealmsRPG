@@ -4,7 +4,6 @@ let auth, db;
 export async function initializeFirebase() {
     if (firebaseInitialized) return { auth, db };
     
-    // Wait for Firebase to be loaded
     return new Promise((resolve, reject) => {
         const checkFirebase = setInterval(() => {
             if (typeof firebase !== 'undefined') {
@@ -13,23 +12,57 @@ export async function initializeFirebase() {
                 auth = firebase.auth();
                 db = firebase.firestore();
                 
-                // Wait for auth state
-                firebase.auth().onAuthStateChanged((user) => {
-                    if (user) {
+                // NEW: Activate App Check BEFORE waiting for auth
+                let appCheckReady = Promise.resolve();
+                if (firebase.appCheck) {
+                    appCheckReady = new Promise((resolveAppCheck) => {
+                        try {
+                            firebase.appCheck().activate(
+                                '6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA',
+                                true
+                            );
+                            console.log('[CharacterSheet] App Check activated');
+                            // Wait a moment for token generation
+                            setTimeout(resolveAppCheck, 500);
+                        } catch (err) {
+                            console.warn('[CharacterSheet] App Check activation failed:', err);
+                            resolveAppCheck();
+                        }
+                    });
+                }
+                
+                // Wait for both App Check AND auth state
+                appCheckReady.then(() => {
+                    firebase.auth().onAuthStateChanged((user) => {
                         firebaseInitialized = true;
-                        resolve({ auth, db });
-                    } else {
-                        reject(new Error('User not authenticated'));
-                    }
+                        resolve({ auth, db, user });
+                    });
                 });
             }
         }, 100);
         
-        // Timeout after 10 seconds
         setTimeout(() => {
             clearInterval(checkFirebase);
             reject(new Error('Firebase initialization timeout'));
         }, 10000);
+    });
+}
+
+export function waitForAuth() {
+    return new Promise((resolve) => {
+        if (!auth) {
+            resolve(null);
+            return;
+        }
+        const u = auth.currentUser;
+        if (u) {
+            resolve(u);
+        } else {
+            const unsub = auth.onAuthStateChanged(user => {
+                unsub();
+                resolve(user);
+            });
+        }
     });
 }
 

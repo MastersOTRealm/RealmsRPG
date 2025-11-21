@@ -1,0 +1,4 @@
+1. Deploy updated Firestore rules.
+2. Hard refresh (Ctrl+Shift+R) to clear cached rules.
+3. Confirm user has a character doc under /users/{uid}/character/<docId>.
+4. Access /characterSheet.html?id=<docId>.
