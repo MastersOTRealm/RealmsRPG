@@ -82,7 +82,12 @@ function updateFinalizeTab() {
     document.getElementById('finalize-height').value = window.character?.height || '';
     document.getElementById('finalize-weight').value = window.character?.weight || '';
     document.getElementById('finalize-appearance').value = window.character?.appearance || '';
-    document.getElementById('finalize-archetype-desc').value = window.character?.archetypeDesc || '';
+    
+    // Replace archetype description retrieval to also accept legacy stored key
+    const legacyArchetypeDesc = window.character?.['archetype-desc'];
+    const archetypeDescValue = window.character?.archetypeDesc ?? legacyArchetypeDesc ?? '';
+    document.getElementById('finalize-archetype-desc').value = archetypeDescValue;
+    
     document.getElementById('finalize-notes').value = window.character?.notes || '';
 
     // Health/Energy allocation
@@ -166,12 +171,13 @@ function setupFinalizeTabEvents() {
         const el = document.getElementById(id);
         if (!el) return;
         el.addEventListener('input', e => {
-            const key = id.replace('finalize-','');
+            let key = id.replace('finalize-','');
+            if (key === 'archetype-desc') key = 'archetypeDesc'; // FIX: proper camelCase storage
             window.character[key] = e.target.value;
         });
-        // Also respond to change for select
         el.addEventListener('change', e => {
-            const key = id.replace('finalize-','');
+            let key = id.replace('finalize-','');
+            if (key === 'archetype-desc') key = 'archetypeDesc'; // FIX: proper camelCase storage
             window.character[key] = e.target.value;
         });
     });

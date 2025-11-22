@@ -3,7 +3,7 @@ import { saveCharacter } from './characterCreator_storage.js';
 
 export let selectedSkills = [];
 export let selectedSkillAbilities = {};
-export let selectedSkillVals = {};
+export let selectedSkillVals = {}; // legacy holder (will be synced from window.character.skillVals)
 export let defenseVals = {
   might: 0,
   fortitude: 0,
@@ -103,6 +103,7 @@ export function populateSkills() {
 }
 
 function getSkillValsTotal() {
+  // FIX: always derive from canonical window.character.skillVals
   const vals = (window.character && window.character.skillVals) || {};
   return selectedSkills.reduce((sum, s) => sum + Math.max(0, parseInt(vals[s]) || 0), 0);
 }
@@ -167,20 +168,29 @@ function updateDefensesDisplay() {
 }
 
 function updateSkillPoints() {
+  // FIX: recompute spent using window.character.skillVals instead of stale selectedSkillVals
+  const charVals = (window.character && window.character.skillVals) || {};
+  // sync legacy mirror so restore logic still works
+  selectedSkillVals = { ...charVals };
+
   let spent = selectedSkills.length;
   selectedSkills.forEach(skill => {
-    spent += selectedSkillVals[skill] || 0;
+    spent += Math.max(0, parseInt(charVals[skill]) || 0);
   });
   Object.values(defenseVals).forEach(val => {
-    spent += val * 2;
+    spent += (parseInt(val) || 0) * 2;
   });
-  
+
   const remaining = 5 - spent;
   const el = document.getElementById('skill-points');
   if (el) el.textContent = remaining;
-  
+
   if (!window.character) window.character = {};
   window.character.defenseVals = { ...defenseVals };
+  // persist updated points & values
+  import('./characterCreator_storage.js').then(m => m.saveCharacter?.());
+  // emit event for other tabs if needed
+  window.dispatchEvent(new CustomEvent('skill-points-changed', { detail: { remaining } }));
 }
 
 export function updateSkillsBonusDisplay() {
@@ -290,6 +300,8 @@ export function updateSkillsBonusDisplay() {
   }).join('');
 
   saveCharacter();
+  // After rendering, ensure points display reflects any changes
+  updateSkillPoints();
 }
 
 document.addEventListener('change', (e) => {
@@ -316,16 +328,16 @@ document.addEventListener('click', (e) => {
 
   if (btn.classList.contains('inc')) {
     if (getRemainingSkillPoints() <= 0) return;
+    if (current >= 3) return; // clamp
     window.character.skillVals[skill] = current + 1;
   } else {
     if (current <= 0) return;
     window.character.skillVals[skill] = current - 1;
   }
 
-  saveCharacter();
-  updateSkillPoints();
-  updateSkillsBonusDisplay();
-  populateSkills();
+  updateSkillPoints();            // FIX: recalc immediately
+  updateSkillsBonusDisplay();     // refresh bonuses
+  populateSkills();               // refresh selectable list
 });
 
 // NEW: Handle skill removal
@@ -359,7 +371,7 @@ document.addEventListener('click', (e) => {
   window.character.skills = selectedSkills;
   
   saveCharacter();
-  updateSkillPoints();
+  updateSkillPoints();           // FIX: recalc after removal
   updateSkillsBonusDisplay();
   populateSkills();
 });
@@ -500,17 +512,21 @@ export function restoreSkills() {
     selectedSkillAbilities = window.character.skillAbilities;
   }
   if (window.character?.skillVals) {
-    selectedSkillVals = window.character.skillVals;
+    // sync both canonical and legacy mirrors
+    selectedSkillVals = { ...window.character.skillVals };
   }
   if (window.character?.defenseVals) {
     defenseVals = { ...window.character.defenseVals };
   }
-  updateSkillsVisibility(); // NEW: Update visibility on restore
+  updateSkillsVisibility();
   initSkills();
+  updateSkillPoints();            // FIX: ensure display matches restored state
+  updateSkillsBonusDisplay();
 }
 
 // NEW: Listen for ability changes and reset defenses
 document.addEventListener('abilities-changed', () => {
   resetDefensesWithPositiveAbilities();
   updateDefensesDisplay();
+  updateSkillsBonusDisplay();     // FIX: ability changes affect skill bonuses
 });
