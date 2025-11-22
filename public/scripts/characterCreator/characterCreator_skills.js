@@ -97,6 +97,7 @@ export function populateSkills() {
       saveCharacter();
       
       populateSkills();
+      updateSkillsBonusDisplay(); // <-- ensure bonus display updates after skill selection
     });
   });
 }
@@ -313,6 +314,8 @@ document.addEventListener('click', (e) => {
 
   saveCharacter();
   updateSkillPoints();
+  updateSkillsBonusDisplay(); // <-- ensure bonus display updates after skill value change
+  populateSkills(); // <-- ensure skill list updates after skill value change
 });
 
 // NEW: Toggle visibility of skills tab content based on species selection
