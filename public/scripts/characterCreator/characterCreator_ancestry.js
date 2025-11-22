@@ -331,3 +331,13 @@ export function restoreAncestry() {
     }
   }
 }
+
+// NEW: Dispatch 'species-changed' event when species is selected/locked in.
+function confirmSpeciesSelection(species) {
+    window.character = window.character || {};
+    window.character.speciesName = species.name;
+    saveCharacter();
+    
+    // NEW: Notify skills module (and any other listeners) that species changed
+    document.dispatchEvent(new CustomEvent('species-changed', { detail: { speciesName: species.name } }));
+}

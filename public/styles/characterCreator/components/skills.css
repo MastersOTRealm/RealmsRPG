@@ -117,6 +117,10 @@
   cursor: not-allowed;
 }
 
+.skill-val-btn.inc.active {
+  background: lightblue;
+}
+
 .skill-remove-btn {
   background: #d9534f;
   color: white;
