@@ -109,15 +109,35 @@
 }
 
 .skill-val-btn:hover {
-  background: var(--primary-light);
+  background: var(--primary-dark);
 }
 
-.skill-val-btn.inc.active {
-  background: var(--accent-blue);
+.skill-val-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.skill-val-btn.inc.active:hover {
-  background: var(--accent-blue-hover);
+.skill-remove-btn {
+  background: #d9534f;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: var(--spacing-xs);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.2s ease;
+  margin-left: 8px;
+}
+
+.skill-remove-btn:hover {
+  background: #c9302c;
+}
+
+.skill-remove-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 @media (max-width: 600px) {

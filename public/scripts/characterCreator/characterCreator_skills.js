@@ -108,7 +108,9 @@ function getSkillValsTotal() {
 }
 
 function getRemainingSkillPoints() {
-  return 5 - selectedSkills.length - getSkillValsTotal();
+  // Calculate defense vals cost (2 points each)
+  const defenseSpent = Object.values(defenseVals).reduce((sum, val) => sum + (val * 2), 0);
+  return 5 - selectedSkills.length - getSkillValsTotal() - defenseSpent;
 }
 
 function getAbilityForDefense(defenseName) {
@@ -219,6 +221,11 @@ export function updateSkillsBonusDisplay() {
     const isSubSkill = skillObj && skillObj.base_skill;
     const subSkillBonus = isSubSkill ? 1 : 0;
 
+    // Remove button (disabled for species skills)
+    const removeBtn = isSpeciesSkill 
+      ? '' 
+      : `<button type="button" class="skill-remove-btn" data-skill="${skillName}" aria-label="Remove skill" title="Remove skill">✕</button>`;
+
     if (abilList.length === 1) {
       chosenAbility = abilList[0];
       window.character.skillAbilities[skillName] = chosenAbility;
@@ -235,6 +242,7 @@ export function updateSkillsBonusDisplay() {
             <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
           </div>
           <span class="skill-bonus-value">${displayVal}</span>
+          ${removeBtn}
         </div>
       `;
     }
@@ -260,6 +268,7 @@ export function updateSkillsBonusDisplay() {
             <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
           </div>
           <span class="skill-bonus-value">${displayVal}</span>
+          ${removeBtn}
         </div>
       `;
     }
@@ -275,6 +284,7 @@ export function updateSkillsBonusDisplay() {
           <button type="button" class="skill-val-btn inc ${hasValue ? 'active' : ''}" data-skill="${skillName}" aria-label="Increase">+</button>
         </div>
         <span class="skill-bonus-value">${displayVal}</span>
+        ${removeBtn}
       </div>
     `;
   }).join('');
@@ -314,8 +324,44 @@ document.addEventListener('click', (e) => {
 
   saveCharacter();
   updateSkillPoints();
-  updateSkillsBonusDisplay(); // <-- ensure bonus display updates after skill value change
-  populateSkills(); // <-- ensure skill list updates after skill value change
+  updateSkillsBonusDisplay();
+  populateSkills();
+});
+
+// NEW: Handle skill removal
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.skill-remove-btn');
+  if (!btn) return;
+  const skillName = btn.dataset.skill;
+  if (!skillName) return;
+
+  const char = window.character || {};
+  const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
+  const speciesSkills = species ? species.skills : [];
+  
+  // Don't allow removing species skills
+  if (speciesSkills.includes(skillName)) return;
+
+  // Remove from selectedSkills
+  selectedSkills = selectedSkills.filter(n => n !== skillName);
+  
+  // Remove any sub-skills
+  const subSkills = allSkills.filter(s => s.base_skill === skillName).map(s => s.name);
+  selectedSkills = selectedSkills.filter(n => !subSkills.includes(n));
+
+  // Remove skill vals
+  if (!window.character) window.character = {};
+  window.character.skillVals = window.character.skillVals || {};
+  delete window.character.skillVals[skillName];
+  subSkills.forEach(sk => delete window.character.skillVals[sk]);
+
+  // Update character
+  window.character.skills = selectedSkills;
+  
+  saveCharacter();
+  updateSkillPoints();
+  updateSkillsBonusDisplay();
+  populateSkills();
 });
 
 // NEW: Toggle visibility of skills tab content based on species selection
