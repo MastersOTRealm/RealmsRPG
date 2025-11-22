@@ -247,7 +247,7 @@ function validateCharacter() {
     if (!char.speciesName) {
         issues.push("🌟 You need to choose your species! Head to the Species tab to pick your ancestry.");
     } else {
-        // NEW: require Size if species provides sizes
+        // Require Size if species provides sizes
         const species = allSpecies.find(s => s.name === char.speciesName);
         const sizes = species?.sizes || [];
         if (sizes.length > 0) {
@@ -308,8 +308,59 @@ function validateCharacter() {
             issues.push(`❤️ You have ${hepRemaining} Health-Energy point${hepRemaining === 1 ? '' : 's'} to allocate! Decide whether to boost your health or energy.`);
         }
         
-        // Display results
-        displayValidationResults(issues);
+        // NEW: 7. Check currency (cannot be negative)
+        import('./characterCreator_equipment.js').then(async eqMod => {
+            const baseCurrency = 200;
+            const equipmentArr = char.equipment || [];
+            const equipmentQuantities = char.equipmentQuantities || {};
+            let spentCurrency = 0;
+            
+            const weaponLibrary = eqMod.weaponLibrary || [];
+            const armorLibrary = eqMod.armorLibrary || [];
+            const generalEquipment = eqMod.generalEquipment || [];
+            
+            equipmentArr.forEach(id => {
+                const weapon = weaponLibrary.find(w => w.id === id);
+                const armor = armorLibrary.find(a => a.id === id);
+                const general = generalEquipment.find(g => g.id === id);
+                const item = weapon || armor || general;
+                const qty = equipmentQuantities[id] || 1;
+                const value = item ? (item.currencyCost ?? item.goldCost ?? item.currency ?? 0) : 0;
+                spentCurrency += Math.ceil(value) * qty;
+            });
+            
+            const remainingCurrency = baseCurrency - spentCurrency;
+            if (remainingCurrency < 0) {
+                issues.push(`💰 You've overspent your currency by ${Math.abs(remainingCurrency)}! Remove some equipment from the Equipment tab to balance your budget.`);
+            }
+            
+            // NEW: 8. Check training points (cannot be negative)
+            const baseTP = getDefaultTrainingPoints();
+            const equipmentTP = eqMod.getTotalEquipmentTP ? eqMod.getTotalEquipmentTP() : 0;
+            
+            import('./characterCreator_powers.js').then(powMod => {
+                const powersTP = powMod.getTotalPowersTP ? powMod.getTotalPowersTP() : 0;
+                const totalSpent = equipmentTP + powersTP;
+                const remainingTP = baseTP - totalSpent;
+                
+                if (remainingTP < 0) {
+                    issues.push(`🎯 You've overspent your training points by ${Math.abs(remainingTP)}! Remove some armaments, powers, or techniques from the Equipment and Powers & Techniques tabs.`);
+                }
+                
+                // Display results
+                displayValidationResults(issues);
+            }).catch(() => {
+                // Powers module not loaded, check with equipment TP only
+                const remainingTP = baseTP - equipmentTP;
+                if (remainingTP < 0) {
+                    issues.push(`🎯 You've overspent your training points by ${Math.abs(remainingTP)}! Remove some armaments from the Equipment tab.`);
+                }
+                displayValidationResults(issues);
+            });
+        }).catch(() => {
+            // Equipment module not loaded, display what we have so far
+            displayValidationResults(issues);
+        });
     });
 }
 
@@ -398,7 +449,7 @@ async function saveCharacterToFirestore() {
         ...(char.feats?.character || [])
     ];
 
-    // Equipment, weapons, armor
+    // Equipment, weapons, armor with quantities
     const equipmentArr = char.equipment || [];
     let weaponsArr = [];
     let armorArr = [];
@@ -406,6 +457,10 @@ async function saveCharacterToFirestore() {
     let weaponLibrary = [];
     let armorLibrary = [];
     let generalEquipment = [];
+    
+    // NEW: Equipment quantities mapping
+    const equipmentQuantities = char.equipmentQuantities || {};
+    
     try {
         const eqMod = await import('./characterCreator_equipment.js');
         weaponLibrary = eqMod.weaponLibrary || [];
@@ -420,12 +475,23 @@ async function saveCharacterToFirestore() {
         const weapon = weaponLibrary.find(w => w.id === id);
         const armor = armorLibrary.find(a => a.id === id);
         if (weapon) {
-            weaponsArr.push(weapon.name);
+            weaponsArr.push({
+                name: weapon.name,
+                quantity: equipmentQuantities[id] || 1
+            });
         } else if (armor) {
-            armorArr.push(armor.name);
+            armorArr.push({
+                name: armor.name,
+                quantity: equipmentQuantities[id] || 1
+            });
         } else {
             const general = generalEquipment.find(g => g.id === id);
-            if (general) generalEquipmentArr.push(general.name);
+            if (general) {
+                generalEquipmentArr.push({
+                    name: general.name,
+                    quantity: equipmentQuantities[id] || 1
+                });
+            }
         }
     });
 
@@ -461,6 +527,10 @@ async function saveCharacterToFirestore() {
         health: health - baseHealth,
         energy: energy - baseEnergy
     };
+    
+    // NEW: Current health and energy (full values, not allocation)
+    const currentHealth = health;
+    const currentEnergy = energy;
 
     // Abilities grouped together
     const abilities = {
@@ -472,7 +542,7 @@ async function saveCharacterToFirestore() {
         charisma: char.abilities?.charisma ?? 0
     };
 
-    // NEW: Defense values grouped together
+    // Defense values grouped together
     const defenseVals = {
         might: char.defenseVals?.might ?? 0,
         fortitude: char.defenseVals?.fortitude ?? 0,
@@ -481,6 +551,25 @@ async function saveCharacterToFirestore() {
         mentalFortitude: char.defenseVals?.mentalFortitude ?? 0,
         resolve: char.defenseVals?.resolve ?? 0
     };
+    
+    // NEW: Calculate remaining currency
+    const baseCurrency = 200;
+    let spentCurrency = 0;
+    try {
+        const eqMod = await import('./characterCreator_equipment.js');
+        equipmentArr.forEach(id => {
+            const weapon = weaponLibrary.find(w => w.id === id);
+            const armor = armorLibrary.find(a => a.id === id);
+            const general = generalEquipment.find(g => g.id === id);
+            const item = weapon || armor || general;
+            const qty = equipmentQuantities[id] || 1;
+            const value = item ? (item.currencyCost ?? item.goldCost ?? item.currency ?? 0) : 0;
+            spentCurrency += Math.ceil(value) * qty;
+        });
+    } catch (e) {
+        spentCurrency = 0;
+    }
+    const remainingCurrency = baseCurrency - spentCurrency;
 
     // Final object
     const characterData = {
@@ -491,7 +580,7 @@ async function saveCharacterToFirestore() {
         mart_prof,
         pow_prof,
         abilities,
-        defenseVals,  // NEW: Add defense values
+        defenseVals,
         skills: skillsArr,
         feats: featsArr,
         equipment: generalEquipmentArr,
@@ -500,6 +589,9 @@ async function saveCharacterToFirestore() {
         powers: powersArr,
         techniques: techniquesArr,
         health_energy_points,
+        currentHealth,           // NEW: Full health value
+        currentEnergy,           // NEW: Full energy value
+        currency: remainingCurrency, // NEW: Remaining currency
         appearance: char.appearance || '',
         archetypeDesc: char.archetypeDesc || '',
         notes: char.notes || '',

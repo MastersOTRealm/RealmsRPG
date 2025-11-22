@@ -315,7 +315,25 @@ document.addEventListener('click', (e) => {
   updateSkillPoints();
 });
 
+// NEW: Toggle visibility of skills tab content based on species selection
+function updateSkillsVisibility() {
+  const warning = document.getElementById('skills-warning');
+  const main = document.getElementById('skills-main');
+  if (!warning || !main) return;
+  const hasSpecies = !!(window.character && window.character.speciesName);
+  warning.style.display = hasSpecies ? 'none' : 'block';
+  main.style.display = hasSpecies ? '' : 'none';
+}
+
 function initSkills() {
+  // NEW: Update visibility on tab entry
+  updateSkillsVisibility();
+  
+  // NEW: Don't initialize skills if no species selected
+  if (!window.character?.speciesName) {
+    return;
+  }
+  
   if (!skillsInitialized) {
     const skillsHeader = document.querySelector('#content-skills .section-header');
     if (skillsHeader) {
@@ -420,6 +438,11 @@ document.querySelector('.tab[data-tab="skills"]')?.addEventListener('click', asy
   initSkills();
 });
 
+// NEW: Wire "Go to Species" button
+document.getElementById('go-to-species-from-skills')?.addEventListener('click', () => {
+  document.querySelector('.tab[data-tab="species"]')?.click();
+});
+
 export function restoreSkills() {
   if (window.character?.skills) {
     selectedSkills = window.character.skills;
@@ -433,6 +456,7 @@ export function restoreSkills() {
   if (window.character?.defenseVals) {
     defenseVals = { ...window.character.defenseVals };
   }
+  updateSkillsVisibility(); // NEW: Update visibility on restore
   initSkills();
 }
 

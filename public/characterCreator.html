@@ -342,86 +342,96 @@
             <!-- Skills Tab -->
             <div id="content-skills" class="content">
                 <h1>CHOOSE YOUR SKILLS</h1>
-                <div class="description">
-                    <p id="skills-description">Now you can choose your skills. Picking a new skill grants you proficiency, while allocating more points to a skill you have increases its bonus!</p>
-                    <button id="open-codex-skills">Open Codex in New Tab</button>
+                
+                <!-- NEW: Warning shown when no species is selected -->
+                <div id="skills-warning" style="display:none;margin:12px 0;padding:12px;border-left:4px solid #ff9800;background:#fff8e1;border-radius:6px;">
+                    <strong>First, choose a species!</strong>
+                    <button id="go-to-species-from-skills" class="small-button blue-button" style="margin-left:8px;">Go to Species</button>
                 </div>
 
-                <div class="skill-points">Skill Points: <span id="skill-points">5</span></div>
-
-                <!-- Skills Bonus Section -->
-                <div class="skills-bonus-section">
-                    <h3>Your Skills</h3>
-                    <div id="skills-bonus-list" class="skills-bonus-list">
-                        <p class="no-skills-message">No skills selected yet</p>
-                    </div>
-                </div>
-
-                <div class="feats-section">
-                    <div class="section-header" data-section="skills">
-                        <h3>Skills</h3>
-                        <span class="toggle-arrow">▼</span>
-                    </div>
-                    <div class="section-body" id="skills-body">
-                        <input type="text" id="skills-search" class="search-input" placeholder="Search skills...">
-                        <div class="feats-list" id="skills-list">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Defenses Section (moved here, after Skills) -->
-                <div class="defenses-section" style="margin-top: 32px;">
-                    <h3>Defenses</h3>
-                    <p class="description" style="font-size: 0.9em; margin-bottom: 16px;">
-                        Increase your defenses by spending 2 skill points per increase. Your defense bonus equals your ability modifier plus any increases.
-                    </p>
-                    
-                    <div class="abilities-controls">
-                        <div class="ability-name">MIGHT</div>
-                        <div class="ability-name">FORTITUDE</div>
-                        <div class="ability-name">REFLEX</div>
-                        <div class="ability-name">DISCERNMENT</div>
-                        <div class="ability-name">MENTAL FORTITUDE</div>
-                        <div class="ability-name">RESOLVE</div>
+                <!-- NEW: Main skills content wrapper (hidden until species selected) -->
+                <div id="skills-main">
+                    <div class="description">
+                        <p id="skills-description">Now you can choose your skills. Picking a new skill grants you proficiency, while allocating more points to a skill you have increases its bonus!</p>
+                        <button id="open-codex-skills">Open Codex in New Tab</button>
                     </div>
 
-                    <div class="abilities-values">
-                        <div class="defense-control" data-defense="might">
-                            <button class="dec">-</button>
-                            <span class="value defense-value" data-defense="might">0</span>
-                            <button class="inc">+</button>
-                        </div>
-                        <div class="defense-control" data-defense="fortitude">
-                            <button class="dec">-</button>
-                            <span class="value defense-value" data-defense="fortitude">0</span>
-                            <button class="inc">+</button>
-                        </div>
-                        <div class="defense-control" data-defense="reflex">
-                            <button class="dec">-</button>
-                            <span class="value defense-value" data-defense="reflex">0</span>
-                            <button class="inc">+</button>
-                        </div>
-                        <div class="defense-control" data-defense="discernment">
-                            <button class="dec">-</button>
-                            <span class="value defense-value" data-defense="discernment">0</span>
-                            <button class="inc">+</button>
-                        </div>
-                        <div class="defense-control" data-defense="mentalFortitude">
-                            <button class="dec">-</button>
-                            <span class="value defense-value" data-defense="mentalFortitude">0</span>
-                            <button class="inc">+</button>
-                        </div>
-                        <div class="defense-control" data-defense="resolve">
-                            <button class="dec">-</button>
-                            <span class="value defense-value" data-defense="resolve">0</span>
-                            <button class="inc">+</button>
+                    <div class="skill-points">Skill Points: <span id="skill-points">5</span></div>
+
+                    <!-- Skills Bonus Section -->
+                    <div class="skills-bonus-section">
+                        <h3>Your Skills</h3>
+                        <div id="skills-bonus-list" class="skills-bonus-list">
+                            <p class="no-skills-message">No skills selected yet</p>
                         </div>
                     </div>
-                </div>
 
-                <div class="ancestry-actions">
-                    <button id="skills-continue">Continue to Feats</button>
+                    <div class="feats-section">
+                        <div class="section-header" data-section="skills">
+                            <h3>Skills</h3>
+                            <span class="toggle-arrow">▼</span>
+                        </div>
+                        <div class="section-body" id="skills-body">
+                            <input type="text" id="skills-search" class="search-input" placeholder="Search skills...">
+                            <div class="feats-list" id="skills-list">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Defenses Section (moved here, after Skills) -->
+                    <div class="defenses-section" style="margin-top: 32px;">
+                        <h3>Defenses</h3>
+                        <p class="description" style="font-size: 0.9em; margin-bottom: 16px;">
+                            Increase your defenses by spending 2 skill points per increase. Your defense bonus equals your ability modifier plus any increases.
+                        </p>
+                        
+                        <div class="abilities-controls">
+                            <div class="ability-name">MIGHT</div>
+                            <div class="ability-name">FORTITUDE</div>
+                            <div class="ability-name">REFLEX</div>
+                            <div class="ability-name">DISCERNMENT</div>
+                            <div class="ability-name">MENTAL FORTITUDE</div>
+                            <div class="ability-name">RESOLVE</div>
+                        </div>
+
+                        <div class="abilities-values">
+                            <div class="defense-control" data-defense="might">
+                                <button class="dec">-</button>
+                                <span class="value defense-value" data-defense="might">0</span>
+                                <button class="inc">+</button>
+                            </div>
+                            <div class="defense-control" data-defense="fortitude">
+                                <button class="dec">-</button>
+                                <span class="value defense-value" data-defense="fortitude">0</span>
+                                <button class="inc">+</button>
+                            </div>
+                            <div class="defense-control" data-defense="reflex">
+                                <button class="dec">-</button>
+                                <span class="value defense-value" data-defense="reflex">0</span>
+                                <button class="inc">+</button>
+                            </div>
+                            <div class="defense-control" data-defense="discernment">
+                                <button class="dec">-</button>
+                                <span class="value defense-value" data-defense="discernment">0</span>
+                                <button class="inc">+</button>
+                            </div>
+                            <div class="defense-control" data-defense="mentalFortitude">
+                                <button class="dec">-</button>
+                                <span class="value defense-value" data-defense="mentalFortitude">0</span>
+                                <button class="inc">+</button>
+                            </div>
+                            <div class="defense-control" data-defense="resolve">
+                                <button class="dec">-</button>
+                                <span class="value defense-value" data-defense="resolve">0</span>
+                                <button class="inc">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ancestry-actions">
+                        <button id="skills-continue">Continue to Feats</button>
+                    </div>
                 </div>
             </div>
 

@@ -11,6 +11,12 @@ export function populateAncestryGrid() {
     const card = document.createElement('div');
     card.className = 'species-card';
     card.dataset.species = species.name.toLowerCase().replace(/\s+/g, '');
+    
+    // NEW: Mark as selected if this is the current species
+    if (window.character?.speciesName === species.name) {
+      card.classList.add('selected');
+    }
+    
     card.innerHTML = `
       <div class="species-img" style="background-image: url('${species.image || 'https://via.placeholder.com/140'}')"></div>
       <h3 class="species-name">${species.name}</h3>
@@ -103,6 +109,9 @@ function setupModal() {
 
     // NEW: show ancestry main content and hide warning
     updateAncestryVisibility();
+    
+    // NEW: Re-populate grid to show selection
+    populateAncestryGrid();
 
     closeModal();
     document.querySelector('.tab[data-tab="ancestry"]').click();

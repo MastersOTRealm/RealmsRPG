@@ -28,11 +28,23 @@
   border-color: var(--border-primary);
 }
 
+.species-card.selected .species-img {
+  border-color: var(--primary);
+  border-width: 6px;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
+
 .species-name {
   font-family: 'Nova Flat', cursive;
   font-size: 20px;
   color: var(--text-primary);
   margin: 0 0 var(--spacing-sm);
+}
+
+.species-name.selected {
+  font-weight: 700;
+  color: var(--primary);
+  text-shadow: 0 0 1px rgba(26, 115, 232, 0.5);
 }
 
 .species-btn {
@@ -41,4 +53,22 @@
   font-size: 24px;
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.species-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--primary);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4);
 }

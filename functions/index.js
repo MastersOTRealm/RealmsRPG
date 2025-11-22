@@ -416,7 +416,7 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
         pow_abil,
         mart_abil,
         abilities,
-        defenseVals,      // NEW: Accept defense values
+        defenseVals,
         skills,
         feats,
         equipment,
@@ -425,6 +425,9 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
         powers,
         techniques,
         health_energy_points,
+        currentHealth,        // NEW: Accept current health
+        currentEnergy,        // NEW: Accept current energy
+        currency,             // NEW: Accept remaining currency
         appearance,
         archetypeDesc,
         notes,
@@ -462,7 +465,7 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
         mart_prof,
         pow_prof,
         abilities,
-        defenseVals: defenseVals || {},  // NEW: Include defense values with default
+        defenseVals: defenseVals || {},
         skills,
         feats,
         equipment,
@@ -471,6 +474,9 @@ exports.saveCharacterToLibraryHttp = onRequest((req, res) => {
         powers,
         techniques,
         health_energy_points,
+        currentHealth: currentHealth ?? 0,     // NEW: Store current health
+        currentEnergy: currentEnergy ?? 0,     // NEW: Store current energy
+        currency: currency ?? 0,               // NEW: Store remaining currency
         appearance,
         archetypeDesc,
         notes,
