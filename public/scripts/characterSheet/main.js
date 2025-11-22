@@ -1,4 +1,4 @@
-import { initializeFirebase, waitForAuth } from './firebase-config.js';
+import { initializeFirebase, waitForAuth, loadFeatsFromDatabase, loadTechniquePartsFromDatabase, loadPowerPartsFromDatabase } from './firebase-config.js';
 import { getCharacterData, saveCharacterData } from './data.js';
 import { calculateDefenses, calculateSpeed, calculateEvasion, calculateMaxHealth, calculateMaxEnergy, calculateBonuses } from './calculations.js';
 import { renderHeader } from './components/header.js';
@@ -97,6 +97,169 @@ async function loadCharacterById(id) {
         try {
             const data = await getCharacterData(currentCharacterId);
             console.log('[CharacterSheet] Loaded character document:', data.id);
+            
+            // Load feats from database and pair with character's feat names
+            const allFeats = await loadFeatsFromDatabase();
+            const characterFeatNames = Array.isArray(data.feats) ? data.feats : [];
+            
+            // Pair feat names with full feat data
+            const pairedFeats = characterFeatNames.map(featEntry => {
+                const featName = typeof featEntry === 'string' ? featEntry : (featEntry.name || '');
+                
+                if (!featName) {
+                    console.warn('Invalid feat entry:', featEntry);
+                    return null;
+                }
+                
+                const featData = allFeats.find(f => f.name === featName);
+                if (featData) {
+                    return {
+                        name: featName,
+                        description: featData.description || 'No description',
+                        category: featData.char_feat ? 'Character' : 'Archetype',
+                        uses: featData.uses_per_rec || 0,
+                        recovery: featData.rec_period || 'Full Recovery',
+                        currentUses: featData.uses_per_rec || 0
+                    };
+                }
+                console.warn(`Feat "${featName}" not found in database`);
+                return {
+                    name: featName,
+                    description: 'No description available',
+                    category: 'Character',
+                    uses: 0,
+                    recovery: 'Full Recovery',
+                    currentUses: 0
+                };
+            }).filter(Boolean);
+            
+            data.feats = pairedFeats;
+            
+            // NEW: Load techniques from user's library and pair with character's technique names
+            const techniquePartsDb = await loadTechniquePartsFromDatabase();
+            const characterTechniqueNames = Array.isArray(data.techniques) ? data.techniques : [];
+            
+            // Fetch user's technique library from Firestore
+            const db = window.firebase.firestore();
+            const techniquesRef = db.collection('users').doc(user.uid).collection('techniqueLibrary');
+            const techniquesSnapshot = await techniquesRef.get();
+            
+            const allTechniques = [];
+            techniquesSnapshot.forEach(docSnap => {
+                const techData = docSnap.data();
+                allTechniques.push({
+                    id: docSnap.id,
+                    name: techData.name,
+                    description: techData.description || '',
+                    parts: techData.parts || [],
+                    weapon: techData.weapon,
+                    damage: techData.damage
+                });
+            });
+            
+            // Pair technique names with full technique data
+            const pairedTechniques = characterTechniqueNames.map(techEntry => {
+                const techName = typeof techEntry === 'string' ? techEntry : (techEntry.name || '');
+                
+                if (!techName) {
+                    console.warn('Invalid technique entry:', techEntry);
+                    return null;
+                }
+                
+                const techData = allTechniques.find(t => t.name === techName);
+                if (techData) {
+                    // Use technique_calc.js to derive display data
+                    const partsArr = Array.isArray(techData.parts) ? techData.parts.map(p => ({
+                        name: p.name,
+                        op_1_lvl: p.op_1_lvl || 0,
+                        op_2_lvl: p.op_2_lvl || 0,
+                        op_3_lvl: p.op_3_lvl || 0
+                    })) : [];
+                    
+                    // Import deriveTechniqueDisplay dynamically
+                    return import('../technique_calc.js').then(mod => {
+                        const display = mod.deriveTechniqueDisplay({ ...techData, parts: partsArr }, techniquePartsDb);
+                        return {
+                            name: techName,
+                            description: display.description,
+                            energy: display.energy,
+                            actionType: display.actionType,
+                            weaponName: display.weaponName,
+                            damageStr: display.damageStr,
+                            parts: partsArr,
+                            partChipsHTML: display.partChipsHTML
+                        };
+                    });
+                }
+                
+                console.warn(`Technique "${techName}" not found in library`);
+                return {
+                    name: techName,
+                    description: 'No description available',
+                    energy: 0,
+                    actionType: 'Basic Action',
+                    weaponName: 'Unarmed',
+                    damageStr: '',
+                    parts: [],
+                    partChipsHTML: ''
+                };
+            }).filter(Boolean);
+            
+            // Wait for all technique promises to resolve
+            data.techniques = await Promise.all(pairedTechniques);
+            
+            // --- Load & pair powers from user's library ---
+            const powerPartsDb = await loadPowerPartsFromDatabase();
+            const characterPowerNames = Array.isArray(data.powers) ? data.powers : [];
+            const dbRef = window.firebase.firestore();
+            const userPowersSnap = await dbRef.collection('users').doc(user.uid).collection('library').get();
+            const allPowers = [];
+            userPowersSnap.forEach(docSnap => {
+                const p = docSnap.data();
+                allPowers.push({
+                    id: docSnap.id,
+                    name: p.name,
+                    description: p.description || '',
+                    parts: Array.isArray(p.parts) ? p.parts : [],
+                    damage: p.damage || [],
+                    range: p.range,
+                    area: p.areaEffect || p.area || '',
+                    duration: p.duration || '',
+                    actionType: p.actionType
+                });
+            });
+            const pairedPowersPromises = characterPowerNames.map(entry => {
+                const powerName = typeof entry === 'string' ? entry : (entry.name || '');
+                if (!powerName) return null;
+                const found = allPowers.find(p => p.name === powerName);
+                if (!found) {
+                    return Promise.resolve({
+                        name: powerName,
+                        description: 'No description available',
+                        energy: 0,
+                        actionType: 'Basic Action',
+                        damageStr: '',
+                        area: '',
+                        duration: '',
+                        partChipsHTML: ''
+                    });
+                }
+                return import('../power_calc.js').then(mod => {
+                    const display = mod.derivePowerDisplay(found, powerPartsDb);
+                    return {
+                        name: display.name,
+                        description: display.description,
+                        energy: display.energy,
+                        actionType: display.actionType,
+                        damageStr: display.damage,
+                        area: display.area,
+                        duration: display.duration,
+                        partChipsHTML: display.partChipsHTML
+                    };
+                });
+            }).filter(Boolean);
+            data.powers = await Promise.all(pairedPowersPromises);
+            
             return normalizeCharacter(data);
         } catch (e) {
             if (e.message === 'PERMISSION_DENIED') {

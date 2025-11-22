@@ -223,87 +223,90 @@ window.toggleFeat = function(featName) {
     }
 };
 
+// Handle feat uses
 window.changeFeatUses = function(featName, delta) {
-    const sanitized = sanitizeId(featName);
-    const span = document.getElementById(`uses-${sanitized}`);
-    if (!span) return;
-    
-    const current = parseInt(span.textContent) || 0;
     const charData = window.currentCharacterData();
+    if (!charData || !charData.feats) return;
     
-    if (charData && charData.feats) {
-        const feat = charData.feats.find(f => f.name === featName);
-        if (feat) {
-            const newValue = Math.max(0, Math.min(feat.uses || 0, current + delta));
-            span.textContent = newValue;
-            feat.currentUses = newValue;
-            window.scheduleAutoSave();
-            
-            // Visual feedback
-            if (newValue === 0) {
-                span.style.color = 'var(--danger-red)';
-            } else {
-                span.style.color = 'var(--text-primary)';
-            }
+    // Find the feat in the array
+    const feat = charData.feats.find(f => 
+        (typeof f === 'string' && f === featName) || 
+        (typeof f === 'object' && f.name === featName)
+    );
+    
+    if (!feat) return;
+    
+    // If feat is a string, convert to object
+    if (typeof feat === 'string') {
+        const index = charData.feats.indexOf(feat);
+        charData.feats[index] = { 
+            name: feat, 
+            currentUses: (feat.uses || 0) + delta 
+        };
+    } else {
+        // Update uses
+        if (feat.currentUses === undefined) {
+            feat.currentUses = feat.uses || 0;
         }
+        feat.currentUses = Math.max(0, Math.min(feat.uses || 0, feat.currentUses + delta));
     }
-};
-
-window.useTechnique = function(name, energyCost) {
-    const energyInput = document.getElementById('currentEnergy');
-    const current = parseInt(energyInput.value) || 0;
     
-    if (current >= energyCost) {
-        window.changeEnergy(-energyCost);
-        
-        const popup = document.createElement('div');
-        popup.className = 'roll-popup';
-        popup.innerHTML = `
-            <div class="roll-content">
-                <h3>✨ ${name}</h3>
-                <p style="font-size:18px;margin:20px 0;">Energy Used: ${energyCost}</p>
-                <p style="color:var(--text-secondary);">Remaining: ${current - energyCost} EN</p>
-                <button onclick="this.parentElement.parentElement.remove()">Close</button>
-            </div>
-        `;
-        document.body.appendChild(popup);
-        setTimeout(() => popup.classList.add('show'), 10);
-    } else {
-        alert('❌ Not enough energy!\n\nRequired: ' + energyCost + ' EN\nCurrent: ' + current + ' EN');
+    // Update display
+    const usesSpan = document.getElementById(`uses-${sanitizeId(featName)}`);
+    if (usesSpan) {
+        const featObj = charData.feats.find(f => 
+            (typeof f === 'object' && f.name === featName)
+        );
+        usesSpan.textContent = featObj?.currentUses ?? 0;
     }
-};
-
-window.usePower = function(name, energyCost) {
-    const energyInput = document.getElementById('currentEnergy');
-    const current = parseInt(energyInput.value) || 0;
     
-    if (current >= energyCost) {
-        window.changeEnergy(-energyCost);
-        
-        const popup = document.createElement('div');
-        popup.className = 'roll-popup';
-        popup.innerHTML = `
-            <div class="roll-content">
-                <h3>🔮 ${name}</h3>
-                <p style="font-size:18px;margin:20px 0;">Energy Used: ${energyCost}</p>
-                <p style="color:var(--text-secondary);">Remaining: ${current - energyCost} EN</p>
-                <button onclick="this.parentElement.parentElement.remove()">Close</button>
-            </div>
-        `;
-        document.body.appendChild(popup);
-        setTimeout(() => popup.classList.add('show'), 10);
-    } else {
-        alert('❌ Not enough energy!\n\nRequired: ' + energyCost + ' EN\nCurrent: ' + current + ' EN');
-    }
+    // Trigger auto-save
+    window.scheduleAutoSave();
 };
 
-window.saveNotes = function() {
-    const notes = document.getElementById('character-notes')?.value || '';
+// Handle technique usage
+window.useTechnique = function(name, energy) {
+    const energyInput = document.getElementById('currentEnergy');
+    if (!energyInput) return;
+    
+    const current = parseInt(energyInput.value) || 0;
+    if (current < energy) {
+        alert(`Not enough energy! Need ${energy}, have ${current}`);
+        return;
+    }
+    
+    energyInput.value = current - energy;
     const charData = window.currentCharacterData();
-    
     if (charData) {
-        charData.notes = notes;
+        charData.currentEnergy = current - energy;
         window.scheduleAutoSave();
+    }
+    window.updateResourceColors?.();
+};
+
+window.usePower = function(name, energy) {
+    window.useTechnique(name, energy); // Same logic
+};
+
+// Handle notes save
+window.saveNotes = function() {
+    const notesTextarea = document.getElementById('character-notes');
+    if (!notesTextarea) return;
+    
+    const charData = window.currentCharacterData();
+    if (charData) {
+        charData.notes = notesTextarea.value;
+        window.scheduleAutoSave();
+        
+        // Show feedback
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Saved';
+        btn.disabled = true;
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }, 2000);
     }
 };
 
