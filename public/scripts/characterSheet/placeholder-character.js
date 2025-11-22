@@ -147,15 +147,6 @@ export const PLACEHOLDER_CHARACTER = {
     }
   ],
   
-  // Equipment (arrays of item names or objects with details)
-  equipment: [
-    { name: "Healing Potion", quantity: 3 },
-    { name: "Rope (50ft)", quantity: 1 },
-    { name: "Lantern", quantity: 1 },
-    { name: "Rations", quantity: 7 },
-    { name: "Whetstone", quantity: 1 }
-  ],
-  
   // Weapons (array of objects with full stats)
   weapons: [
     {
@@ -164,7 +155,8 @@ export const PLACEHOLDER_CHARACTER = {
       damage: "2d12",
       damageType: "Slashing",
       range: "Melee",
-      properties: ["Heavy", "Two-Handed"]
+      properties: ["Heavy", "Two-Handed"],
+      equipped: true
     },
     {
       name: "Handaxe",
@@ -172,7 +164,8 @@ export const PLACEHOLDER_CHARACTER = {
       damage: "1d6",
       damageType: "Slashing",
       range: "Melee / 20ft",
-      properties: ["Light", "Thrown"]
+      properties: ["Light", "Thrown"],
+      equipped: false
     }
   ],
   
@@ -183,7 +176,8 @@ export const PLACEHOLDER_CHARACTER = {
       damageReduction: 3,
       critRange: "19-20",
       abilityReq: { strength: 2 },
-      properties: ["Heavy", "Noisy"]
+      properties: ["Heavy", "Noisy"],
+      equipped: true
     }
   ],
   

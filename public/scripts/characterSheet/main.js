@@ -1,4 +1,4 @@
-import { initializeFirebase, waitForAuth, loadFeatsFromDatabase, loadTechniquePartsFromDatabase, loadPowerPartsFromDatabase } from './firebase-config.js';
+import { initializeFirebase, waitForAuth, loadFeatsFromDatabase, loadTechniquePartsFromDatabase, loadPowerPartsFromDatabase, loadEquipmentFromDatabase } from './firebase-config.js';
 import { getCharacterData, saveCharacterData } from './data.js';
 import { calculateDefenses, calculateSpeed, calculateEvasion, calculateMaxHealth, calculateMaxEnergy, calculateBonuses } from './calculations.js';
 import { renderHeader } from './components/header.js';
@@ -259,6 +259,168 @@ async function loadCharacterById(id) {
                 });
             }).filter(Boolean);
             data.powers = await Promise.all(pairedPowersPromises);
+            
+            // --- Load & pair weapons from user's item library ---
+            const characterWeaponNames = Array.isArray(data.weapons) ? data.weapons : [];
+            const weaponsSnap = await dbRef.collection('users').doc(user.uid).collection('itemLibrary').get();
+            const allWeapons = [];
+            weaponsSnap.forEach(docSnap => {
+                const w = docSnap.data();
+                if (w.armamentType === 'Weapon' || w.armamentType === 'Shield') {
+                    allWeapons.push({
+                        id: docSnap.id,
+                        name: w.name,
+                        damage: w.damage || [],
+                        range: w.range,
+                        properties: w.properties || [],
+                        totalBP: w.totalBP || w.bp || 0,
+                        currencyCost: w.currencyCost || w.goldCost || w.currency || 0,
+                        rarity: w.rarity || 'Common',
+                        equipped: false
+                    });
+                }
+            });
+            const pairedWeapons = characterWeaponNames.map(entry => {
+                const weaponName = typeof entry === 'string' ? entry : (entry.name || '');
+                const equipped = typeof entry === 'object' ? (entry.equipped || false) : false;
+                if (!weaponName) return null;
+                const found = allWeapons.find(w => w.name === weaponName);
+                if (!found) {
+                    return {
+                        name: weaponName,
+                        damage: '-',
+                        range: 'Melee',
+                        properties: [],
+                        totalBP: 0,
+                        currencyCost: 0,
+                        rarity: 'Common',
+                        equipped: equipped
+                    };
+                }
+                // Format damage display
+                let damageStr = '-';
+                if (Array.isArray(found.damage) && found.damage.length > 0) {
+                    damageStr = found.damage
+                        .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
+                        .map(d => `${d.amount}d${d.size}`)
+                        .join(', ');
+                }
+                // Format range
+                let rangeStr = 'Melee';
+                if (found.range !== undefined && found.range !== null && found.range !== '') {
+                    if (typeof found.range === 'number' && found.range > 0) {
+                        rangeStr = `${found.range} spaces`;
+                    } else if (typeof found.range === 'string' && found.range.trim() !== '') {
+                        rangeStr = found.range;
+                    }
+                }
+                // Get damage type from first damage entry
+                let damageType = '';
+                if (Array.isArray(found.damage) && found.damage.length > 0) {
+                    const firstDmg = found.damage.find(d => d && d.type && d.type !== 'none');
+                    if (firstDmg) damageType = firstDmg.type;
+                }
+                return {
+                    name: weaponName,
+                    damage: damageStr,
+                    damageType: damageType,
+                    range: rangeStr,
+                    properties: found.properties || [],
+                    totalBP: found.totalBP || 0,
+                    currencyCost: found.currencyCost || 0,
+                    rarity: found.rarity || 'Common',
+                    equipped: equipped
+                };
+            }).filter(Boolean);
+            data.weapons = pairedWeapons;
+            
+            // --- Load & pair armor from user's item library ---
+            const characterArmorNames = Array.isArray(data.armor) ? data.armor : [];
+            const allArmor = [];
+            weaponsSnap.forEach(docSnap => {
+                const a = docSnap.data();
+                if (a.armamentType === 'Armor') {
+                    // Calculate damage reduction from properties
+                    const drProp = (a.properties || []).find(p => p.name === 'Damage Reduction');
+                    const damageReduction = drProp ? (1 + (drProp.op_1_lvl || 0)) : 0;
+                    allArmor.push({
+                        id: docSnap.id,
+                        name: a.name,
+                        damageReduction: damageReduction,
+                        properties: a.properties || [],
+                        totalBP: a.totalBP || a.bp || 0,
+                        currencyCost: a.currencyCost || a.goldCost || a.currency || 0,
+                        rarity: a.rarity || 'Common',
+                        equipped: false
+                    });
+                }
+            });
+            const pairedArmor = characterArmorNames.map(entry => {
+                const armorName = typeof entry === 'string' ? entry : (entry.name || '');
+                const equipped = typeof entry === 'object' ? (entry.equipped || false) : false;
+                if (!armorName) return null;
+                const found = allArmor.find(a => a.name === armorName);
+                if (!found) {
+                    return {
+                        name: armorName,
+                        damageReduction: 0,
+                        properties: [],
+                        totalBP: 0,
+                        currencyCost: 0,
+                        rarity: 'Common',
+                        equipped: equipped
+                    };
+                }
+                return {
+                    name: armorName,
+                    damageReduction: found.damageReduction || 0,
+                    properties: found.properties || [],
+                    totalBP: found.totalBP || 0,
+                    currencyCost: found.currencyCost || 0,
+                    rarity: found.rarity || 'Common',
+                    equipped: equipped
+                };
+            }).filter(Boolean);
+            data.armor = pairedArmor;
+            
+            // --- Load & pair equipment/inventory from database ---
+            const allEquipment = await loadEquipmentFromDatabase();
+            const characterEquipmentNames = Array.isArray(data.equipment) ? data.equipment : [];
+            
+            const pairedEquipment = characterEquipmentNames.map(equipEntry => {
+                // Handle both string names and object entries with quantity
+                const equipName = typeof equipEntry === 'string' ? equipEntry : (equipEntry.name || '');
+                const quantity = typeof equipEntry === 'object' ? (equipEntry.quantity || 1) : 1;
+                
+                if (!equipName) {
+                    console.warn('Invalid equipment entry:', equipEntry);
+                    return null;
+                }
+                
+                const equipData = allEquipment.find(e => e.name === equipName);
+                if (equipData) {
+                    return {
+                        name: equipName,
+                        description: equipData.description || 'No description',
+                        category: equipData.category || 'General',
+                        currency: equipData.currency || 0,
+                        rarity: equipData.rarity || 'Common',
+                        quantity: quantity
+                    };
+                }
+                
+                console.warn(`Equipment "${equipName}" not found in database`);
+                return {
+                    name: equipName,
+                    description: 'No description available',
+                    category: 'General',
+                    currency: 0,
+                    rarity: 'Common',
+                    quantity: quantity
+                };
+            }).filter(Boolean);
+            
+            data.equipment = pairedEquipment;
             
             return normalizeCharacter(data);
         } catch (e) {

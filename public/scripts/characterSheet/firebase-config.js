@@ -221,3 +221,35 @@ export async function loadPowerPartsFromDatabase() {
         return [];
     }
 }
+
+// Load equipment/items from Realtime Database
+export async function loadEquipmentFromDatabase() {
+    try {
+        if (!rtdb) {
+            await initializeFirebase();
+        }
+        
+        const itemsRef = rtdb.ref('items');
+        const snapshot = await itemsRef.once('value');
+        const data = snapshot.val();
+        
+        if (!data) {
+            console.warn('No items found in database');
+            return [];
+        }
+
+        const equipment = Object.values(data).map(item => ({
+            name: item.name || '',
+            description: item.description || '',
+            category: item.category || '',
+            currency: parseInt(item.currency) || 0,
+            rarity: item.rarity || 'Common'
+        }));
+
+        console.log(`✓ Loaded ${equipment.length} equipment items from database`);
+        return equipment;
+    } catch (error) {
+        console.error('Error loading equipment from database:', error);
+        return [];
+    }
+}
