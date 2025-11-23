@@ -26,6 +26,17 @@ export function renderLibrary(charData) {
     container.appendChild(powersContent);
     container.appendChild(inventoryContent);
     container.appendChild(notesContent);
+
+    // --- Insert currency box above weapons section when inventory tab is active ---
+    function showCurrencyBoxIfNeeded() {
+        // Remove any existing currency box
+        document.querySelectorAll('.inventory-currency-box').forEach(el => el.remove());
+        // Only show if inventory tab is active
+        if (inventoryContent.classList.contains('active') && inventoryContent._currencyBox) {
+            // Insert at the top of inventoryContent
+            inventoryContent.insertBefore(inventoryContent._currencyBox, inventoryContent.firstChild);
+        }
+    }
     
     // Tab switching
     const tabButtons = tabs.querySelectorAll('.tab');
@@ -41,8 +52,12 @@ export function renderLibrary(charData) {
                     content.classList.add('active');
                 }
             });
+            showCurrencyBoxIfNeeded();
         });
     });
+
+    // Show currency box on initial render if inventory is active
+    showCurrencyBoxIfNeeded();
 }
 
 function createFeatsContent(feats) {
@@ -342,6 +357,94 @@ function createInventoryContent(inventory) {
     const content = document.createElement('div');
     content.id = 'inventory-content';
     content.className = 'tab-content';
+
+    // --- Currency box is created here, but appended to parent after tab activation ---
+    content._currencyBox = (() => {
+        const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+        let currency = charData?.currency ?? 0;
+        const currencyBox = document.createElement('div');
+        currencyBox.className = 'inventory-currency-box';
+        currencyBox.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        `;
+        currencyBox.innerHTML = `
+            <div style="
+                background: var(--bg-medium);
+                color: var(--primary-dark);
+                border-radius: 7px;
+                padding: 6px 14px;
+                font-weight: 700;
+                font-size: 0.98em;
+                box-shadow: var(--shadow);
+                border: 1px solid var(--border-color);
+                letter-spacing: 0.2px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                CURRENCY:
+                <input
+                    id="inventory-currency-input"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9+-]*"
+                    value="${currency}"
+                    style="
+                        width: 54px;
+                        font-size: 1em;
+                        font-weight: 700;
+                        color: var(--primary-blue);
+                        background: #fff;
+                        border: 1px solid var(--border-color);
+                        border-radius: 5px;
+                        padding: 2px 6px;
+                        text-align: right;
+                        margin-left: 4px;
+                        transition: border-color 0.2s;
+                    "
+                    title="Click to edit. Use +5, -5, or a number."
+                >
+            </div>
+        `;
+
+        // --- Add logic for editing currency ---
+        setTimeout(() => {
+            const input = currencyBox.querySelector('#inventory-currency-input');
+            if (!input) return;
+            input.addEventListener('focus', e => {
+                setTimeout(() => input.select(), 1);
+            });
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const raw = input.value.trim();
+                    let currentVal = parseInt(charData?.currency) || 0;
+                    let newValue;
+                    if (/^[+]/.test(raw)) newValue = currentVal + (parseInt(raw.substring(1)) || 0);
+                    else if (/^-/.test(raw)) newValue = currentVal - (parseInt(raw.substring(1)) || 0);
+                    else newValue = parseInt(raw) || 0;
+                    newValue = Math.max(0, newValue);
+                    input.value = newValue;
+                    if (charData) {
+                        charData.currency = newValue;
+                        window.scheduleAutoSave?.();
+                    }
+                }
+            });
+            input.addEventListener('blur', () => {
+                // Reset to current value if not changed
+                input.value = (charData?.currency ?? 0);
+            });
+        }, 0);
+
+        return currencyBox;
+    })();
+
+    // Don't append currencyBox here; it will be inserted on tab activation
+
     enrichAndRenderInventory(content, inventory);
     return content;
 }

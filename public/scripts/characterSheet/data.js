@@ -30,14 +30,32 @@ export async function getCharacterData(charId) {
     }
 }
 
+// Helper: Recursively remove all undefined values from an object/array
+function removeUndefined(obj) {
+    if (Array.isArray(obj)) {
+        return obj.map(removeUndefined);
+    } else if (obj && typeof obj === 'object') {
+        const clean = {};
+        for (const [k, v] of Object.entries(obj)) {
+            if (v !== undefined) {
+                clean[k] = removeUndefined(v);
+            }
+        }
+        return clean;
+    }
+    return obj;
+}
+
 export async function saveCharacterData(charId, data) {
     const user = await waitForAuth();
     if (!user) throw new Error('User not authenticated');
     if (!charId || !String(charId).trim()) throw new Error('Invalid character id');
     const { id, ...dataToSave } = data;
+    // Remove all undefined values before saving
+    const cleanedData = removeUndefined(dataToSave);
     try {
         const docRef = db.collection('users').doc(user.uid).collection('character').doc(String(charId).trim());
-        await docRef.set(dataToSave, { merge: true });
+        await docRef.set(cleanedData, { merge: true });
     } catch (e) {
         if (e.code === 'permission-denied') throw new Error('PERMISSION_DENIED');
         throw e;
