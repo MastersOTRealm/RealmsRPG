@@ -293,13 +293,10 @@ function validateCharacter() {
     
     // 5. Check skill points
     import('./characterCreator_skills.js').then(mod => {
-        const selectedSkills = mod.selectedSkills || [];
-        const skillVals = char.skillVals || {};
-        const skillValsTotal = selectedSkills.reduce((sum, s) => sum + Math.max(0, parseInt(skillVals[s]) || 0), 0);
-        const skillPoints = 5 - selectedSkills.length - skillValsTotal;
+        const remainingSkillPoints = mod.getRemainingSkillPoints();
         
-        if (skillPoints > 0) {
-            issues.push(`📚 You have ${skillPoints} skill point${skillPoints === 1 ? '' : 's'} left to spend! Boost your skills to become more proficient.`);
+        if (remainingSkillPoints > 0) {
+            issues.push(`📚 You have ${remainingSkillPoints} skill point${remainingSkillPoints === 1 ? '' : 's'} left to spend! Boost your skills to become more proficient.`);
         }
         
         // 6. Check health-energy points

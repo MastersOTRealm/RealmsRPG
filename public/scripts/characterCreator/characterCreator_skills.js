@@ -108,7 +108,7 @@ function getSkillValsTotal() {
   return selectedSkills.reduce((sum, s) => sum + Math.max(0, parseInt(vals[s]) || 0), 0);
 }
 
-function getRemainingSkillPoints() {
+export function getRemainingSkillPoints() {
   // Calculate defense vals cost (2 points each)
   const defenseSpent = Object.values(defenseVals).reduce((sum, val) => sum + (val * 2), 0);
   return 5 - selectedSkills.length - getSkillValsTotal() - defenseSpent;
@@ -185,56 +185,7 @@ function updateSkillPoints() {
   const el = document.getElementById('skill-points');
   if (el) el.textContent = remaining;
 
-  // NEW: If remaining < 0, auto-remove excess
-  if (remaining < 0) {
-    // First, reset all skill vals to 0
-    Object.keys(charVals).forEach(skill => {
-      if (charVals[skill] > 0) {
-        charVals[skill] = 0;
-      }
-    });
-    // Recalc spent after resetting vals
-    spent = selectedSkills.length; // vals now 0
-    Object.values(defenseVals).forEach(val => {
-      spent += (parseInt(val) || 0) * 2;
-    });
-    remaining = 5 - spent;
-    
-    // If still < 0, remove non-species skills from the end
-    const char = window.character || {};
-    const species = char.speciesName ? allSpecies.find(s => s.name === char.speciesName) : null;
-    const speciesSkills = species ? species.skills : [];
-    while (remaining < 0 && selectedSkills.length > speciesSkills.length) {
-      // Find the last non-species skill
-      let toRemove = null;
-      for (let i = selectedSkills.length - 1; i >= 0; i--) {
-        if (!speciesSkills.includes(selectedSkills[i])) {
-          toRemove = selectedSkills[i];
-          break;
-        }
-      }
-      if (toRemove) {
-        selectedSkills = selectedSkills.filter(s => s !== toRemove);
-        delete charVals[toRemove];
-        spent--;
-        remaining++;
-      } else {
-        break; // No more removable skills
-      }
-    }
-    
-    // Update character
-    window.character.skillVals = { ...charVals };
-    window.character.skills = selectedSkills;
-    saveCharacter();
-    
-    // Refresh displays
-    updateSkillsBonusDisplay();
-    populateSkills();
-    
-    // Update remaining display
-    if (el) el.textContent = remaining;
-  }
+  // Removed: Auto-removal logic when remaining < 0
 
   if (!window.character) window.character = {};
   window.character.defenseVals = { ...defenseVals };
