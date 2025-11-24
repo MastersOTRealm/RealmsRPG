@@ -68,11 +68,18 @@ function buildDamageString(dmgArr) {
     if (!Array.isArray(dmgArr)) return '-';
     const usable = dmgArr.filter(d => d && d.amount && d.size && d.type && d.type !== 'none');
     if (!usable.length) return '-';
-    return usable.map(d => `${d.amount}d${d.size} ${d.type}`).join(', ');
+    // Show type after dice, capitalized (e.g., "1d6 Slashing")
+    return usable.map(d => `${d.amount}d${d.size} ${capitalizeDamageType(d.type)}`).join(', ');
+}
+
+// Helper for capitalizing damage type
+function capitalizeDamageType(type) {
+    if (!type) return '';
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 }
 
 // REPLACED createInventoryContent with enriched calculations
-export function createInventoryContent(inventory) {
+export function createInventoryContent(inventoryObj) {
     const content = document.createElement('div');
     content.id = 'inventory-content';
     content.className = 'tab-content';
@@ -164,7 +171,172 @@ export function createInventoryContent(inventory) {
 
     // Don't append currencyBox here; it will be inserted on tab activation
 
-    enrichAndRenderInventory(content, inventory);
+    // Accept inventoryObj: { weapons, armor, equipment }
+    const weapons = Array.isArray(inventoryObj.weapons) ? inventoryObj.weapons : [];
+    const armor = Array.isArray(inventoryObj.armor) ? inventoryObj.armor : [];
+    const equipment = Array.isArray(inventoryObj.equipment) ? inventoryObj.equipment : [];
+
+    if (!weapons.length && !armor.length && !equipment.length) {
+        content.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">No items in inventory</p>';
+        return content;
+    }
+
+    // Weapons
+    if (weapons.length) {
+        const title = document.createElement('h3');
+        title.textContent = 'WEAPONS';
+        title.style.cssText = 'margin:0 0 12px;padding:12px;background:var(--bg-medium);border-radius:8px;font-size:14px;font-weight:700;';
+        content.appendChild(title);
+
+        const header = document.createElement('div');
+        header.className = 'library-table-header';
+        header.style.gridTemplateColumns = '1.8fr 1fr 1fr 0.6fr 0.9fr 0.9fr 0.7fr';
+        header.innerHTML = '<div>NAME</div><div>DAMAGE</div><div>RANGE</div><div>TP</div><div>CURRENCY</div><div>RARITY</div><div>EQUIPPED</div>';
+        content.appendChild(header);
+
+        weapons.forEach((w, idx) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'collapsible-tech';
+            wrapper.style.marginBottom = '8px';
+            wrapper.innerHTML = `
+              <div class="collapsed-row" style="grid-template-columns:1.8fr 1fr 1fr 0.6fr 0.9fr 0.9fr 0.7fr;">
+                <div><strong>${w.name || 'Unnamed'}</strong> <span class="expand-indicator">▼</span></div>
+                <div>${w.damage || '-'}</div>
+                <div>${w.range || 'Melee'}</div>
+                <div>${w.totalTP || 0}</div>
+                <div>${Math.ceil(w.currencyCost || 0)}</div>
+                <div>${w.rarity || 'Common'}</div>
+                <div style="text-align:center;"><input type="checkbox" class="equipped-checkbox" data-type="weapon" data-index="${idx}" ${w.equipped ? 'checked' : ''}></div>
+              </div>
+              <div class="expanded-body">
+                ${w.description ? `<p style="margin:0 0 10px;">${w.description}</p>` : ''}
+                ${w.proficiencies && w.proficiencies.length > 0 ? `
+                  <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Properties & Proficiencies</h4>
+                  <div class="part-chips">
+                    ${w.proficiencies.map(p => {
+                        let txt = p.name;
+                        if (p.level > 0) txt += ` (Level ${p.level})`;
+                        if (p.totalTP > 0) txt += ` | TP: ${p.baseTP}${p.optionTP > 0 ? ` + ${p.optionTP}` : ''}`;
+                        return `<span class="part-chip${p.totalTP > 0 ? ' tp-cost' : ''}" title="${p.description || ''}">${txt}</span>`;
+                    }).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+            wrapper.querySelector('.collapsed-row').addEventListener('click', e => {
+                if (e.target.type === 'checkbox') return;
+                wrapper.classList.toggle('open');
+                const ind = wrapper.querySelector('.expand-indicator');
+                if (ind) ind.textContent = wrapper.classList.contains('open') ? '▲' : '▼';
+            });
+            wrapper.querySelector('.equipped-checkbox').addEventListener('change', e => {
+                weapons[idx].equipped = e.target.checked;
+                const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                if (charData?.weapons && charData.weapons[idx]) charData.weapons[idx].equipped = e.target.checked;
+                window.scheduleAutoSave && window.scheduleAutoSave();
+                if (window.refreshArchetypeColumn) window.refreshArchetypeColumn();
+            });
+            content.appendChild(wrapper);
+        });
+    }
+
+    // Armor
+    if (armor.length) {
+        const title = document.createElement('h3');
+        title.textContent = 'ARMOR';
+        title.style.cssText = 'margin:24px 0 12px;padding:12px;background:var(--bg-medium);border-radius:8px;font-size:14px;font-weight:700;';
+        content.appendChild(title);
+
+        const header = document.createElement('div');
+        header.className = 'library-table-header';
+        header.style.gridTemplateColumns = '2fr 0.9fr 0.6fr 0.9fr 0.9fr 0.7fr';
+        header.innerHTML = '<div>NAME</div><div>DMG RED.</div><div>TP</div><div>CURRENCY</div><div>RARITY</div><div>EQUIPPED</div>';
+        content.appendChild(header);
+
+        armor.forEach((a, idx) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'collapsible-tech';
+            wrapper.style.marginBottom = '8px';
+            wrapper.innerHTML = `
+              <div class="collapsed-row" style="grid-template-columns:2fr 0.9fr 0.6fr 0.9fr 0.9fr 0.7fr;">
+                <div><strong>${a.name || 'Unnamed'}</strong> <span class="expand-indicator">▼</span></div>
+                <div>${a.damageReduction ?? 0}</div>
+                <div>${a.totalTP || 0}</div>
+                <div>${Math.ceil(a.currencyCost || 0)}</div>
+                <div>${a.rarity || 'Common'}</div>
+                <div style="text-align:center;"><input type="checkbox" class="equipped-checkbox" data-type="armor" data-index="${idx}" ${a.equipped ? 'checked' : ''}></div>
+              </div>
+              <div class="expanded-body">
+                ${a.description ? `<p style="margin:0 0 10px;">${a.description}</p>` : ''}
+                ${a.proficiencies && a.proficiencies.length > 0 ? `
+                  <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Properties & Proficiencies</h4>
+                  <div class="part-chips">
+                    ${a.proficiencies.map(p => {
+                        let txt = p.name;
+                        if (p.level > 0) txt += ` (Level ${p.level})`;
+                        if (p.totalTP > 0) txt += ` | TP: ${p.baseTP}${p.optionTP > 0 ? ` + ${p.optionTP}` : ''}`;
+                        return `<span class="part-chip${p.totalTP > 0 ? ' tp-cost' : ''}" title="${p.description || ''}">${txt}</span>`;
+                    }).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+            wrapper.querySelector('.collapsed-row').addEventListener('click', e => {
+                if (e.target.type === 'checkbox') return;
+                wrapper.classList.toggle('open');
+                const ind = wrapper.querySelector('.expand-indicator');
+                if (ind) ind.textContent = wrapper.classList.contains('open') ? '▲' : '▼';
+            });
+            wrapper.querySelector('.equipped-checkbox').addEventListener('change', e => {
+                armor[idx].equipped = e.target.checked;
+                const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                if (charData?.armor && charData.armor[idx]) charData.armor[idx].equipped = e.target.checked;
+                window.scheduleAutoSave && window.scheduleAutoSave();
+                if (window.refreshArchetypeColumn) window.refreshArchetypeColumn();
+            });
+            content.appendChild(wrapper);
+        });
+    }
+
+    // General equipment
+    if (equipment.length) {
+        const title = document.createElement('h3');
+        title.textContent = 'GENERAL EQUIPMENT';
+        title.style.cssText = 'margin:24px 0 12px;padding:12px;background:var(--bg-medium);border-radius:8px;font-size:14px;font-weight:700;';
+        content.appendChild(title);
+
+        const header = document.createElement('div');
+        header.className = 'library-table-header';
+        header.style.gridTemplateColumns = '1.5fr 2fr 1fr 0.9fr 0.8fr';
+        header.innerHTML = '<div>NAME</div><div>DESCRIPTION</div><div>CATEGORY</div><div>CURRENCY</div><div>QUANTITY</div>';
+        content.appendChild(header);
+
+        equipment.forEach(item => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'collapsible-tech';
+            wrapper.style.marginBottom = '8px';
+            const truncatedDesc = (item.description || 'No description').split(/\s+/).slice(0, 12).join(' ') + '...';
+            wrapper.innerHTML = `
+              <div class="collapsed-row" style="grid-template-columns:1.5fr 2fr 1fr 0.9fr 0.8fr;">
+                <div><strong>${item.name || 'Unnamed'}</strong> <span class="expand-indicator">▼</span></div>
+                <div class="truncated">${truncatedDesc}</div>
+                <div>${item.category || 'General'}</div>
+                <div>${item.currency || 0}</div>
+                <div>${item.quantity || 1}</div>
+              </div>
+              <div class="expanded-body">
+                ${item.description ? `<p style="margin:0;">${item.description}</p>` : ''}
+              </div>
+            `;
+            wrapper.querySelector('.collapsed-row').addEventListener('click', () => {
+                wrapper.classList.toggle('open');
+                const ind = wrapper.querySelector('.expand-indicator');
+                if (ind) ind.textContent = wrapper.classList.contains('open') ? '▲' : '▼';
+            });
+            content.appendChild(wrapper);
+        });
+    }
+
     return content;
 }
 
@@ -227,7 +399,14 @@ async function enrichAndRenderInventory(content, inventory) {
         return { ...w };
     }).map(w => {
         const compute = computePropertyTotals(w.properties || w.itemParts || [], propertiesCatalog);
+        // --- CHANGED: buildDamageString now includes type after dice ---
         const damageStr = w.damageStr || w.damage || buildDamageString(w.damage);
+        // Also extract first damage type for possible display (if needed elsewhere)
+        let damageType = '';
+        if (Array.isArray(w.damage) && w.damage.length > 0) {
+            const firstDmg = w.damage.find(d => d && d.type && d.type !== 'none');
+            if (firstDmg) damageType = capitalizeDamageType(firstDmg.type);
+        }
         const rangeStr = w.range && w.range !== 'Melee'
             ? w.range
             : deriveRange(w.properties || w.itemParts || [], propertiesCatalog);
@@ -235,6 +414,7 @@ async function enrichAndRenderInventory(content, inventory) {
         return {
             ...w,
             damage: damageStr,
+            damageType, // for completeness, not used in this table
             range: rangeStr,
             totalTP: w.totalTP || w.totalBP || compute.tp,
             currencyCost: w.currencyCost || currencyCost,

@@ -11,90 +11,90 @@ When a character is saved to Firestore via the `saveCharacterToLibraryHttp` Clou
 ```javascript
 {
   // Basic Info
-  name: "Character Name",                    // string (required)
-  species: "Human",                          // string (required)
-  size: "Medium",                            // string (optional)
-  
+  name: "Character Name",
+  species: "Human",
+  size: "Medium",
+
   // Archetype
-  mart_prof: 2,                              // number (0-2)
-  pow_prof: 0,                               // number (0-2)
-  pow_abil: "Intelligence",                  // string (optional, only if pow_prof > 0)
-  mart_abil: "Strength",                     // string (optional, only if mart_prof > 0)
-  
-  // Abilities (grouped)
+  mart_prof: 2,
+  pow_prof: 0,
+  pow_abil: "Intelligence",
+  mart_abil: "Strength",
+
+  // Abilities
   abilities: {
-    strength: 2,                             // number (-2 to 3)
-    vitality: 1,                             // number (-2 to 3)
-    agility: 0,                              // number (-2 to 3)
-    acuity: -1,                              // number (-2 to 3)
-    intelligence: 3,                         // number (-2 to 3)
-    charisma: 0                              // number (-2 to 3)
+    strength: 2,
+    vitality: 1,
+    agility: 0,
+    acuity: -1,
+    intelligence: 3,
+    charisma: 0
   },
-  
-  // Defense values (grouped, similar to abilities)
+
+  // Defense values
   defenseVals: {
-    might: 0,              // Skill point investments (0-N)
+    might: 0,
     fortitude: 0,
     reflex: 0,
     discernment: 0,
     mentalFortitude: 0,
     resolve: 0
   },
-  
+
   // Traits (array of strings)
   traits: [
-    "Night Vision",                          // ancestry trait
-    "Athletic",                              // characteristic trait
-    "Frail"                                  // flaw trait (optional)
+    "Night Vision",
+    "Athletic",
+    "Frail"
   ],
-  
+
   // Skills (array of objects)
   skills: [
     {
-      name: "Athletics",                     // skill name
-      skill_val: 2,                          // skill value (0-3)
-      ability: "Strength",                   // chosen ability for skill
-      prof: true                             // always true for selected skills
+      name: "Athletics",
+      skill_val: 2,
+      ability: "Strength",
+      prof: true
     }
   ],
-  
+
   // Feats (array of strings)
   feats: [
-    "Power Attack",                          // archetype feat
-    "Toughness",                             // archetype feat (martial gets 3)
-    "Lucky"                                  // character feat (always 1)
+    "Power Attack",
+    "Toughness",
+    "Lucky"
   ],
-  
+
   // Equipment (arrays of item names)
-  equipment: [                               // general equipment only
+  equipment: [
     "Healing Potion",
     "Rope",
     "Lantern"
   ],
-  weapons: [                                 // weapons only
+  weapons: [
     "Longsword",
     "Shortbow"
   ],
-  armor: [                                   // armor only
+  armor: [
     "Plate Armor"
   ],
-  
-  // Powers & Techniques (array of strings - power/technique names)
+
+  // Powers & Techniques (array of strings)
   powers: ["Fireball", "Lightning Bolt"],
   techniques: ["Power Strike"],
-  
+
   // Health & Energy Allocation
   health_energy_points: {
-    health: 5,                               // points allocated to health above base
-    energy: 13                               // points allocated to energy above base
+    health: 5,
+    energy: 13
   },
-  
+
   // Character Details
-  appearance: "Tall warrior with...",        // string
-  archetypeDesc: "A battle-hardened...",    // string
-  notes: "Background story...",              // string
-  weight: "200",                             // string (in kg)
-  height: "6'2"                              // string
+  appearance: "Tall warrior with...",
+  archetypeDesc: "A battle-hardened...",
+  notes: "Background story...",
+  weight: "200",
+  height: "6'2"
 }
 ```
 

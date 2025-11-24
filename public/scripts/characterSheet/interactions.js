@@ -124,34 +124,42 @@ window.rollAttackBonus = function(name, bonus) {
     setTimeout(() => popup.classList.add('show'), 10);
 };
 
-window.rollDamage = function(damageStr) {
-    // Parse damage string like "2d6" or "1d8+2"
-    const match = damageStr.match(/(\d+)d(\d+)([+-]\d+)?/);
+window.rollDamage = function(damageStr, bonus = 0) {
+    // Parse damage string like "2d6", "1d8+2", "1d6 Slashing", "1d6+3 Slashing"
+    // Accepts optional bonus as second argument
+    let match = damageStr.match(/(\d+)d(\d+)([+-]\d+)?(?:\s+([a-zA-Z]+))?/);
     if (!match) return;
-    
-    const [, numDice, dieSize, modifier] = match;
+
+    const [, numDice, dieSize, modifier, dmgType] = match;
     const num = parseInt(numDice);
     const size = parseInt(dieSize);
     const mod = modifier ? parseInt(modifier) : 0;
-    
-    let total = mod;
+    const totalBonus = mod + (typeof bonus === 'number' ? bonus : 0);
+
+    let total = totalBonus;
     let rolls = [];
     for (let i = 0; i < num; i++) {
         const roll = Math.floor(Math.random() * size) + 1;
         rolls.push(roll);
         total += roll;
     }
-    
+
+    // Compose the dice roll string
+    const diceStr = rolls.map(r => `<span class="die-roll">🎲 ${r}</span>`).join(' + ');
+    const bonusStr = totalBonus !== 0
+        ? `<span class="modifier bonus-result" style="background:none;padding:0;margin:0 4px;">${totalBonus >= 0 ? '+' : ''}${totalBonus}</span>`
+        : '';
+    // Modal content styled like d20 rolls
     const popup = document.createElement('div');
     popup.className = 'roll-popup';
     popup.innerHTML = `
         <div class="roll-content">
-            <h3>Damage Roll</h3>
-            <div class="damage-rolls">
-                ${rolls.map(r => `<span class="die-roll">🎲 ${r}</span>`).join(' + ')}
-                ${mod !== 0 ? `<span class="modifier">${mod >= 0 ? '+' : ''}${mod}</span>` : ''}
+            <h3>Damage Roll${dmgType ? ` (${dmgType})` : ''}</h3>
+            <div class="roll-details">
+                ${diceStr}
+                ${bonusStr}
+                <div class="total-result">= ${total}</div>
             </div>
-            <div class="damage-total">Total Damage: ${total}</div>
             <button onclick="this.parentElement.parentElement.remove()">Close</button>
         </div>
     `;
@@ -355,6 +363,7 @@ style.textContent = `
     margin: 24px 0;
     font-size: 32px;
     font-weight: 700;
+    flex-wrap: wrap;
 }
 
 .die-result {
@@ -400,11 +409,17 @@ style.textContent = `
     color: var(--primary-blue);
 }
 
-.damage-total {
+.modifier.bonus-result {
     font-size: 28px;
     font-weight: 700;
     color: var(--primary-dark);
-    margin: 20px 0;
+    /* No background, no border, just value */
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 4px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .roll-content button {

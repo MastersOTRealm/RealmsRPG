@@ -102,36 +102,51 @@ async function loadCharacterById(id) {
             
             // Pair feat names with full feat data
             const pairedFeats = characterFeatNames.map(featEntry => {
+                // Only keep name and currentUses (if present) in the character data
                 const featName = typeof featEntry === 'string' ? featEntry : (featEntry.name || '');
-                
+                const currentUses = typeof featEntry === 'object' && typeof featEntry.currentUses === 'number'
+                    ? featEntry.currentUses
+                    : undefined;
                 if (!featName) {
                     console.warn('Invalid feat entry:', featEntry);
                     return null;
                 }
-                
                 const featData = allFeats.find(f => f.name === featName);
                 if (featData) {
+                    // Only pair for display, do not persist full object
                     return {
                         name: featName,
                         description: featData.description || 'No description',
                         category: featData.char_feat ? 'Character' : 'Archetype',
                         uses: featData.uses_per_rec || 0,
                         recovery: featData.rec_period || 'Full Recovery',
-                        currentUses: featData.uses_per_rec || 0
+                        currentUses: typeof currentUses === 'number' ? currentUses : featData.uses_per_rec || 0
                     };
                 }
-                console.warn(`Feat "${featName}" not found in database`);
+                // If not found, fallback
                 return {
                     name: featName,
                     description: 'No description available',
                     category: 'Character',
                     uses: 0,
                     recovery: 'Full Recovery',
-                    currentUses: 0
+                    currentUses: typeof currentUses === 'number' ? currentUses : 0
                 };
             }).filter(Boolean);
-            
-            data.feats = pairedFeats;
+
+            // Only keep feat names (and currentUses if needed) in the character data for saving
+            data.feats = characterFeatNames.map(featEntry => {
+                if (typeof featEntry === 'string') return featEntry;
+                if (featEntry && typeof featEntry === 'object' && featEntry.name) {
+                    const obj = { name: featEntry.name };
+                    if (typeof featEntry.currentUses === 'number') obj.currentUses = featEntry.currentUses;
+                    return obj;
+                }
+                return null;
+            }).filter(Boolean);
+
+            // For display, attach the paired feats as a non-persistent property
+            data._displayFeats = pairedFeats;
             
             // NEW: Load techniques from user's library and pair with character's technique names
             const techniquePartsDb = await loadTechniquePartsFromDatabase();
@@ -155,7 +170,7 @@ async function loadCharacterById(id) {
                 });
             });
             
-            // Pair technique names with full technique data
+            // Pair technique names with full technique data for display only
             const pairedTechniques = characterTechniqueNames.map(techEntry => {
                 const techName = typeof techEntry === 'string' ? techEntry : (techEntry.name || '');
                 
@@ -166,15 +181,12 @@ async function loadCharacterById(id) {
                 
                 const techData = allTechniques.find(t => t.name === techName);
                 if (techData) {
-                    // Use technique_calc.js to derive display data
                     const partsArr = Array.isArray(techData.parts) ? techData.parts.map(p => ({
                         name: p.name,
                         op_1_lvl: p.op_1_lvl || 0,
                         op_2_lvl: p.op_2_lvl || 0,
                         op_3_lvl: p.op_3_lvl || 0
                     })) : [];
-                    
-                    // Import deriveTechniqueDisplay dynamically
                     return import('../technique_calc.js').then(mod => {
                         const display = mod.deriveTechniqueDisplay({ ...techData, parts: partsArr }, techniquePartsDb);
                         return {
@@ -190,7 +202,6 @@ async function loadCharacterById(id) {
                     });
                 }
                 
-                console.warn(`Technique "${techName}" not found in library`);
                 return {
                     name: techName,
                     description: 'No description available',
@@ -202,11 +213,11 @@ async function loadCharacterById(id) {
                     partChipsHTML: ''
                 };
             }).filter(Boolean);
-            
-            // Wait for all technique promises to resolve
             data.techniques = await Promise.all(pairedTechniques);
-            
-            // --- Load & pair powers from user's library ---
+            // Only keep technique names (and minimal state) in character data
+            data.techniques = characterTechniqueNames.map(t => typeof t === 'string' ? t : (t.name || '')).filter(Boolean);
+
+            // --- POWERS: Pair names with user's power library and DB parts ---
             const powerPartsDb = await loadPowerPartsFromDatabase();
             const characterPowerNames = Array.isArray(data.powers) ? data.powers : [];
             const dbRef = window.firebase.firestore();
@@ -257,8 +268,10 @@ async function loadCharacterById(id) {
                 });
             }).filter(Boolean);
             data.powers = await Promise.all(pairedPowersPromises);
-            
-            // --- Load & pair weapons from user's item library ---
+            // Only keep power names (and minimal state) in character data
+            data.powers = characterPowerNames.map(p => typeof p === 'string' ? p : (p.name || '')).filter(Boolean);
+
+            // --- WEAPONS: Pair names with user's item library ---
             const characterWeaponNames = Array.isArray(data.weapons) ? data.weapons : [];
             const weaponsSnap = await dbRef.collection('users').doc(user.uid).collection('itemLibrary').get();
             const allWeapons = [];
@@ -287,6 +300,7 @@ async function loadCharacterById(id) {
                     return {
                         name: weaponName,
                         damage: '-',
+                        damageType: '',
                         range: 'Melee',
                         properties: [],
                         totalBP: 0,
@@ -295,13 +309,18 @@ async function loadCharacterById(id) {
                         equipped: equipped
                     };
                 }
-                // Format damage display
+                // Format damage display and type
                 let damageStr = '-';
+                let damageType = '';
                 if (Array.isArray(found.damage) && found.damage.length > 0) {
+                    // Use all damage entries, join with comma
                     damageStr = found.damage
                         .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
-                        .map(d => `${d.amount}d${d.size}`)
+                        .map(d => `${d.amount}d${d.size}${d.type && d.type !== 'none' ? ' ' + capitalizeDamageType(d.type) : ''}`)
                         .join(', ');
+                    // Use first damage type for display below button
+                    const firstDmg = found.damage.find(d => d && d.type && d.type !== 'none');
+                    if (firstDmg) damageType = capitalizeDamageType(firstDmg.type);
                 }
                 // Format range
                 let rangeStr = 'Melee';
@@ -312,33 +331,27 @@ async function loadCharacterById(id) {
                         rangeStr = found.range;
                     }
                 }
-                // Get damage type from first damage entry
-                let damageType = '';
-                if (Array.isArray(found.damage) && found.damage.length > 0) {
-                    const firstDmg = found.damage.find(d => d && d.type && d.type !== 'none');
-                    if (firstDmg) damageType = firstDmg.type;
-                }
                 return {
-                    name: weaponName,
-                    damage: damageStr,
-                    damageType: damageType,
-                    range: rangeStr,
-                    properties: found.properties || [],
-                    totalBP: found.totalBP || 0,
-                    currencyCost: found.currencyCost || 0,
-                    rarity: found.rarity || 'Common',
-                    equipped: equipped
+                    ...found,
+                    equipped
                 };
             }).filter(Boolean);
             data.weapons = pairedWeapons;
-            
-            // --- Load & pair armor from user's item library ---
+            // Only keep weapon names (and equipped state) in character data
+            data.weapons = characterWeaponNames.map(w => {
+                if (typeof w === 'string') return w;
+                if (w && typeof w === 'object' && w.name) {
+                    return { name: w.name, equipped: !!w.equipped };
+                }
+                return null;
+            }).filter(Boolean);
+
+            // --- ARMOR: Pair names with user's item library ---
             const characterArmorNames = Array.isArray(data.armor) ? data.armor : [];
             const allArmor = [];
             weaponsSnap.forEach(docSnap => {
                 const a = docSnap.data();
                 if (a.armamentType === 'Armor') {
-                    // Calculate damage reduction from properties
                     const drProp = (a.properties || []).find(p => p.name === 'Damage Reduction');
                     const damageReduction = drProp ? (1 + (drProp.op_1_lvl || 0)) : 0;
                     allArmor.push({
@@ -370,31 +383,27 @@ async function loadCharacterById(id) {
                     };
                 }
                 return {
-                    name: armorName,
-                    damageReduction: found.damageReduction || 0,
-                    properties: found.properties || [],
-                    totalBP: found.totalBP || 0,
-                    currencyCost: found.currencyCost || 0,
-                    rarity: found.rarity || 'Common',
-                    equipped: equipped
+                    ...found,
+                    equipped
                 };
             }).filter(Boolean);
             data.armor = pairedArmor;
-            
-            // --- Load & pair equipment/inventory from database ---
+            // Only keep armor names (and equipped state) in character data
+            data.armor = characterArmorNames.map(a => {
+                if (typeof a === 'string') return a;
+                if (a && typeof a === 'object' && a.name) {
+                    return { name: a.name, equipped: !!a.equipped };
+                }
+                return null;
+            }).filter(Boolean);
+
+            // --- EQUIPMENT: Pair names with user's equipment library ---
             const allEquipment = await loadEquipmentFromDatabase();
             const characterEquipmentNames = Array.isArray(data.equipment) ? data.equipment : [];
-            
             const pairedEquipment = characterEquipmentNames.map(equipEntry => {
-                // Handle both string names and object entries with quantity
                 const equipName = typeof equipEntry === 'string' ? equipEntry : (equipEntry.name || '');
                 const quantity = typeof equipEntry === 'object' ? (equipEntry.quantity || 1) : 1;
-                
-                if (!equipName) {
-                    console.warn('Invalid equipment entry:', equipEntry);
-                    return null;
-                }
-                
+                if (!equipName) return null;
                 const equipData = allEquipment.find(e => e.name === equipName);
                 if (equipData) {
                     return {
@@ -406,8 +415,6 @@ async function loadCharacterById(id) {
                         quantity: quantity
                     };
                 }
-                
-                console.warn(`Equipment "${equipName}" not found in database`);
                 return {
                     name: equipName,
                     description: 'No description available',
@@ -417,9 +424,16 @@ async function loadCharacterById(id) {
                     quantity: quantity
                 };
             }).filter(Boolean);
-            
             data.equipment = pairedEquipment;
-            
+            // Only keep equipment names (and quantity) in character data
+            data.equipment = characterEquipmentNames.map(e => {
+                if (typeof e === 'string') return e;
+                if (e && typeof e === 'object' && e.name) {
+                    return { name: e.name, quantity: e.quantity || 1 };
+                }
+                return null;
+            }).filter(Boolean);
+
             return normalizeCharacter(data);
         } catch (e) {
             if (e.message === 'PERMISSION_DENIED') {
@@ -581,3 +595,9 @@ window.refreshArchetypeColumn = function() {
     };
     renderArchetype(currentCharacterData, calculatedData);
 };
+
+// Helper for capitalizing damage type
+function capitalizeDamageType(type) {
+    if (!type) return '';
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+}

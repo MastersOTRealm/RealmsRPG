@@ -21,7 +21,7 @@ export function renderArchetype(charData, calculatedData) {
     bonusesSection.className = 'bonuses-section';
     bonusesSection.innerHTML = `
         <div class="section-title">BONUSES</div>
-        <div class="bonuses-subtitle">ATTACK BONUSES</div>
+        <!-- Removed the bonuses-subtitle line -->
     `;
     
     const bonusesTable = document.createElement('table');
@@ -114,7 +114,6 @@ function renderWeapons(container, charData, calculatedData) {
     if (equippedWeapons.length > 0) {
         equippedWeapons.forEach(weapon => {
             const properties = weapon.properties || [];
-            // Normalize property names for checks
             const propNames = properties.map(p => typeof p === 'string' ? p : (p.name || ''));
 
             // Determine attack bonus:
@@ -128,14 +127,33 @@ function renderWeapons(container, charData, calculatedData) {
                 attackBonus = calculatedData.bonuses.acuity.prof;
             }
 
-            const damageStr = weapon.damage || 'N/A';
-            
+            // --- Build damage string with bonus and type ---
+            let damageStr = weapon.damage || 'N/A';
+            let displayDamageStr = damageStr;
+            // Try to parse and append bonus and type
+            if (typeof damageStr === 'string' && damageStr !== 'N/A' && damageStr.trim() !== '') {
+                // If already has a bonus, don't double up
+                if (!/[+-]\d+/.test(damageStr)) {
+                    // If there is a damage type, keep it at the end
+                    const dmgTypeMatch = damageStr.match(/([a-zA-Z]+)$/);
+                    const typeStr = dmgTypeMatch ? ` ${dmgTypeMatch[1]}` : '';
+                    const dicePart = damageStr.replace(/([a-zA-Z]+)$/, '').trim();
+                    displayDamageStr = `${dicePart} ${formatBonus(attackBonus)}${typeStr}`.replace(/\s+/, ' ').trim();
+                } else {
+                    displayDamageStr = damageStr;
+                }
+            }
+
             const weaponRow = document.createElement('tr');
             weaponRow.className = 'weapon-row';
             weaponRow.innerHTML = `
                 <td class="weapon-name">${weapon.name}</td>
-                <td><button class="bonus-button" onclick="rollAttack('${weapon.name}', ${attackBonus})">${formatBonus(attackBonus)}</button></td>
-                <td><button class="damage-button" onclick="rollDamage('${damageStr}')">${damageStr}</button></td>
+                <td>
+                    <button class="bonus-button" onclick="rollAttack('${weapon.name}', ${attackBonus})">${formatBonus(attackBonus)}</button>
+                </td>
+                <td>
+                    <button class="damage-button" onclick="rollDamage('${displayDamageStr}', ${attackBonus})">${displayDamageStr}</button>
+                </td>
                 <td>${weapon.range || 'Melee'}</td>
             `;
             tbody.appendChild(weaponRow);
@@ -166,7 +184,7 @@ function renderWeapons(container, charData, calculatedData) {
     unarmedRow.innerHTML = `
         <td class="weapon-name">UNARMED PROWESS</td>
         <td><button class="bonus-button" onclick="rollAttack('Unarmed Prowess', ${unprofBonus})">${formatBonus(unprofBonus)}</button></td>
-        <td><button class="damage-button" onclick="rollDamage('${unarmedDamage > 0 ? unarmedDamage : 1}')">${unarmedDamage > 0 ? unarmedDamage : 1} BLUNT</button></td>
+        <td><button class="damage-button" onclick="rollDamage('${unarmedDamage > 0 ? unarmedDamage : 1} BLUNT', ${unprofBonus})">${unarmedDamage > 0 ? unarmedDamage : 1} BLUNT ${formatBonus(unprofBonus)}</button></td>
         <td>Melee</td>
     `;
     tbody.appendChild(unarmedRow);
