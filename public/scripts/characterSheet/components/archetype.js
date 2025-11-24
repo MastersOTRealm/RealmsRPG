@@ -113,12 +113,25 @@ function renderWeapons(container, charData, calculatedData) {
 
     if (equippedWeapons.length > 0) {
         equippedWeapons.forEach(weapon => {
-            const weaponRow = document.createElement('tr');
-            weaponRow.className = 'weapon-row';
-            
-            const attackBonus = weapon.attackBonus || 0;
+            const properties = weapon.properties || [];
+            // Normalize property names for checks
+            const propNames = properties.map(p => typeof p === 'string' ? p : (p.name || ''));
+
+            // Determine attack bonus:
+            // 1. Finesse property → Agility (prof)
+            // 2. Range property → Acuity (prof)
+            // 3. Default → Strength (prof)
+            let attackBonus = calculatedData.bonuses.strength.prof;
+            if (propNames.includes("Finesse")) {
+                attackBonus = calculatedData.bonuses.agility.prof;
+            } else if (propNames.includes("Range")) {
+                attackBonus = calculatedData.bonuses.acuity.prof;
+            }
+
             const damageStr = weapon.damage || 'N/A';
             
+            const weaponRow = document.createElement('tr');
+            weaponRow.className = 'weapon-row';
             weaponRow.innerHTML = `
                 <td class="weapon-name">${weapon.name}</td>
                 <td><button class="bonus-button" onclick="rollAttack('${weapon.name}', ${attackBonus})">${formatBonus(attackBonus)}</button></td>
@@ -128,14 +141,12 @@ function renderWeapons(container, charData, calculatedData) {
             tbody.appendChild(weaponRow);
 
             // Show property names below weapon, excluding certain names
-            const propNames = (weapon.properties || [])
-                .map(p => typeof p === 'string' ? p : (p.name || ''))
-                .filter(n => n && !EXCLUDED_PROP_NAMES.includes(n));
-            if (propNames.length > 0) {
+            const displayPropNames = propNames.filter(n => n && !EXCLUDED_PROP_NAMES.includes(n));
+            if (displayPropNames.length > 0) {
                 const propsRow = document.createElement('tr');
                 propsRow.className = 'properties-row';
                 propsRow.innerHTML = `
-                    <td colspan="4">Properties: ${propNames.map(n => `• ${n}`).join(' ')}</td>
+                    <td colspan="4">Properties: ${displayPropNames.map(n => `• ${n}`).join(' ')}</td>
                 `;
                 tbody.appendChild(propsRow);
             }
