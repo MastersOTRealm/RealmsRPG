@@ -101,6 +101,16 @@ function renderWeapons(container, charData, calculatedData) {
     // Only show equipped weapons
     const equippedWeapons = (charData.weapons || []).filter(w => w.equipped);
 
+    // List of property names to exclude from display
+    const EXCLUDED_PROP_NAMES = [
+        "Damage Reduction",
+        "Split Damage Dice",
+        "Range",
+        "Shield Base",
+        "Armor Base",
+        "Weapon Damage"
+    ];
+
     if (equippedWeapons.length > 0) {
         equippedWeapons.forEach(weapon => {
             const weaponRow = document.createElement('tr');
@@ -117,9 +127,10 @@ function renderWeapons(container, charData, calculatedData) {
             `;
             tbody.appendChild(weaponRow);
 
-            // Show property names below weapon
+            // Show property names below weapon, excluding certain names
             const propNames = (weapon.properties || [])
-                .map(p => typeof p === 'string' ? p : (p.name || '')).filter(Boolean);
+                .map(p => typeof p === 'string' ? p : (p.name || ''))
+                .filter(n => n && !EXCLUDED_PROP_NAMES.includes(n));
             if (propNames.length > 0) {
                 const propsRow = document.createElement('tr');
                 propsRow.className = 'properties-row';
