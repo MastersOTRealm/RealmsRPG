@@ -12,7 +12,9 @@ import {
   formatProficiencyChip
 } from './item_calc.js';
 import { calculateTechniqueCosts, computeActionType, formatTechniqueDamage, deriveTechniqueDisplay } from './technique_calc.js';
-import { calculatePowerCosts, derivePowerDisplay } from './power_calc.js';
+import {
+  calculatePowerCosts, derivePowerDisplay, formatPowerDamage
+} from './power_calc.js';
 
 // Add sorting state
 let sortState = {
@@ -161,6 +163,7 @@ function createPowerCard(power, db, userId, powerPartsDb) {
     header.className = 'library-header';
     header.onclick = () => toggleExpand(card);
 
+    // Use imported formatPowerDamage
     header.innerHTML = `
         <div class="col">${display.name}</div>
         <div class="col">${display.energy}</div>
@@ -168,7 +171,7 @@ function createPowerCard(power, db, userId, powerPartsDb) {
         <div class="col">${display.duration}</div>
         <div class="col">${display.range}</div>
         <div class="col">${display.area}</div>
-        <div class="col">-</div>
+        <div class="col">${formatPowerDamage(power.damage)}</div>
         <span class="expand-icon">▼</span>
     `;
 

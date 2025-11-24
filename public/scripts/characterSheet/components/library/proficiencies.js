@@ -1,0 +1,334 @@
+import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+
+let powerPartsCache = null;
+let techniquePartsCache = null;
+
+// Load power parts (cached)
+async function loadPowerParts() {
+  if (powerPartsCache) return powerPartsCache;
+  try {
+    const database = getDatabase();
+    const partsRef = ref(database, 'parts');
+    const snapshot = await get(partsRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      powerPartsCache = Object.entries(data)
+        .filter(([id, part]) => part.type && part.type.toLowerCase() === 'power')
+        .map(([id, part]) => ({
+          id,
+          name: part.name || '',
+          description: part.description || '',
+          base_tp: parseFloat(part.base_tp) || 0,
+          op_1_tp: parseFloat(part.op_1_tp) || 0,
+          op_2_tp: parseFloat(part.op_2_tp) || 0,
+          op_3_tp: parseFloat(part.op_3_tp) || 0
+        }));
+    }
+  } catch (error) {
+    console.error('Error loading power parts:', error);
+  }
+  return powerPartsCache || [];
+}
+
+// Load technique parts (cached)
+async function loadTechniqueParts() {
+  if (techniquePartsCache) return techniquePartsCache;
+  try {
+    const database = getDatabase();
+    const partsRef = ref(database, 'parts');
+    const snapshot = await get(partsRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      techniquePartsCache = Object.entries(data)
+        .filter(([id, part]) => part.type && part.type.toLowerCase() === 'technique')
+        .map(([id, part]) => ({
+          id,
+          name: part.name || '',
+          description: part.description || '',
+          base_tp: parseFloat(part.base_tp) || 0,
+          op_1_tp: parseFloat(part.op_1_tp) || 0,
+          op_2_tp: parseFloat(part.op_2_tp) || 0,
+          op_3_tp: parseFloat(part.op_3_tp) || 0
+        }));
+    }
+  } catch (error) {
+    console.error('Error loading technique parts:', error);
+  }
+  return techniquePartsCache || [];
+}
+
+// Extract proficiencies from powers
+async function extractPowerProficiencies(powers) {
+  const profs = new Map();
+  const partsDb = await loadPowerParts();
+  powers.forEach(power => {
+    if (!power.parts) return;
+    power.parts.forEach(partData => {
+      const partDef = partsDb.find(p => p.name === partData.name);
+      if (!partDef) return;
+      const lvl1 = partData.op_1_lvl || 0;
+      const lvl2 = partData.op_2_lvl || 0;
+      const lvl3 = partData.op_3_lvl || 0;
+      const rawTP = (partDef.base_tp || 0) + (partDef.op_1_tp || 0) * lvl1 + (partDef.op_2_tp || 0) * lvl2 + (partDef.op_3_tp || 0) * lvl3;
+      const finalTP = Math.floor(rawTP);
+      if (finalTP <= 0) return;
+      const key = partDef.name;
+      if (profs.has(key)) {
+        const ex = profs.get(key);
+        ex.op1Lvl = Math.max(ex.op1Lvl, lvl1);
+        ex.op2Lvl = Math.max(ex.op2Lvl, lvl2);
+        ex.op3Lvl = Math.max(ex.op3Lvl, lvl3);
+      } else {
+        profs.set(key, {
+          name: partDef.name,
+          description: partDef.description || '',
+          baseTP: partDef.base_tp || 0,
+          op1Lvl: lvl1,
+          op1TP: partDef.op_1_tp || 0,
+          op2Lvl: lvl2,
+          op2TP: partDef.op_2_tp || 0,
+          op3Lvl: lvl3,
+          op3TP: partDef.op_3_tp || 0
+        });
+      }
+    });
+  });
+  return profs;
+}
+
+// Extract proficiencies from techniques
+async function extractTechniqueProficiencies(techniques) {
+  const profs = new Map();
+  const partsDb = await loadTechniqueParts();
+  techniques.forEach(tech => {
+    if (!tech.parts) return;
+    tech.parts.forEach(partData => {
+      const partDef = partsDb.find(p => p.name === partData.name);
+      if (!partDef) return;
+      const lvl1 = partData.op_1_lvl || 0;
+      const lvl2 = partData.op_2_lvl || 0;
+      const lvl3 = partData.op_3_lvl || 0;
+      const rawTP = (partDef.base_tp || 0) + (partDef.op_1_tp || 0) * lvl1 + (partDef.op_2_tp || 0) * lvl2 + (partDef.op_3_tp || 0) * lvl3;
+      const finalTP = Math.floor(rawTP);
+      if (finalTP <= 0) return;
+      const key = partDef.name;
+      if (profs.has(key)) {
+        const ex = profs.get(key);
+        ex.op1Lvl = Math.max(ex.op1Lvl, lvl1);
+        ex.op2Lvl = Math.max(ex.op2Lvl, lvl2);
+        ex.op3Lvl = Math.max(ex.op3Lvl, lvl3);
+      } else {
+        profs.set(key, {
+          name: partDef.name,
+          description: partDef.description || '',
+          baseTP: partDef.base_tp || 0,
+          op1Lvl: lvl1,
+          op1TP: partDef.op_1_tp || 0,
+          op2Lvl: lvl2,
+          op2TP: partDef.op_2_tp || 0,
+          op3Lvl: lvl3,
+          op3TP: partDef.op_3_tp || 0
+        });
+      }
+    });
+  });
+  return profs;
+}
+
+// Extract proficiencies from weapons/armor (using item_calc logic)
+async function extractEquipmentProficiencies(weapons, armor) {
+  const profs = new Map();
+  // Load item properties (assuming cached or load here; for simplicity, assume available)
+  // In character sheet, properties might be loaded elsewhere; for now, inline or assume.
+  // Since character sheet doesn't load properties cache, we need to load it.
+  // Add loadItemProperties here similar to library.js
+  let itemPropertiesCache = null;
+  async function loadItemProperties() {
+    if (itemPropertiesCache) return itemPropertiesCache;
+    try {
+      const database = getDatabase();
+      const propertiesRef = ref(database, 'properties');
+      const snapshot = await get(propertiesRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        itemPropertiesCache = Object.entries(data).map(([id, prop]) => ({
+          id,
+          name: prop.name || '',
+          description: prop.description || '',
+          base_tp: parseFloat(prop.base_tp) || 0,
+          op_1_tp: parseFloat(prop.op_1_tp) || 0
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading item properties:', error);
+    }
+    return itemPropertiesCache || [];
+  }
+
+  // For weapons and armor, extract from properties
+  const items = [...weapons, ...armor];
+  const catalog = await loadItemProperties();
+  items.forEach(item => {
+    if (!item.properties) return;
+    item.properties.forEach(propRef => {
+      // Assume properties are loaded; in practice, load them.
+      // For now, assume propRef has name, and we find it.
+      // Since character sheet data has properties as names or objects, adapt.
+      const propName = typeof propRef === 'string' ? propRef : propRef.name;
+      // We need the catalog; load it.
+      // To simplify, assume we load it here.
+      const propData = catalog.find(p => p.name === propName);
+      if (!propData) return;
+      const baseTP = Math.floor(propData.base_tp || 0);
+      const optionLevel = (typeof propRef === 'object' ? propRef.op_1_lvl : 0) || 0;
+      const optionTP = optionLevel > 0 ? Math.floor((propData.op_1_tp || 0) * optionLevel) : 0;
+      const totalTP = baseTP + optionTP;
+      if (totalTP <= 0) return;
+
+      let key = propData.name;
+      let damageType = null;
+      if (propData.name === 'Weapon Damage' && item.damage && Array.isArray(item.damage)) {
+        const damageTypes = item.damage.filter(d => d && d.type && d.type !== 'none').map(d => d.type).join(', ');
+        if (damageTypes) {
+          damageType = damageTypes;
+          key = `${propData.name}|${damageTypes}`;
+        }
+      }
+
+      if (profs.has(key)) {
+        const existing = profs.get(key);
+        existing.op1Lvl = Math.max(existing.op1Lvl, optionLevel);
+      } else {
+        profs.set(key, {
+          name: propData.name,
+          description: propData.description || '',
+          baseTP,
+          op1Lvl: optionLevel,
+          op1TP: propData.op_1_tp || 0,
+          damageType
+        });
+      }
+    });
+  });
+  return profs;
+}
+
+// Add helper to wait for auth
+function waitForAuth() {
+  return new Promise((resolve) => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
+// Add function to fetch full powers from user's library
+async function fetchFullPowers(powerNames) {
+  const user = await waitForAuth();
+  if (!user) return [];
+  const db = getFirestore();
+  const powersRef = collection(db, 'users', user.uid, 'library');
+  const snapshot = await getDocs(powersRef);
+  const powers = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (powerNames.includes(data.name)) {
+      powers.push(data);
+    }
+  });
+  return powers;
+}
+
+// Add function to fetch full techniques from user's library
+async function fetchFullTechniques(techniqueNames) {
+  const user = await waitForAuth();
+  if (!user) return [];
+  const db = getFirestore();
+  const techniquesRef = collection(db, 'users', user.uid, 'techniqueLibrary');
+  const snapshot = await getDocs(techniquesRef);
+  const techniques = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (techniqueNames.includes(data.name)) {
+      techniques.push(data);
+    }
+  });
+  return techniques;
+}
+
+// Add function to fetch full weapons/armor from user's library
+async function fetchFullEquipment(equipmentNames, type) {
+  const user = await waitForAuth();
+  if (!user) return [];
+  const db = getFirestore();
+  const itemsRef = collection(db, 'users', user.uid, 'itemLibrary');
+  const snapshot = await getDocs(itemsRef);
+  const items = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.armamentType === type && equipmentNames.includes(data.name)) {
+      items.push(data);
+    }
+  });
+  return items;
+}
+
+export async function createProficienciesContent(charData) {
+  const content = document.createElement('div');
+  content.id = 'proficiencies-content';
+  content.className = 'tab-content';
+
+  // Fetch full data from user's library
+  const powerNames = (charData.powers || []).map(p => typeof p === 'string' ? p : p.name);
+  const techniqueNames = (charData.techniques || []).map(t => typeof t === 'string' ? t : t.name);
+  const weaponNames = (charData.weapons || []).map(w => typeof w === 'string' ? w : w.name);
+  const armorNames = (charData.armor || []).map(a => typeof a === 'string' ? a : a.name);
+
+  const fullPowers = await fetchFullPowers(powerNames);
+  const fullTechniques = await fetchFullTechniques(techniqueNames);
+  const fullWeapons = await fetchFullEquipment(weaponNames, 'Weapon');
+  const fullArmor = await fetchFullEquipment(armorNames, 'Armor');
+
+  // Load all proficiencies using full data
+  const powerProfs = await extractPowerProficiencies(fullPowers);
+  const techniqueProfs = await extractTechniqueProficiencies(fullTechniques);
+  const weaponProfs = await extractEquipmentProficiencies(fullWeapons, []);
+  const armorProfs = await extractEquipmentProficiencies([], fullArmor);
+
+  // Now, build sections
+  const sections = [
+    { title: 'Power Proficiencies', profs: powerProfs },
+    { title: 'Technique Proficiencies', profs: techniqueProfs },
+    { title: 'Weapon Proficiencies', profs: weaponProfs },
+    { title: 'Armor Proficiencies', profs: armorProfs }
+  ];
+
+  sections.forEach(section => {
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'proficiencies-section';
+    sectionDiv.innerHTML = `<h3>${section.title}</h3>`;
+    if (section.profs.size === 0) {
+      sectionDiv.innerHTML += '<p style="text-align:center;color:var(--text-secondary);padding:20px;">No proficiencies</p>';
+    } else {
+      const chips = Array.from(section.profs.values()).map(prof => {
+        const rawTP = (prof.baseTP || 0) + (prof.op1TP || 0) * prof.op1Lvl + (prof.op2TP || 0) * (prof.op2Lvl || 0) + (prof.op3TP || 0) * (prof.op3Lvl || 0);
+        const finalTP = Math.floor(rawTP);
+        let text = prof.name;
+        if (prof.damageType) text += ` (${prof.damageType})`;
+        if (prof.op1Lvl > 0) text += ` (Level ${prof.op1Lvl})`;
+        if (prof.op2Lvl > 0) text += ` (Opt2 ${prof.op2Lvl})`;
+        if (prof.op3Lvl > 0) text += ` (Opt3 ${prof.op3Lvl})`;
+        text += ` | TP: ${finalTP}`;
+        return `<div class="part-chip proficiency-chip" title="${prof.description}">${text}</div>`;
+      }).join('');
+      sectionDiv.innerHTML += `<div class="library-parts">${chips}</div>`;
+    }
+    content.appendChild(sectionDiv);
+  });
+
+  return content;
+}

@@ -276,3 +276,17 @@ export function derivePowerDisplay(powerDoc, partsDb) {
     partChipsHTML: partChips.join('')
   };
 }
+
+/* ------------ Damage Formatting ------------ */
+
+/**
+ * Format power damage as [amount]d[size] [type] (first valid entry)
+ * @param {Array} damageArr
+ * @returns {string}
+ */
+export function formatPowerDamage(damageArr) {
+  if (!Array.isArray(damageArr)) return '';
+  const dmg = damageArr.find(d => d && d.amount && d.size && d.type && d.type !== 'none');
+  if (dmg) return `${dmg.amount}d${dmg.size} ${dmg.type}`;
+  return '';
+}

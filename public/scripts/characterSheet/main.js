@@ -503,7 +503,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderAbilities(charData, calculatedData);
         renderSkills(charData);
         renderArchetype(charData, calculatedData);
-        renderLibrary(charData);
+        await renderLibrary(charData);
 
         loadingOverlay.style.display = 'none';
         characterSheet.style.display = 'block';
