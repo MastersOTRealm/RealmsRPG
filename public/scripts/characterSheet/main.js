@@ -6,7 +6,6 @@ import { renderAbilities } from './components/abilities.js';
 import { renderSkills } from './components/skills.js';
 import { renderArchetype } from './components/archetype.js';
 import { renderLibrary } from './components/library.js';
-import { getPlaceholderCharacter } from './placeholder-character.js';
 import './interactions.js';
 
 let currentCharacterId = null;
@@ -83,9 +82,8 @@ function normalizeCharacter(raw) {
 
 // NEW: Unified loader
 async function loadCharacterById(id) {
-    if (!id || id === 'placeholder') {
-        currentCharacterId = 'placeholder';
-        return normalizeCharacter(getPlaceholderCharacter());
+    if (!id) {
+        throw new Error('No character id provided.');
     }
     await initializeFirebase();
     const user = await waitForAuth();
@@ -540,3 +538,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 });
+
+// Add this after the main render logic, after renderArchetype is called
+
+// Helper to re-render archetype column (e.g., after equipping/unequipping weapons)
+window.refreshArchetypeColumn = function() {
+    if (!currentCharacterData) return;
+    // Recalculate derived data
+    let archetypeAbility = null;
+    if (currentCharacterData.pow_prof > 0) archetypeAbility = currentCharacterData.pow_abil;
+    else if (currentCharacterData.mart_prof > 0) archetypeAbility = currentCharacterData.mart_abil;
+    const defensesCalc = calculateDefenses(currentCharacterData.abilities, currentCharacterData.defenseVals);
+    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0);
+    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0);
+    const maxHealth = calculateMaxHealth(
+        currentCharacterData.health_energy_points.health || 0,
+        currentCharacterData.abilities.vitality || 0,
+        currentCharacterData.level || 1,
+        archetypeAbility,
+        currentCharacterData.abilities
+    );
+    const maxEnergy = calculateMaxEnergy(
+        currentCharacterData.health_energy_points.energy || 0,
+        archetypeAbility,
+        currentCharacterData.abilities,
+        currentCharacterData.level || 1
+    );
+    currentCharacterData.defenses = defensesCalc.defenseScores;
+    currentCharacterData.defenseBonuses = defensesCalc.defenseBonuses;
+    const calculatedData = {
+        defenseScores: defensesCalc.defenseScores,
+        defenseBonuses: defensesCalc.defenseBonuses,
+        healthEnergy: { maxHealth, maxEnergy },
+        bonuses: calculateBonuses(
+            currentCharacterData.mart_prof,
+            currentCharacterData.pow_prof,
+            currentCharacterData.abilities,
+            currentCharacterData.pow_abil || 'charisma'
+        ),
+        speed,
+        evasion
+    };
+    renderArchetype(currentCharacterData, calculatedData);
+};

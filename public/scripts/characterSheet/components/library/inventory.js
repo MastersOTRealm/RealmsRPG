@@ -314,6 +314,8 @@ async function enrichAndRenderInventory(content, inventory) {
                 weapons[idx].equipped = e.target.checked;
                 if (charData?.weapons && charData.weapons[idx]) charData.weapons[idx].equipped = e.target.checked;
                 window.scheduleAutoSave && window.scheduleAutoSave();
+                // Refresh archetype/weapons section immediately
+                if (window.refreshArchetypeColumn) window.refreshArchetypeColumn();
             });
             content.appendChild(wrapper);
         });
@@ -363,6 +365,8 @@ async function enrichAndRenderInventory(content, inventory) {
                 armor[idx].equipped = e.target.checked;
                 if (charData?.armor && charData.armor[idx]) charData.armor[idx].equipped = e.target.checked;
                 window.scheduleAutoSave && window.scheduleAutoSave();
+                // Refresh archetype/weapons section immediately (for completeness)
+                if (window.refreshArchetypeColumn) window.refreshArchetypeColumn();
             });
             content.appendChild(wrapper);
         });

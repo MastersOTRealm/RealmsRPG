@@ -98,8 +98,11 @@ function renderWeapons(container, charData, calculatedData) {
     
     const tbody = weaponsTable.querySelector('#weapons-tbody');
     
-    if (charData.weapons && charData.weapons.length > 0) {
-        charData.weapons.forEach(weapon => {
+    // Only show equipped weapons
+    const equippedWeapons = (charData.weapons || []).filter(w => w.equipped);
+
+    if (equippedWeapons.length > 0) {
+        equippedWeapons.forEach(weapon => {
             const weaponRow = document.createElement('tr');
             weaponRow.className = 'weapon-row';
             
@@ -113,43 +116,39 @@ function renderWeapons(container, charData, calculatedData) {
                 <td>${weapon.range || 'Melee'}</td>
             `;
             tbody.appendChild(weaponRow);
-            
-            if (weapon.properties && weapon.properties.length > 0) {
+
+            // Show property names below weapon
+            const propNames = (weapon.properties || [])
+                .map(p => typeof p === 'string' ? p : (p.name || '')).filter(Boolean);
+            if (propNames.length > 0) {
                 const propsRow = document.createElement('tr');
                 propsRow.className = 'properties-row';
                 propsRow.innerHTML = `
-                    <td colspan="4">Properties: ${weapon.properties.map(p => `• ${p}`).join(' ')}</td>
+                    <td colspan="4">Properties: ${propNames.map(n => `• ${n}`).join(' ')}</td>
                 `;
                 tbody.appendChild(propsRow);
             }
         });
-        
-        // Add Unarmed Prowess as default
-        const unarmedRow = document.createElement('tr');
-        unarmedRow.className = 'weapon-row unarmed-row';
-        const unarmedBonus = (charData.abilities?.strength || 0) + (charData.mart_prof || 0);
-        unarmedRow.innerHTML = `
-            <td class="weapon-name">UNARMED PROWESS</td>
-            <td><button class="bonus-button" onclick="rollAttack('Unarmed Prowess', ${unarmedBonus})">${formatBonus(unarmedBonus)}</button></td>
-            <td><button class="damage-button" onclick="rollDamage('1d4')">1d4 BLUNT</button></td>
-            <td>Melee</td>
-        `;
-        tbody.appendChild(unarmedRow);
-        
-    } else {
-        // Only show Unarmed Prowess if no weapons
-        const unarmedRow = document.createElement('tr');
-        unarmedRow.className = 'weapon-row';
-        const unarmedBonus = (charData.abilities?.strength || 0) + (charData.mart_prof || 0);
-        unarmedRow.innerHTML = `
-            <td class="weapon-name">UNARMED PROWESS</td>
-            <td><button class="bonus-button" onclick="rollAttack('Unarmed Prowess', ${unarmedBonus})">${formatBonus(unarmedBonus)}</button></td>
-            <td><button class="damage-button" onclick="rollDamage('1d4')">1d4 BLUNT</button></td>
-            <td>Melee</td>
-        `;
-        tbody.appendChild(unarmedRow);
     }
-    
+
+    // Always show Unarmed Prowess as default
+    const unarmedRow = document.createElement('tr');
+    unarmedRow.className = 'weapon-row unarmed-row';
+    // Use unproficient Strength bonus
+    const str = charData.abilities?.strength || 0;
+    const martProf = charData.mart_prof || 0;
+    // Unproficient bonus: if negative, double it; else ceil(str/2)
+    const unprofBonus = str < 0 ? str * 2 : Math.ceil(str / 2);
+    // Damage: half strength, rounded up, no dice
+    const unarmedDamage = Math.ceil(str / 2);
+    unarmedRow.innerHTML = `
+        <td class="weapon-name">UNARMED PROWESS</td>
+        <td><button class="bonus-button" onclick="rollAttack('Unarmed Prowess', ${unprofBonus})">${formatBonus(unprofBonus)}</button></td>
+        <td><button class="damage-button" onclick="rollDamage('${unarmedDamage > 0 ? unarmedDamage : 1}')">${unarmedDamage > 0 ? unarmedDamage : 1} BLUNT</button></td>
+        <td>Melee</td>
+    `;
+    tbody.appendChild(unarmedRow);
+
     weaponsSection.appendChild(weaponsTable);
     container.appendChild(weaponsSection);
 }

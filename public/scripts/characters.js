@@ -15,19 +15,6 @@ async function loadHeaderFooter() {
   if (footer) footer.innerHTML = await fetch('/footer.html').then(r => r.text()).catch(()=>'')
 }
 
-function createSampleCard(grid) {
-  const a = document.createElement('a');
-  a.href = '/characterSheet.html?id=placeholder';
-  a.className = 'character-card sample';
-  a.innerHTML = `
-    <div class="portrait">
-      <img src="${FALLBACK_AVATAR}" alt="Sample">
-    </div>
-    <p class="name">GATH (SAMPLE)</p>
-  `;
-  grid.appendChild(a);
-}
-
 function createAddSlot(grid) {
   const div = document.createElement('div');
   div.className = 'character-card add-new';
@@ -63,7 +50,6 @@ async function loadCharacters(db, uid) {
   const grid = document.getElementById('character-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  createSampleCard(grid);
 
   try {
     const snap = await getDocs(collection(db, 'users', uid, 'character'));
@@ -128,7 +114,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const grid = document.getElementById('character-grid');
       if (!grid) return;
       grid.innerHTML = '';
-      createSampleCard(grid);
       createAddSlot(grid);
     }
   });
