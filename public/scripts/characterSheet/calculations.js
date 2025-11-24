@@ -42,9 +42,14 @@ export function calculateMaxHealth(healthPoints, vitality, level, archetypeAbili
     }
 }
 
-export function calculateMaxEnergy(energyPoints, archetypeAbility, abilities, level) {
-    // Energy = archetype_ability * level + energy_points
-    const abilityMod = abilities?.[archetypeAbility?.toLowerCase()] || 0;
+export function calculateMaxEnergy(energyPoints, archetypeAbility, abilities, level, charData) {
+    // Use getArchetypeAbilityScore if charData is provided, else fallback to old logic
+    let abilityMod = 0;
+    if (charData) {
+        abilityMod = getArchetypeAbilityScore(charData);
+    } else {
+        abilityMod = abilities?.[archetypeAbility?.toLowerCase()] || 0;
+    }
     return (abilityMod * level) + energyPoints;
 }
 
@@ -80,4 +85,15 @@ export function calculateBonuses(martProf, powProf, abilities, powAbil) {
             unprof: unprofBonus(powerAbilityValue)
         }
     };
+}
+
+// Returns the archetype ability score for a character (max of pow_abil or mart_abil, using abilities)
+export function getArchetypeAbilityScore(charData) {
+    if (!charData || !charData.abilities) return 0;
+    let powAbil = charData.pow_abil || (charData.archetype && charData.archetype.pow_abil) || (charData.archetype && charData.archetype.ability);
+    let martAbil = charData.mart_abil || (charData.archetype && charData.archetype.mart_abil);
+    let powVal = 0, martVal = 0;
+    if (powAbil) powVal = charData.abilities[String(powAbil).toLowerCase()] || 0;
+    if (martAbil) martVal = charData.abilities[String(martAbil).toLowerCase()] || 0;
+    return Math.max(powVal, martVal);
 }

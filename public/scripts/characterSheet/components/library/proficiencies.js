@@ -1,6 +1,7 @@
 import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+import { getArchetypeAbilityScore } from '../../calculations.js';
 
 let powerPartsCache = null;
 let techniquePartsCache = null;
@@ -299,6 +300,46 @@ export async function createProficienciesContent(charData) {
   const weaponProfs = await extractEquipmentProficiencies(fullWeapons, []);
   const armorProfs = await extractEquipmentProficiencies([], fullArmor);
 
+  // --- Calculate total TP spent across all sections ---
+  let allTP = 0;
+  [powerProfs, techniqueProfs, weaponProfs, armorProfs].forEach(profs => {
+    Array.from(profs.values()).forEach(prof => {
+      const rawTP = (prof.baseTP || 0) +
+        (prof.op1TP || 0) * (prof.op1Lvl || 0) +
+        (prof.op2TP || 0) * (prof.op2Lvl || 0) +
+        (prof.op3TP || 0) * (prof.op3Lvl || 0);
+      allTP += Math.floor(rawTP);
+    });
+  });
+
+  // --- Calculate Training Points ---
+  // 22 + (archetype Ability * level) + (2 * (level -1)) - sum of all proficiencies
+  const baseTP = 22;
+  const level = Number(charData.level || charData.lvl || 1);
+  const arch_abil = getArchetypeAbilityScore(charData);
+  const trainingPoints = baseTP + (arch_abil * level) + (2 * (level - 1)) - allTP;
+
+  // --- Training Points Box ---
+  const tpBox = document.createElement('div');
+  tpBox.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 24px auto;
+    max-width: 320px;
+    background: var(--bg-medium);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px 0 12px 0;
+    font-size: 1.2em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--primary-blue);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  `;
+  tpBox.innerHTML = `Training Points: <span style="margin-left:10px;color:var(--primary-dark);font-size:1.3em;">${trainingPoints}</span>`;
+  content.appendChild(tpBox);
+
   // Now, build sections
   const sections = [
     { title: 'Power Proficiencies', profs: powerProfs },
@@ -310,12 +351,48 @@ export async function createProficienciesContent(charData) {
   sections.forEach(section => {
     const sectionDiv = document.createElement('div');
     sectionDiv.className = 'proficiencies-section';
-    sectionDiv.innerHTML = `<h3>${section.title}</h3>`;
+
+    // Calculate total TP for this section
+    let totalTP = 0;
+    Array.from(section.profs.values()).forEach(prof => {
+      const rawTP = (prof.baseTP || 0) +
+        (prof.op1TP || 0) * (prof.op1Lvl || 0) +
+        (prof.op2TP || 0) * (prof.op2Lvl || 0) +
+        (prof.op3TP || 0) * (prof.op3Lvl || 0);
+      totalTP += Math.floor(rawTP);
+    });
+
+    // Add styled header row like inventory/other tabs, with total TP
+    const header = document.createElement('div');
+    header.className = 'library-table-header';
+    header.style.gridTemplateColumns = '1fr 1fr';
+    header.innerHTML = `
+      <div>${section.title}</div>
+      <div style="text-align:right;">
+        TP${totalTP > 0 ? ` <span style="font-weight:normal;color:var(--primary-blue);margin-left:6px;">${totalTP}</span>` : ''}
+      </div>
+    `;
+    sectionDiv.appendChild(header);
+
     if (section.profs.size === 0) {
-      sectionDiv.innerHTML += '<p style="text-align:center;color:var(--text-secondary);padding:20px;">No proficiencies</p>';
+      const emptyRow = document.createElement('div');
+      emptyRow.style.cssText = 'padding:20px;text-align:center;color:var(--text-secondary);';
+      emptyRow.textContent = 'No proficiencies';
+      sectionDiv.appendChild(emptyRow);
     } else {
-      const chips = Array.from(section.profs.values()).map(prof => {
-        const rawTP = (prof.baseTP || 0) + (prof.op1TP || 0) * prof.op1Lvl + (prof.op2TP || 0) * (prof.op2Lvl || 0) + (prof.op3TP || 0) * (prof.op3Lvl || 0);
+      // Flex container for chips
+      const chipWrap = document.createElement('div');
+      chipWrap.className = 'proficiency-chip-wrap';
+      chipWrap.style.display = 'flex';
+      chipWrap.style.flexWrap = 'wrap';
+      chipWrap.style.gap = '8px';
+      chipWrap.style.margin = '10px 0 18px 0';
+
+      Array.from(section.profs.values()).forEach(prof => {
+        const rawTP = (prof.baseTP || 0) +
+          (prof.op1TP || 0) * (prof.op1Lvl || 0) +
+          (prof.op2TP || 0) * (prof.op2Lvl || 0) +
+          (prof.op3TP || 0) * (prof.op3Lvl || 0);
         const finalTP = Math.floor(rawTP);
         let text = prof.name;
         if (prof.damageType) text += ` (${prof.damageType})`;
@@ -323,9 +400,13 @@ export async function createProficienciesContent(charData) {
         if (prof.op2Lvl > 0) text += ` (Opt2 ${prof.op2Lvl})`;
         if (prof.op3Lvl > 0) text += ` (Opt3 ${prof.op3Lvl})`;
         text += ` | TP: ${finalTP}`;
-        return `<div class="part-chip proficiency-chip" title="${prof.description}">${text}</div>`;
-      }).join('');
-      sectionDiv.innerHTML += `<div class="library-parts">${chips}</div>`;
+        const chip = document.createElement('div');
+        chip.className = 'part-chip proficiency-chip';
+        chip.title = prof.description;
+        chip.textContent = text;
+        chipWrap.appendChild(chip);
+      });
+      sectionDiv.appendChild(chipWrap);
     }
     content.appendChild(sectionDiv);
   });
