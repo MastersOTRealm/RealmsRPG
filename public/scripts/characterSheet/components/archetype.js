@@ -223,26 +223,58 @@ function renderArmor(container, charData) {
     `;
     
     const tbody = armorTable.querySelector('#armor-tbody');
-    
-    if (charData.armor && charData.armor.length > 0) {
-        charData.armor.forEach(armor => {
+
+    // Only show equipped armor (charData.armor is [{name, equipped}])
+    // If multiple equipped, show all equipped; if none, show "No armor equipped"
+    const equippedArmor = (charData.armor || []).filter(a => a.equipped);
+
+    if (equippedArmor.length > 0) {
+        equippedArmor.forEach(armorRef => {
+            // Get full armor object from item library
+            const armor = window.getItemFromLibraryByName?.(armorRef.name);
+            if (!armor) return; // skip if not found
+
+            // Damage Reduction: try to extract from properties, fallback to 0
+            let damageReduction = 0;
+            if (Array.isArray(armor.properties)) {
+                const drProp = armor.properties.find(p => (p && (p.name === 'Damage Reduction')));
+                if (drProp) damageReduction = 1 + (drProp.op_1_lvl || 0);
+            }
+            // Crit Range: look for property or field, fallback to 'N/A'
+            let critRange = armor.critRange || 'N/A';
+            // Ability Requirement: look for property or field, fallback to 'None'
+            let abilityReq = armor.abilityReq || null;
+
             const armorRow = document.createElement('tr');
             armorRow.className = 'armor-row';
             armorRow.innerHTML = `
                 <td class="armor-name">${armor.name}</td>
-                <td>${armor.damageReduction || 0}</td>
-                <td>${armor.critRange || 'N/A'}</td>
-                <td>${formatAbilityReq(armor.abilityReq)}</td>
+                <td>${damageReduction}</td>
+                <td>${critRange}</td>
+                <td>${formatAbilityReq(abilityReq)}</td>
             `;
             tbody.appendChild(armorRow);
-            
+
+            // Show property names below armor, excluding certain names
             if (armor.properties && armor.properties.length > 0) {
-                const propsRow = document.createElement('tr');
-                propsRow.className = 'properties-row';
-                propsRow.innerHTML = `
-                    <td colspan="4">Properties: ${armor.properties.map(p => `• ${p}`).join(' ')}</td>
-                `;
-                tbody.appendChild(propsRow);
+                const EXCLUDED_PROP_NAMES = [
+                    "Damage Reduction",
+                    "Split Damage Dice",
+                    "Range",
+                    "Shield Base",
+                    "Armor Base",
+                    "Weapon Damage"
+                ];
+                const propNames = armor.properties.map(p => typeof p === 'string' ? p : (p.name || ''));
+                const displayPropNames = propNames.filter(n => n && !EXCLUDED_PROP_NAMES.includes(n));
+                if (displayPropNames.length > 0) {
+                    const propsRow = document.createElement('tr');
+                    propsRow.className = 'properties-row';
+                    propsRow.innerHTML = `
+                        <td colspan="4">Properties: ${displayPropNames.map(n => `• ${n}`).join(' ')}</td>
+                    `;
+                    tbody.appendChild(propsRow);
+                }
             }
         });
     } else {
