@@ -83,18 +83,37 @@ async function enrichCharacterLibraryData(charData) {
             return { ...found, ...display, equipped };
         }).filter(Boolean);
 
-        // Equipment (general items)
-        // Try to match by name, fallback to charData.equipment entry if not found in library
+        // Equipment (general items) - fetch from RTDB 'items' node
+        let rtdbEquipment = [];
+        if (window.firebase?.database) {
+            const snap = await window.firebase.database().ref('items').once('value');
+            const data = snap.val();
+            if (data) {
+                rtdbEquipment = Object.values(data);
+            }
+        }
         equipment = (charData.equipment || []).map(entry => {
             const name = typeof entry === 'string' ? entry : (entry.name || '');
             const quantity = typeof entry === 'object' ? (entry.quantity || 1) : 1;
-            const found = allItems.find(i => i.name === name && (!i.armamentType || i.armamentType === 'General'));
+            // Prefer RTDB 'items' node for general equipment
+            const found = rtdbEquipment.find(i => i.name === name);
             if (found) {
                 // Enrich with display fields
+                const display = deriveItemDisplay(found, itemPropsDb);
                 return {
                     ...found,
                     quantity,
-                    ...deriveItemDisplay(found, itemPropsDb)
+                    ...display
+                };
+            }
+            // Fallback: try user itemLibrary for general items (no armamentType)
+            const foundLib = allItems.find(i => i.name === name && (!i.armamentType || i.armamentType === 'General'));
+            if (foundLib) {
+                const display = deriveItemDisplay(foundLib, itemPropsDb);
+                return {
+                    ...foundLib,
+                    quantity,
+                    ...display
                 };
             }
             // Fallback: use entry as-is

@@ -81,7 +81,7 @@ function renderWeapons(container, charData, calculatedData) {
     const weaponsSection = document.createElement('div');
     weaponsSection.className = 'weapons-section';
     weaponsSection.innerHTML = '<div class="section-title">WEAPONS</div>';
-    
+
     const weaponsTable = document.createElement('table');
     weaponsTable.className = 'weapons-table';
     weaponsTable.innerHTML = `
@@ -95,10 +95,10 @@ function renderWeapons(container, charData, calculatedData) {
         </thead>
         <tbody id="weapons-tbody"></tbody>
     `;
-    
+
     const tbody = weaponsTable.querySelector('#weapons-tbody');
-    
-    // Only show equipped weapons
+
+    // Only show equipped weapons (charData.weapons is [{name, equipped}])
     const equippedWeapons = (charData.weapons || []).filter(w => w.equipped);
 
     // List of property names to exclude from display
@@ -112,14 +112,15 @@ function renderWeapons(container, charData, calculatedData) {
     ];
 
     if (equippedWeapons.length > 0) {
-        equippedWeapons.forEach(weapon => {
+        equippedWeapons.forEach(weaponRef => {
+            // Get full weapon object from item library
+            const weapon = window.getItemFromLibraryByName?.(weaponRef.name);
+            if (!weapon) return; // skip if not found
+
             const properties = weapon.properties || [];
             const propNames = properties.map(p => typeof p === 'string' ? p : (p.name || ''));
 
             // Determine attack bonus:
-            // 1. Finesse property → Agility (prof)
-            // 2. Range property → Acuity (prof)
-            // 3. Default → Strength (prof)
             let attackBonus = calculatedData.bonuses.strength.prof;
             if (propNames.includes("Finesse")) {
                 attackBonus = calculatedData.bonuses.agility.prof;
@@ -128,15 +129,24 @@ function renderWeapons(container, charData, calculatedData) {
             }
 
             // --- Build damage string with bonus and type ---
-            let damageStr = weapon.damage || 'N/A';
+            let damageStr = '-';
+            if (Array.isArray(weapon.damage)) {
+                const usable = weapon.damage.filter(d => d && d.amount && d.size && d.type && d.type !== 'none');
+                if (usable.length) {
+                    damageStr = usable.map(d =>
+                        `${d.amount}d${d.size} ${capitalizeDamageType(d.type)}`
+                    ).join(', ');
+                }
+            } else if (typeof weapon.damage === 'string' && weapon.damage.trim() !== '') {
+                damageStr = weapon.damage;
+            }
+
+            // Try to append bonus (if not already present)
             let displayDamageStr = damageStr;
-            // Try to parse and append bonus and type
-            if (typeof damageStr === 'string' && damageStr !== 'N/A' && damageStr.trim() !== '') {
-                // If already has a bonus, don't double up
+            if (damageStr !== '-' && damageStr.trim() !== '') {
                 if (!/[+-]\d+/.test(damageStr)) {
-                    // If there is a damage type, keep it at the end
                     const dmgTypeMatch = damageStr.match(/([a-zA-Z]+)$/);
-                    const typeStr = dmgTypeMatch ? ` ${dmgTypeMatch[1]}` : '';
+                    const typeStr = dmgTypeMatch ? ` ${capitalizeDamageType(dmgTypeMatch[1])}` : '';
                     const dicePart = damageStr.replace(/([a-zA-Z]+)$/, '').trim();
                     displayDamageStr = `${dicePart} ${formatBonus(attackBonus)}${typeStr}`.replace(/\s+/, ' ').trim();
                 } else {
@@ -248,4 +258,10 @@ function formatAbilityReq(req) {
     const entries = Object.entries(req);
     if (entries.length === 0) return 'None';
     return entries.map(([ability, value]) => `${value} ${ability.substring(0, 3).toUpperCase()}`).join(', ');
+}
+
+// Helper for capitalizing damage type (reuse from inventory.js if needed)
+function capitalizeDamageType(type) {
+    if (!type) return '';
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 }

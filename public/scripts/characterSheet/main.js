@@ -8,6 +8,12 @@ import { renderArchetype } from './components/archetype.js';
 import { renderLibrary } from './components/library.js';
 import './interactions.js';
 
+window.userItemLibrary = []; // Array of all user's items (full objects)
+window.getItemFromLibraryByName = function(name) {
+    if (!window.userItemLibrary) return null;
+    return window.userItemLibrary.find(item => item.name === name) || null;
+};
+
 let currentCharacterId = null;
 let currentCharacterData = null;
 let autoSaveTimeout = null;
@@ -274,28 +280,21 @@ async function loadCharacterById(id) {
             // --- WEAPONS: Pair names with user's item library ---
             const characterWeaponNames = Array.isArray(data.weapons) ? data.weapons : [];
             const weaponsSnap = await dbRef.collection('users').doc(user.uid).collection('itemLibrary').get();
-            const allWeapons = [];
+            const allItems = [];
             weaponsSnap.forEach(docSnap => {
                 const w = docSnap.data();
-                if (w.armamentType === 'Weapon' || w.armamentType === 'Shield') {
-                    allWeapons.push({
-                        id: docSnap.id,
-                        name: w.name,
-                        damage: w.damage || [],
-                        range: w.range,
-                        properties: w.properties || [],
-                        totalBP: w.totalBP || w.bp || 0,
-                        currencyCost: w.currencyCost || w.goldCost || w.currency || 0,
-                        rarity: w.rarity || 'Common',
-                        equipped: false
-                    });
-                }
+                allItems.push({
+                    ...w,
+                    id: docSnap.id
+                });
             });
+            // Cache all items globally for this session
+            window.userItemLibrary = allItems;
             const pairedWeapons = characterWeaponNames.map(entry => {
                 const weaponName = typeof entry === 'string' ? entry : (entry.name || '');
                 const equipped = typeof entry === 'object' ? (entry.equipped || false) : false;
                 if (!weaponName) return null;
-                const found = allWeapons.find(w => w.name === weaponName);
+                const found = allItems.find(w => w.name === weaponName && (w.armamentType === 'Weapon' || w.armamentType === 'Shield'));
                 if (!found) {
                     return {
                         name: weaponName,
@@ -308,28 +307,6 @@ async function loadCharacterById(id) {
                         rarity: 'Common',
                         equipped: equipped
                     };
-                }
-                // Format damage display and type
-                let damageStr = '-';
-                let damageType = '';
-                if (Array.isArray(found.damage) && found.damage.length > 0) {
-                    // Use all damage entries, join with comma
-                    damageStr = found.damage
-                        .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
-                        .map(d => `${d.amount}d${d.size}${d.type && d.type !== 'none' ? ' ' + capitalizeDamageType(d.type) : ''}`)
-                        .join(', ');
-                    // Use first damage type for display below button
-                    const firstDmg = found.damage.find(d => d && d.type && d.type !== 'none');
-                    if (firstDmg) damageType = capitalizeDamageType(firstDmg.type);
-                }
-                // Format range
-                let rangeStr = 'Melee';
-                if (found.range !== undefined && found.range !== null && found.range !== '') {
-                    if (typeof found.range === 'number' && found.range > 0) {
-                        rangeStr = `${found.range} spaces`;
-                    } else if (typeof found.range === 'string' && found.range.trim() !== '') {
-                        rangeStr = found.range;
-                    }
                 }
                 return {
                     ...found,
