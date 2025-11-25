@@ -1,5 +1,5 @@
 function sanitizeId(str) {
-    return str.replace(/[^a-zA-Z0-9]/g, '_');
+    return String(str || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
 // Helper: Collapsible section
@@ -28,15 +28,24 @@ function createCollapsibleSection(title, count, content, open = true) {
 }
 
 // Helper: Trait chip
-function createTraitRow(trait, type) {
+function createTraitRow(trait, type, allTraits) {
     const wrapper = document.createElement('div');
     wrapper.className = 'collapsible-feat';
     // Subtext for trait type
     let subtext = '';
     if (type === 'ancestry') subtext = 'Ancestry Trait';
     else if (type === 'flaw') subtext = 'Flaw';
-    else if (type === 'species') subtext = 'Species Trait';
     else if (type === 'characteristic') subtext = 'Characteristic';
+    // No subtext for species traits
+
+    // Use sanitized trait name to look up description from allTraits
+    let desc = trait.desc;
+    if ((!desc || desc === 'No description' || desc === '') && allTraits) {
+        const traitObj = allTraits[sanitizeId(trait.name)];
+        if (traitObj && traitObj.description) desc = traitObj.description;
+    }
+    if (!desc) desc = 'No description available.';
+
     wrapper.innerHTML = `
         <div class="collapsed-row">
             <div>
@@ -44,11 +53,11 @@ function createTraitRow(trait, type) {
                 <span class="expand-indicator">▼</span><br>
                 <span style="font-size:10px;color:var(--text-secondary);">${subtext}</span>
             </div>
-            <div class="truncated">${(trait.desc || 'No description').split(/\s+/).slice(0,14).join(' ')}...</div>
+            <div class="truncated">${(desc || 'No description').split(/\s+/).slice(0,14).join(' ')}...</div>
             <div style="text-align:right;font-size:11px;color:var(--text-secondary);">—</div>
         </div>
         <div class="expanded-body">
-            <p style="margin:0 0 10px 0;">${trait.desc || 'No description available.'}</p>
+            <p style="margin:0 0 10px 0;">${desc}</p>
         </div>
     `;
     wrapper.querySelector('.collapsed-row').addEventListener('click', (e) => {
@@ -59,7 +68,7 @@ function createTraitRow(trait, type) {
     return wrapper;
 }
 
-// Helper: Feat row (like before)
+// Helper: Feat row (no subtext for archetype/character/state)
 function createFeatRow(f) {
     const wrapper = document.createElement('div');
     wrapper.className = 'collapsible-feat';
@@ -74,8 +83,7 @@ function createFeatRow(f) {
         <div class="collapsed-row">
             <div>
               <strong>${f.name}</strong>
-              <span class="expand-indicator">▼</span><br>
-              <span style="font-size:10px;color:var(--text-secondary);">${f.category ? f.category.toUpperCase() : ''}</span>
+              <span class="expand-indicator">▼</span>
             </div>
             <div class="truncated">${truncatedDesc}</div>
             ${usesActive}
@@ -124,58 +132,48 @@ export function createFeatsContent(feats, charData = {}) {
     // --- Traits Section ---
     // Collect all traits with their type
     const traitRows = [];
+    let allTraits = (window.allTraits && typeof window.allTraits === 'object') ? window.allTraits : (charData.allTraits || {});
+
     // Ancestry traits
     if (Array.isArray(charData.traits)) {
         charData.traits.forEach(nameOrObj => {
             let name = typeof nameOrObj === 'string' ? nameOrObj : nameOrObj.name;
-            let desc = typeof nameOrObj === 'string' ? '' : nameOrObj.desc || '';
-            // Try to infer type from name
+            // Try to infer type from charData fields
             let type = '';
             if (charData.ancestryTraits && charData.ancestryTraits.includes(name)) type = 'ancestry';
             else if (charData.flawTrait && charData.flawTrait === name) type = 'flaw';
             else if (charData.characteristicTrait && charData.characteristicTrait === name) type = 'characteristic';
-            else type = 'species';
-            traitRows.push(createTraitRow({ name, desc }, type));
+            // No subtext for species traits
+            traitRows.push(createTraitRow({ name }, type, allTraits));
         });
     }
     // If not present, try ancestryTraits, flawTrait, characteristicTrait, speciesTraits
     if (!traitRows.length) {
-        const tryAddTrait = (name, desc, type) => {
-            if (name) traitRows.push(createTraitRow({ name, desc }, type));
+        const tryAddTrait = (name, type) => {
+            if (name) traitRows.push(createTraitRow({ name }, type, allTraits));
         };
-        tryAddTrait(charData.flawTrait, '', 'flaw');
-        tryAddTrait(charData.characteristicTrait, '', 'characteristic');
+        tryAddTrait(charData.flawTrait, 'flaw');
+        tryAddTrait(charData.characteristicTrait, 'characteristic');
         if (Array.isArray(charData.ancestryTraits)) {
-            charData.ancestryTraits.forEach(name => tryAddTrait(name, '', 'ancestry'));
+            charData.ancestryTraits.forEach(name => tryAddTrait(name, 'ancestry'));
         }
         if (Array.isArray(charData.speciesTraits)) {
-            charData.speciesTraits.forEach(name => tryAddTrait(name, '', 'species'));
+            charData.speciesTraits.forEach(name => tryAddTrait(name, ''));
         }
     }
 
     // --- Feats Section ---
-    // Split feats into state feats, archetype feats, character feats
+    // Sort feats into state, character, archetype
     const stateFeats = [];
-    const archetypeFeats = [];
     const characterFeats = [];
-    // Try to get feat names from charData.feats (array of names or objects)
-    let archetypeFeatNames = [];
-    let characterFeatNames = [];
-    if (charData.feats && Array.isArray(charData.feats)) {
-        // If feats is a flat array, can't distinguish archetype/character, so just show all as archetype
-        archetypeFeatNames = charData.feats.map(f => typeof f === 'string' ? f : f.name);
-    } else if (charData.feats && typeof charData.feats === 'object') {
-        archetypeFeatNames = Array.isArray(charData.feats.archetype) ? charData.feats.archetype : [];
-        characterFeatNames = Array.isArray(charData.feats.character) ? charData.feats.character : [];
-    }
-    // If feats is an array of objects, use their state_feat property
+    const archetypeFeats = [];
     feats.forEach(f => {
-        if (f.state_feat) {
+        if (f.state_feat === true) {
             stateFeats.push(f);
-        } else if (archetypeFeatNames.includes(f.name)) {
-            archetypeFeats.push(f);
-        } else if (characterFeatNames.includes(f.name)) {
+        } else if (f.char_feat === true) {
             characterFeats.push(f);
+        } else {
+            archetypeFeats.push(f);
         }
     });
 

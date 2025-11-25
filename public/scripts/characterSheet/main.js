@@ -430,6 +430,20 @@ async function loadCharacterById(id) {
     }
 }
 
+// --- Load traits from RTDB for use in feats tab ---
+async function loadTraitsFromDatabase() {
+    // Ensure Firebase is initialized and get rtdb
+    const { rtdb } = await initializeFirebase();
+    const traitsRef = rtdb.ref('traits');
+    const snapshot = await traitsRef.once('value');
+    const data = snapshot.val();
+    if (!data) {
+        console.warn('No traits found in database');
+        return {};
+    }
+    return data;
+}
+
 // Make functions globally accessible
 window.scheduleAutoSave = scheduleAutoSave;
 window.currentCharacterData = () => currentCharacterData;
@@ -446,9 +460,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
         const characterId = urlParams.get('id');
 
+        // --- Load traits from RTDB before loading/rendering character ---
+        const allTraits = await loadTraitsFromDatabase();
+
         // NEW: Use unified loader
         let charData = await loadCharacterById(characterId);
         currentCharacterData = charData;
+
+        // Attach traits to charData for library feats tab
+        charData.allTraits = allTraits;
+        // Also expose globally for convenience (optional)
+        window.allTraits = allTraits;
 
         // Determine archetype primary ability
         let archetypeAbility = null;
