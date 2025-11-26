@@ -227,47 +227,6 @@ window.toggleFeat = function(featName) {
     }
 };
 
-// Handle feat uses
-window.changeFeatUses = function(featName, delta) {
-    const charData = window.currentCharacterData();
-    if (!charData || !charData.feats) return;
-    
-    // Find the feat in the array
-    const feat = charData.feats.find(f => 
-        (typeof f === 'string' && f === featName) || 
-        (typeof f === 'object' && f.name === featName)
-    );
-    
-    if (!feat) return;
-    
-    // If feat is a string, convert to object
-    if (typeof feat === 'string') {
-        const index = charData.feats.indexOf(feat);
-        charData.feats[index] = { 
-            name: feat, 
-            currentUses: (feat.uses || 0) + delta 
-        };
-    } else {
-        // Update uses
-        if (feat.currentUses === undefined) {
-            feat.currentUses = feat.uses || 0;
-        }
-        feat.currentUses = Math.max(0, Math.min(feat.uses || 0, feat.currentUses + delta));
-    }
-    
-    // Update display
-    const usesSpan = document.getElementById(`uses-${sanitizeId(featName)}`);
-    if (usesSpan) {
-        const featObj = charData.feats.find(f => 
-            (typeof f === 'object' && f.name === featName)
-        );
-        usesSpan.textContent = featObj?.currentUses ?? 0;
-    }
-    
-    // Trigger auto-save
-    window.scheduleAutoSave();
-};
-
 // Handle technique usage
 window.useTechnique = function(name, energy) {
     const energyInput = document.getElementById('currentEnergy');

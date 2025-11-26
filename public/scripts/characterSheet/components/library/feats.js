@@ -193,54 +193,49 @@ function changeTraitUses(traitName, delta, charData, maxUses) {
 
 // Export changeFeatUses globally so event handlers always work
 window.changeFeatUses = function(featName, delta) {
-    // Defensive: always use the same sanitizeId
     const id = sanitizeId(featName);
     const charData = window.currentCharacterData?.();
     if (!charData || !Array.isArray(charData.feats)) return;
 
     // Find the feat in the array (string or object)
-    let feat = charData.feats.find(f =>
+    let featIndex = charData.feats.findIndex(f =>
         (typeof f === 'string' && f === featName) ||
         (typeof f === 'object' && f.name === featName)
     );
-    if (!feat) {
+    if (featIndex === -1) {
         console.warn('[changeFeatUses] Feat not found:', featName);
         return;
     }
 
+    // Get maxUses from _displayFeats if available, else from feat object
+    let maxUses = 0;
+    if (Array.isArray(charData._displayFeats)) {
+        const found = charData._displayFeats.find(f => f.name === featName);
+        if (found && typeof found.uses === 'number') maxUses = found.uses;
+    }
+    // Fallback: try feat object
+    let featObj = charData.feats[featIndex];
+    if (!maxUses && typeof featObj === 'object' && typeof featObj.uses === 'number') {
+        maxUses = featObj.uses;
+    }
+
     // If feat is a string, convert to object and persist
-    if (typeof feat === 'string') {
-        const index = charData.feats.indexOf(feat);
-        // Try to get max uses from _displayFeats if available
-        let maxUses = 0;
-        if (Array.isArray(charData._displayFeats)) {
-            const found = charData._displayFeats.find(f => f.name === featName);
-            if (found && typeof found.uses === 'number') maxUses = found.uses;
-        }
-        charData.feats[index] = {
-            name: feat,
+    if (typeof featObj === 'string') {
+        charData.feats[featIndex] = {
+            name: featObj,
             currentUses: Math.max(0, Math.min(maxUses, (maxUses || 0) + delta))
         };
-        feat = charData.feats[index];
+        featObj = charData.feats[featIndex];
     } else {
-        // Update uses, clamp to [0, maxUses]
-        let maxUses = feat.uses;
-        if (typeof maxUses !== 'number') {
-            // Try to get from _displayFeats
-            if (Array.isArray(charData._displayFeats)) {
-                const found = charData._displayFeats.find(f => f.name === featName);
-                if (found && typeof found.uses === 'number') maxUses = found.uses;
-            }
-        }
-        if (feat.currentUses === undefined) feat.currentUses = maxUses || 0;
-        feat.currentUses = Math.max(0, Math.min(maxUses || 0, feat.currentUses + delta));
+        if (featObj.currentUses === undefined) featObj.currentUses = maxUses || 0;
+        featObj.currentUses = Math.max(0, Math.min(maxUses || 0, featObj.currentUses + delta));
     }
 
     // Update both collapsed and expanded uses spans
     const usesSpan = document.getElementById(`uses-${id}`);
     const expSpan = document.getElementById(`exp-uses-${id}`);
-    if (usesSpan) usesSpan.textContent = feat.currentUses ?? 0;
-    if (expSpan) expSpan.textContent = feat.currentUses ?? 0;
+    if (usesSpan) usesSpan.textContent = featObj.currentUses ?? 0;
+    if (expSpan) expSpan.textContent = featObj.currentUses ?? 0;
 
     // Trigger auto-save
     window.scheduleAutoSave?.();
