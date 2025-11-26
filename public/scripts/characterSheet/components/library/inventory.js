@@ -311,32 +311,112 @@ export function createInventoryContent(inventoryObj) {
 
         const header = document.createElement('div');
         header.className = 'library-table-header';
-        header.style.gridTemplateColumns = '1.5fr 2fr 1fr 0.9fr 0.8fr';
-        header.innerHTML = '<div>NAME</div><div>DESCRIPTION</div><div>CATEGORY</div><div>CURRENCY</div><div>QUANTITY</div>';
+        header.style.gridTemplateColumns = '1.5fr 2fr 1fr 0.9fr 0.8fr 1fr';
+        header.innerHTML = '<div>NAME</div><div>DESCRIPTION</div><div>CATEGORY</div><div>CURRENCY</div><div>QUANTITY</div><div></div>';
         content.appendChild(header);
 
-        equipment.forEach(item => {
+        equipment.forEach((item, idx) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'collapsible-tech';
             wrapper.style.marginBottom = '8px';
             const truncatedDesc = (item.description || 'No description').split(/\s+/).slice(0, 12).join(' ') + '...';
+            // Use a unique key for each item (id if present, else fallback)
+            const uniqueKey = item.id || (item.name + '|' + (item.category || '') + '|' + (item.description || ''));
+            // Sanitize for use as an HTML id
+            const safeKey = String(uniqueKey).replace(/[^a-zA-Z0-9_-]/g, '_');
             wrapper.innerHTML = `
-              <div class="collapsed-row" style="grid-template-columns:1.5fr 2fr 1fr 0.9fr 0.8fr;">
+              <div class="collapsed-row" style="grid-template-columns:1.5fr 2fr 1fr 0.9fr 0.8fr 1fr;">
                 <div><strong>${item.name || 'Unnamed'}</strong> <span class="expand-indicator">▼</span></div>
                 <div class="truncated">${truncatedDesc}</div>
                 <div>${item.category || 'General'}</div>
                 <div>${item.currency || 0}</div>
-                <div>${item.quantity || 1}</div>
+                <div>
+                  <span class="qty-controls">
+                    <button class="qty-dec" data-key="${uniqueKey}" data-safekey="${safeKey}" style="width:24px;height:24px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1em;cursor:pointer;">-</button>
+                    <span class="qty-value" id="equip-qty-${safeKey}" style="display:inline-block;width:28px;text-align:center;font-size:1em;font-weight:600;background:#f7f7f7;border-radius:8px;">${item.quantity || 1}</span>
+                    <button class="qty-inc" data-key="${uniqueKey}" data-safekey="${safeKey}" style="width:24px;height:24px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1em;cursor:pointer;">+</button>
+                  </span>
+                </div>
+                <div>
+                  <button class="equipment-remove-btn" data-key="${uniqueKey}" title="Remove equipment" style="width:28px;height:28px;border-radius:50%;background:#fdd;border:1px solid #f99;font-size:1.1em;cursor:pointer;">×</button>
+                </div>
               </div>
               <div class="expanded-body">
                 ${item.description ? `<p style="margin:0;">${item.description}</p>` : ''}
               </div>
             `;
-            wrapper.querySelector('.collapsed-row').addEventListener('click', () => {
+            wrapper.querySelector('.collapsed-row').addEventListener('click', (e) => {
+                // Prevent expand/collapse if clicking on controls
+                if (
+                    e.target.classList.contains('qty-dec') ||
+                    e.target.classList.contains('qty-inc') ||
+                    e.target.classList.contains('equipment-remove-btn')
+                ) return;
                 wrapper.classList.toggle('open');
                 const ind = wrapper.querySelector('.expand-indicator');
                 if (ind) ind.textContent = wrapper.classList.contains('open') ? '▲' : '▼';
             });
+
+            // Quantity controls
+            wrapper.querySelector('.qty-dec').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const key = e.target.dataset.key;
+                const safeKey = e.target.dataset.safekey;
+                const idxNow = equipment.findIndex(eq =>
+                    (eq.id || (eq.name + '|' + (eq.category || '') + '|' + (eq.description || ''))) === key
+                );
+                if (idxNow !== -1 && equipment[idxNow].quantity > 1) {
+                    equipment[idxNow].quantity--;
+                    const qtyEl = wrapper.querySelector(`#equip-qty-${safeKey}`);
+                    if (qtyEl) qtyEl.textContent = equipment[idxNow].quantity;
+                    // Persist to character data
+                    const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                    if (charData && Array.isArray(charData.equipment)) {
+                        charData.equipment[idxNow].quantity = equipment[idxNow].quantity;
+                        window.scheduleAutoSave && window.scheduleAutoSave();
+                    }
+                }
+            });
+            wrapper.querySelector('.qty-inc').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const key = e.target.dataset.key;
+                const safeKey = e.target.dataset.safekey;
+                const idxNow = equipment.findIndex(eq =>
+                    (eq.id || (eq.name + '|' + (eq.category || '') + '|' + (eq.description || ''))) === key
+                );
+                if (idxNow !== -1) {
+                    equipment[idxNow].quantity = (equipment[idxNow].quantity || 1) + 1;
+                    const qtyEl = wrapper.querySelector(`#equip-qty-${safeKey}`);
+                    if (qtyEl) qtyEl.textContent = equipment[idxNow].quantity;
+                    // Persist to character data
+                    const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                    if (charData && Array.isArray(charData.equipment)) {
+                        charData.equipment[idxNow].quantity = equipment[idxNow].quantity;
+                        window.scheduleAutoSave && window.scheduleAutoSave();
+                    }
+                }
+            });
+
+            // Remove button
+            wrapper.querySelector('.equipment-remove-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const key = e.target.dataset.key;
+                const idxNow = equipment.findIndex(eq =>
+                    (eq.id || (eq.name + '|' + (eq.category || '') + '|' + (eq.description || ''))) === key
+                );
+                if (idxNow !== -1) {
+                    equipment.splice(idxNow, 1);
+                    // Persist to character data
+                    const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                    if (charData && Array.isArray(charData.equipment)) {
+                        charData.equipment.splice(idxNow, 1);
+                        window.scheduleAutoSave && window.scheduleAutoSave();
+                    }
+                    // Remove from DOM
+                    wrapper.remove();
+                }
+            });
+
             content.appendChild(wrapper);
         });
     }
@@ -574,28 +654,108 @@ async function enrichAndRenderInventory(content, inventory) {
         header.innerHTML = '<div>NAME</div><div>DESCRIPTION</div><div>CATEGORY</div><div>CURRENCY</div><div>QUANTITY</div>';
         content.appendChild(header);
 
-        equipment.forEach(item => {
+        equipment.forEach((item, idx) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'collapsible-tech';
             wrapper.style.marginBottom = '8px';
             const truncatedDesc = (item.description || 'No description').split(/\s+/).slice(0, 12).join(' ') + '...';
+            // Use a unique key for each item (id if present, else fallback)
+            const uniqueKey = item.id || (item.name + '|' + (item.category || '') + '|' + (item.description || ''));
+            // Sanitize for use as an HTML id
+            const safeKey = String(uniqueKey).replace(/[^a-zA-Z0-9_-]/g, '_');
             wrapper.innerHTML = `
-              <div class="collapsed-row" style="grid-template-columns:1.5fr 2fr 1fr 0.9fr 0.8fr;">
+              <div class="collapsed-row" style="grid-template-columns:1.5fr 2fr 1fr 0.9fr 0.8fr 1fr;">
                 <div><strong>${item.name || 'Unnamed'}</strong> <span class="expand-indicator">▼</span></div>
                 <div class="truncated">${truncatedDesc}</div>
                 <div>${item.category || 'General'}</div>
                 <div>${item.currency || 0}</div>
-                <div>${item.quantity || 1}</div>
+                <div>
+                  <span class="qty-controls">
+                    <button class="qty-dec" data-key="${uniqueKey}" data-safekey="${safeKey}" style="width:24px;height:24px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1em;cursor:pointer;">-</button>
+                    <span class="qty-value" id="equip-qty-${safeKey}" style="display:inline-block;width:28px;text-align:center;font-size:1em;font-weight:600;background:#f7f7f7;border-radius:8px;">${item.quantity || 1}</span>
+                    <button class="qty-inc" data-key="${uniqueKey}" data-safekey="${safeKey}" style="width:24px;height:24px;border-radius:50%;background:#eee;border:1px solid #ccc;font-size:1em;cursor:pointer;">+</button>
+                  </span>
+                </div>
+                <div>
+                  <button class="equipment-remove-btn" data-key="${uniqueKey}" title="Remove equipment" style="width:28px;height:28px;border-radius:50%;background:#fdd;border:1px solid #f99;font-size:1.1em;cursor:pointer;">×</button>
+                </div>
               </div>
               <div class="expanded-body">
                 ${item.description ? `<p style="margin:0;">${item.description}</p>` : ''}
               </div>
             `;
-            wrapper.querySelector('.collapsed-row').addEventListener('click', () => {
+            wrapper.querySelector('.collapsed-row').addEventListener('click', (e) => {
+                // Prevent expand/collapse if clicking on controls
+                if (
+                    e.target.classList.contains('qty-dec') ||
+                    e.target.classList.contains('qty-inc') ||
+                    e.target.classList.contains('equipment-remove-btn')
+                ) return;
                 wrapper.classList.toggle('open');
                 const ind = wrapper.querySelector('.expand-indicator');
                 if (ind) ind.textContent = wrapper.classList.contains('open') ? '▲' : '▼';
             });
+
+            // Quantity controls
+            wrapper.querySelector('.qty-dec').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const key = e.target.dataset.key;
+                const safeKey = e.target.dataset.safekey;
+                const idxNow = equipment.findIndex(eq =>
+                    (eq.id || (eq.name + '|' + (eq.category || '') + '|' + (eq.description || ''))) === key
+                );
+                if (idxNow !== -1 && equipment[idxNow].quantity > 1) {
+                    equipment[idxNow].quantity--;
+                    const qtyEl = wrapper.querySelector(`#equip-qty-${safeKey}`);
+                    if (qtyEl) qtyEl.textContent = equipment[idxNow].quantity;
+                    // Persist to character data
+                    const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                    if (charData && Array.isArray(charData.equipment)) {
+                        charData.equipment[idxNow].quantity = equipment[idxNow].quantity;
+                        window.scheduleAutoSave && window.scheduleAutoSave();
+                    }
+                }
+            });
+            wrapper.querySelector('.qty-inc').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const key = e.target.dataset.key;
+                const safeKey = e.target.dataset.safekey;
+                const idxNow = equipment.findIndex(eq =>
+                    (eq.id || (eq.name + '|' + (eq.category || '') + '|' + (eq.description || ''))) === key
+                );
+                if (idxNow !== -1) {
+                    equipment[idxNow].quantity = (equipment[idxNow].quantity || 1) + 1;
+                    const qtyEl = wrapper.querySelector(`#equip-qty-${safeKey}`);
+                    if (qtyEl) qtyEl.textContent = equipment[idxNow].quantity;
+                    // Persist to character data
+                    const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                    if (charData && Array.isArray(charData.equipment)) {
+                        charData.equipment[idxNow].quantity = equipment[idxNow].quantity;
+                        window.scheduleAutoSave && window.scheduleAutoSave();
+                    }
+                }
+            });
+
+            // Remove button
+            wrapper.querySelector('.equipment-remove-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const key = e.target.dataset.key;
+                const idxNow = equipment.findIndex(eq =>
+                    (eq.id || (eq.name + '|' + (eq.category || '') + '|' + (eq.description || ''))) === key
+                );
+                if (idxNow !== -1) {
+                    equipment.splice(idxNow, 1);
+                    // Persist to character data
+                    const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+                    if (charData && Array.isArray(charData.equipment)) {
+                        charData.equipment.splice(idxNow, 1);
+                        window.scheduleAutoSave && window.scheduleAutoSave();
+                    }
+                    // Remove from DOM
+                    wrapper.remove();
+                }
+            });
+
             content.appendChild(wrapper);
         });
     }
