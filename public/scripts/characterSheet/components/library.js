@@ -7,6 +7,7 @@ import { createPowersContent } from './library/powers.js';
 import { createInventoryContent } from './library/inventory.js';
 import { createProficienciesContent } from './library/proficiencies.js';
 import { createNotesContent } from './library/notes.js';
+import { sanitizeId } from '../utils.js';
 
 // Helper to fetch full objects from user's library (Firestore) and RTDB
 async function enrichCharacterLibraryData(charData) {
@@ -246,9 +247,4 @@ export async function renderLibrary(charData) {
     });
 
     showCurrencyBoxIfNeeded();
-}
-
-// Shared helper (if needed elsewhere)
-export function sanitizeId(str) {
-    return str.replace(/[^a-zA-Z0-9]/g, '_');
 }

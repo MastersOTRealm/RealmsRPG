@@ -14,3 +14,7 @@ export function clearElement(el) {
         el.removeChild(el.firstChild);
     }
 }
+
+export function sanitizeId(str) {
+    return String(str || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}

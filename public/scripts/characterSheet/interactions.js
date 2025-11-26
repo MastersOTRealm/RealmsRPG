@@ -1,8 +1,4 @@
-// Global interaction functions (called from HTML onclick attributes)
-
-function sanitizeId(str) {
-    return str.replace(/[^a-zA-Z0-9]/g, '_');
-}
+import { sanitizeId } from './utils.js';
 
 window.updateResourceColors = function() {
     const h = document.getElementById('currentHealth');
