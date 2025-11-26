@@ -929,7 +929,7 @@ let appCheckInitialized = false;
                 </select>
                 <select id="damageType2" onchange="updateDamageType()">
                     <option value="none" selected>No Damage</option>
-                    <option value="blunt">Blunt</option>
+                    <option value="bludgeoning">Bludgeoning</option>
                     <option value="piercing">Piercing</option>
                     <option value="slashing">Slashing</option>
                 </select>

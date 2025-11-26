@@ -23,7 +23,12 @@ function scheduleAutoSave() {
     if (currentCharacterId === 'placeholder') return;
     autoSaveTimeout = setTimeout(async () => {
         if (currentCharacterId && currentCharacterData) {
-            await saveCharacterData(currentCharacterId, currentCharacterData);
+            // --- STRIP Unarmed Prowess before saving ---
+            const dataToSave = { ...currentCharacterData };
+            if (Array.isArray(dataToSave.weapons)) {
+                dataToSave.weapons = stripUnarmedProwessFromWeapons(dataToSave.weapons);
+            }
+            await saveCharacterData(currentCharacterId, dataToSave);
             showNotification('Character auto-saved', 'success');
         }
     }, 2000); // Auto-save 2 seconds after last change
@@ -126,7 +131,10 @@ async function loadCharacterById(id) {
                         category: featData.char_feat ? 'Character' : 'Archetype',
                         uses: featData.uses_per_rec || 0,
                         recovery: featData.rec_period || 'Full Recovery',
-                        currentUses: typeof currentUses === 'number' ? currentUses : featData.uses_per_rec || 0
+                        currentUses: typeof currentUses === 'number' ? currentUses : featData.uses_per_rec || 0,
+                        // --- FIX: include char_feat and state_feat for correct section sorting ---
+                        char_feat: !!featData.char_feat,
+                        state_feat: !!featData.state_feat
                     };
                 }
                 // If not found, fallback
@@ -136,7 +144,9 @@ async function loadCharacterById(id) {
                     category: 'Character',
                     uses: 0,
                     recovery: 'Full Recovery',
-                    currentUses: typeof currentUses === 'number' ? currentUses : 0
+                    currentUses: typeof currentUses === 'number' ? currentUses : 0,
+                    char_feat: false,
+                    state_feat: false
                 };
             }).filter(Boolean);
 
@@ -152,7 +162,16 @@ async function loadCharacterById(id) {
             }).filter(Boolean);
 
             // For display, attach the paired feats as a non-persistent property
+            // _displayFeats should ONLY contain feats for display, never traits!
             data._displayFeats = pairedFeats;
+
+            // DEV SAFEGUARD: Warn if _displayFeats contains traits (should never happen)
+            if (Array.isArray(data._displayFeats)) {
+                const traitLike = data._displayFeats.find(f => f && (f.flaw || f.characteristic || f.traitType || f.trait_category));
+                if (traitLike) {
+                    console.warn('[BUG] _displayFeats contains trait-like object:', traitLike);
+                }
+            }
             
             // NEW: Load techniques from user's library and pair with character's technique names
             const techniquePartsDb = await loadTechniquePartsFromDatabase();
@@ -452,6 +471,87 @@ window.updateCharacterData = (updates) => {
     scheduleAutoSave();
 };
 
+// Helper to ensure Unarmed Prowess is always present and correct in weapons list (for display only)
+function getWeaponsWithUnarmed(charData) {
+    if (!charData || !charData.abilities) return [];
+    const str = charData.abilities.strength || 0;
+    const unarmedDamage = Math.ceil(str / 2);
+    // Filter out any existing "Unarmed Prowess" (shouldn't be present, but just in case)
+    const weapons = (charData.weapons || []).filter(w => {
+        if (typeof w === 'string') return w !== 'Unarmed Prowess';
+        return w.name !== 'Unarmed Prowess';
+    });
+    // Insert Unarmed Prowess at the top for display
+    return [
+        {
+            name: 'Unarmed Prowess',
+            damage: `${unarmedDamage} Bludgeoning`,
+            damageType: 'Bludgeoning',
+            range: 'Melee',
+        },
+        ...weapons
+    ];
+}
+
+// Remove Unarmed Prowess from weapons before saving
+function stripUnarmedProwessFromWeapons(weapons) {
+    return (weapons || []).filter(w => {
+        if (typeof w === 'string') return w !== 'Unarmed Prowess';
+        return w.name !== 'Unarmed Prowess';
+    });
+}
+
+// Helper to re-render archetype column (e.g., after equipping/unequipping weapons)
+window.refreshArchetypeColumn = function() {
+    if (!currentCharacterData) return;
+    // Recalculate derived data
+    let archetypeAbility = null;
+    if (currentCharacterData.pow_prof > 0) archetypeAbility = currentCharacterData.pow_abil;
+    else if (currentCharacterData.mart_prof > 0) archetypeAbility = currentCharacterData.mart_abil;
+    const defensesCalc = calculateDefenses(currentCharacterData.abilities, currentCharacterData.defenseVals);
+    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0);
+    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0);
+    const maxHealth = calculateMaxHealth(
+        currentCharacterData.health_energy_points.health || 0,
+        currentCharacterData.abilities.vitality || 0,
+        currentCharacterData.level || 1,
+        archetypeAbility,
+        currentCharacterData.abilities
+    );
+    const maxEnergy = calculateMaxEnergy(
+        currentCharacterData.health_energy_points.energy || 0,
+        archetypeAbility,
+        currentCharacterData.abilities,
+        currentCharacterData.level || 1
+    );
+    currentCharacterData.defenses = defensesCalc.defenseScores;
+    currentCharacterData.defenseBonuses = defensesCalc.defenseBonuses;
+    const calculatedData = {
+        defenseScores: defensesCalc.defenseScores,
+        defenseBonuses: defensesCalc.defenseBonuses,
+        healthEnergy: { maxHealth, maxEnergy },
+        bonuses: calculateBonuses(
+            currentCharacterData.mart_prof,
+            currentCharacterData.pow_prof,
+            currentCharacterData.abilities,
+            currentCharacterData.pow_abil || 'charisma'
+        ),
+        speed,
+        evasion
+    };
+    // PATCH: Only inject Unarmed Prowess for display
+    renderArchetype(
+        { ...currentCharacterData, weapons: getWeaponsWithUnarmed(currentCharacterData) },
+        calculatedData
+    );
+};
+
+// Helper for capitalizing damage type
+function capitalizeDamageType(type) {
+    if (!type) return '';
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const characterSheet = document.getElementById('character-sheet');
@@ -510,11 +610,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (charData.currentHealth === undefined) charData.currentHealth = maxHealth;
         if (charData.currentEnergy === undefined) charData.currentEnergy = maxEnergy;
 
+        // --- PATCH: Do NOT inject Unarmed Prowess into charData.weapons, only for display ---
+        // Instead, pass getWeaponsWithUnarmed(charData) to renderArchetype and renderLibrary
+
         renderHeader(charData, calculatedData);
         renderAbilities(charData, calculatedData);
         renderSkills(charData);
-        renderArchetype(charData, calculatedData);
-        await renderLibrary(charData);
+
+        // Pass weapons with Unarmed Prowess for archetype column
+        renderArchetype({ ...charData, weapons: getWeaponsWithUnarmed(charData) }, calculatedData);
+
+        // For library, you may want to do the same if it displays weapons
+        await renderLibrary({ ...charData, weapons: getWeaponsWithUnarmed(charData) });
 
         loadingOverlay.style.display = 'none';
         characterSheet.style.display = 'block';
@@ -551,52 +658,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 });
-
-// Add this after the main render logic, after renderArchetype is called
-
-// Helper to re-render archetype column (e.g., after equipping/unequipping weapons)
-window.refreshArchetypeColumn = function() {
-    if (!currentCharacterData) return;
-    // Recalculate derived data
-    let archetypeAbility = null;
-    if (currentCharacterData.pow_prof > 0) archetypeAbility = currentCharacterData.pow_abil;
-    else if (currentCharacterData.mart_prof > 0) archetypeAbility = currentCharacterData.mart_abil;
-    const defensesCalc = calculateDefenses(currentCharacterData.abilities, currentCharacterData.defenseVals);
-    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0);
-    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0);
-    const maxHealth = calculateMaxHealth(
-        currentCharacterData.health_energy_points.health || 0,
-        currentCharacterData.abilities.vitality || 0,
-        currentCharacterData.level || 1,
-        archetypeAbility,
-        currentCharacterData.abilities
-    );
-    const maxEnergy = calculateMaxEnergy(
-        currentCharacterData.health_energy_points.energy || 0,
-        archetypeAbility,
-        currentCharacterData.abilities,
-        currentCharacterData.level || 1
-    );
-    currentCharacterData.defenses = defensesCalc.defenseScores;
-    currentCharacterData.defenseBonuses = defensesCalc.defenseBonuses;
-    const calculatedData = {
-        defenseScores: defensesCalc.defenseScores,
-        defenseBonuses: defensesCalc.defenseBonuses,
-        healthEnergy: { maxHealth, maxEnergy },
-        bonuses: calculateBonuses(
-            currentCharacterData.mart_prof,
-            currentCharacterData.pow_prof,
-            currentCharacterData.abilities,
-            currentCharacterData.pow_abil || 'charisma'
-        ),
-        speed,
-        evasion
-    };
-    renderArchetype(currentCharacterData, calculatedData);
-};
-
-// Helper for capitalizing damage type
-function capitalizeDamageType(type) {
-    if (!type) return '';
-    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-}

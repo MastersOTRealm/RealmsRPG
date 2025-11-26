@@ -37,6 +37,7 @@ function removeUndefined(obj) {
     } else if (obj && typeof obj === 'object') {
         const clean = {};
         for (const [k, v] of Object.entries(obj)) {
+            // --- PATCH: Allow 0 as a valid value (do not skip 0), only skip undefined ---
             if (v !== undefined) {
                 clean[k] = removeUndefined(v);
             }
@@ -51,6 +52,12 @@ export async function saveCharacterData(charId, data) {
     if (!user) throw new Error('User not authenticated');
     if (!charId || !String(charId).trim()) throw new Error('Invalid character id');
     const { id, ...dataToSave } = data;
+    // Remove display-only properties before saving
+    delete dataToSave._displayFeats; // Always remove _displayFeats (display only, never persisted)
+    delete dataToSave.allTraits;     // Always remove allTraits (display only, never persisted)
+    // --- Remove derived/temporary fields ---
+    delete dataToSave.defenses;         // Remove defense scores (derived)
+    delete dataToSave.defenseBonuses;   // Remove defense bonuses (derived)
     // Remove all undefined values before saving
     const cleanedData = removeUndefined(dataToSave);
     try {

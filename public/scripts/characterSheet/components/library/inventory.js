@@ -172,7 +172,11 @@ export function createInventoryContent(inventoryObj) {
     // Don't append currencyBox here; it will be inserted on tab activation
 
     // Accept inventoryObj: { weapons, armor, equipment }
-    const weapons = Array.isArray(inventoryObj.weapons) ? inventoryObj.weapons : [];
+    // --- FILTER OUT Unarmed Prowess from weapons ---
+    const weapons = (Array.isArray(inventoryObj.weapons) ? inventoryObj.weapons : []).filter(w => {
+        if (typeof w === 'string') return w !== 'Unarmed Prowess';
+        return w.name !== 'Unarmed Prowess';
+    });
     const armor = Array.isArray(inventoryObj.armor) ? inventoryObj.armor : [];
     const equipment = Array.isArray(inventoryObj.equipment) ? inventoryObj.equipment : [];
 
@@ -387,6 +391,11 @@ if (!window.__propChipStylesInjected) {
 async function enrichAndRenderInventory(content, inventory) {
     const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
     let weapons = charData?.weapons || [];
+    // --- FILTER OUT Unarmed Prowess from weapons ---
+    weapons = weapons.filter(w => {
+        if (typeof w === 'string') return w !== 'Unarmed Prowess';
+        return w.name !== 'Unarmed Prowess';
+    });
     let armor = charData?.armor || [];
     const equipment = inventory || [];
 

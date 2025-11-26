@@ -354,7 +354,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
             else if (damageType === 'sonic') partName = 'Sonic Damage';
             else if (damageType === 'spiritual') partName = 'Spiritual Damage';
             else if (damageType === 'psychic') partName = 'Psychic Damage';
-            else if (['blunt', 'piercing', 'slashing'].includes(damageType)) partName = 'Physical Damage';
+            else if (['bludgeoning', 'piercing', 'slashing'].includes(damageType)) partName = 'Physical Damage';
 
             if (partName) {
                 const damagePart = powerParts.find(p => p.name === partName && p.mechanic);
@@ -810,7 +810,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
                     <option value="necrotic">Necrotic</option>
                     <option value="acid">Acid</option>
                     <option value="psychic">Psychic</option>
-                    <option value="blunt">Blunt</option>
+                    <option value="bludgeoning">Bludgeoning</option>
                     <option value="piercing">Piercing</option>
                     <option value="slashing">Slashing</option>
                 </select>
@@ -914,7 +914,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
             else if (damageType === 'sonic') partName = 'Sonic Damage';
             else if (damageType === 'spiritual') partName = 'Spiritual Damage';
             else if (damageType === 'psychic') partName = 'Psychic Damage';
-            else if (['blunt', 'piercing', 'slashing'].includes(damageType)) partName = 'Physical Damage';
+            else if (['bludgeoning', 'piercing', 'slashing'].includes(damageType)) partName = 'Physical Damage';
 
             if (partName) {
                 const damagePart = powerParts.find(p => p.name === partName && p.mechanic);

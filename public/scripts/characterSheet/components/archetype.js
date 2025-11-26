@@ -194,7 +194,7 @@ function renderWeapons(container, charData, calculatedData) {
     unarmedRow.innerHTML = `
         <td class="weapon-name">UNARMED PROWESS</td>
         <td><button class="bonus-button" onclick="rollAttack('Unarmed Prowess', ${unprofBonus})">${formatBonus(unprofBonus)}</button></td>
-        <td><button class="damage-button" onclick="rollDamage('${unarmedDamage > 0 ? unarmedDamage : 1} BLUNT', ${unprofBonus})">${unarmedDamage > 0 ? unarmedDamage : 1} BLUNT ${formatBonus(unprofBonus)}</button></td>
+        <td><button class="damage-button" onclick="rollDamage('${unarmedDamage > 0 ? unarmedDamage : 1} Bludgeoning', ${unprofBonus})">${unarmedDamage > 0 ? unarmedDamage : 1} Bludgeoning ${formatBonus(unprofBonus)}</button></td>
         <td>Melee</td>
     `;
     tbody.appendChild(unarmedRow);
