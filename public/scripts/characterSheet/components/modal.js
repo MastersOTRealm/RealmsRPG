@@ -1,3 +1,5 @@
+import { getWithRetry, applySort, initFirebase } from '../../codex/core.js';
+
 // Modal logic for character sheet resource selection (equipment, feats, etc.)
 
 // --- Modal HTML injection (if not present) ---
@@ -46,75 +48,134 @@ export function closeResourceModal() {
     document.body.style.overflow = '';
 }
 
+
+// --- Mini-codex equipment state ---
+let allEquipment = [];
+let filteredEquipment = [];
+let equipmentSortState = { col: 'name', dir: 1 };
+let equipmentLoaded = false;
+let selectedCategory = '';
+let selectedRarity = '';
+
 // --- Fetch and display general equipment from RTDatabase ---
-export async function showEquipmentModal(rtdb) {
-    console.log('[Modal] showEquipmentModal called with rtdb:', !!rtdb);
-    if (!rtdb) {
-        console.error('[Modal] rtdb is undefined, cannot load equipment');
-        openResourceModal();
-        const body = document.getElementById('resource-modal-body');
-        if (body) body.innerHTML = '<div style="color:#b91c1c;">Error: Firebase Realtime Database not initialized.</div>';
-        return;
-    }
+export async function showEquipmentModal() {
+    await initFirebase(); // Ensure modular Firebase is initialized
     openResourceModal();
     const body = document.getElementById('resource-modal-body');
-    if (!body) {
-        console.error('[Modal] resource-modal-body not found');
-        return;
-    }
+    if (!body) return;
     body.innerHTML = '<div style="text-align:center;padding:24px;">Loading equipment...</div>';
-    try {
-        console.log('[Modal] Fetching equipment from RTDB');
-        const snap = await rtdb.ref('items').once('value'); // Fixed: Use 'items' node instead of 'equipment'
-        const data = snap.val();
-        if (!data) {
-            body.innerHTML = '<div style="text-align:center;color:#b91c1c;">No equipment found.</div>';
+    if (!equipmentLoaded) {
+        try {
+            const snap = await getWithRetry('items');
+            const data = snap.val();
+            allEquipment = Object.values(data).map(e => ({
+                ...e,
+                currency: parseInt(e.currency) || 0,
+            }));
+            equipmentLoaded = true;
+        } catch (e) {
+            body.innerHTML = `<div style="color:red;text-align:center;padding:24px;">Error loading equipment.<br>${e.message || e}</div>`;
             return;
         }
-        // Render as a table (like codex/library)
-        const items = Object.values(data);
-        console.log('[Modal] Loaded', items.length, 'equipment items');
-        let html = `
-            <table class="equipment-table" style="width:100%;margin-top:8px;">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Category</th>
-                        <th>Currency</th>
-                        <th>Rarity</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        items.forEach(item => {
-            html += `
-                <tr>
-                    <td>${item.name || ''}</td>
-                    <td style="max-width:220px;">${item.description || ''}</td>
-                    <td>${item.category || ''}</td>
-                    <td>${item.currency || 0}</td>
-                    <td>${item.rarity || 'Common'}</td>
-                    <td>
-                        <button class="small-button blue-button" data-equip-name="${item.name}">Add</button>
-                    </td>
-                </tr>
-            `;
-        });
-        html += '</tbody></table>';
-        body.innerHTML = html;
-        // Add event listeners for "Add" buttons (for demo, just close modal)
-        body.querySelectorAll('button[data-equip-name]').forEach(btn => {
-            btn.onclick = () => {
-                console.log('[Modal] Add button clicked for', btn.dataset.equipName);
-                closeResourceModal();
-            };
-        });
-    } catch (e) {
-        console.error('[Modal] Error loading equipment:', e);
-        body.innerHTML = `<div style="color:#b91c1c;">Error loading equipment: ${e.message}</div>`;
     }
+    // Render mini-codex UI
+    renderMiniCodexEquipment(body);
+}
+
+function renderMiniCodexEquipment(container) {
+        // Filter controls
+        const categories = Array.from(new Set(allEquipment.map(e => e.category).filter(Boolean))).sort();
+        const rarities = Array.from(new Set(allEquipment.map(e => e.rarity).filter(Boolean))).sort();
+
+        // Filtering UI
+        container.innerHTML = `
+            <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+                <input id="mini-codex-equip-search" type="text" placeholder="Search equipment..." style="flex:1;min-width:180px;padding:6px 10px;">
+                <select id="mini-codex-equip-category">
+                    <option value="">All Categories</option>
+                    ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+                <select id="mini-codex-equip-rarity">
+                    <option value="">All Rarities</option>
+                    ${rarities.map(r => `<option value="${r}">${r}</option>`).join('')}
+                </select>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="equipment-table" style="width:100%;min-width:600px;">
+                    <thead>
+                        <tr>
+                            <th data-col="name" class="mini-codex-sort">Name <span class="sort-arrow" data-col="name"></span></th>
+                            <th data-col="description" class="mini-codex-sort">Description <span class="sort-arrow" data-col="description"></span></th>
+                            <th data-col="category" class="mini-codex-sort">Category <span class="sort-arrow" data-col="category"></span></th>
+                            <th data-col="currency" class="mini-codex-sort">Currency <span class="sort-arrow" data-col="currency"></span></th>
+                            <th data-col="rarity" class="mini-codex-sort">Rarity <span class="sort-arrow" data-col="rarity"></span></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="mini-codex-equip-tbody"></tbody>
+                </table>
+            </div>
+        `;
+        // Attach filter/sort events
+        document.getElementById('mini-codex-equip-search').addEventListener('input', applyMiniCodexEquipmentFilters);
+        document.getElementById('mini-codex-equip-category').addEventListener('change', e => {
+            selectedCategory = e.target.value;
+            applyMiniCodexEquipmentFilters();
+        });
+        document.getElementById('mini-codex-equip-rarity').addEventListener('change', e => {
+            selectedRarity = e.target.value;
+            applyMiniCodexEquipmentFilters();
+        });
+        document.querySelectorAll('.mini-codex-sort').forEach(th => {
+            th.addEventListener('click', e => {
+                const col = th.getAttribute('data-col');
+                if (equipmentSortState.col === col) {
+                    equipmentSortState.dir *= -1;
+                } else {
+                    equipmentSortState.col = col;
+                    equipmentSortState.dir = 1;
+                }
+                applyMiniCodexEquipmentFilters();
+            });
+        });
+        // Initial filter
+        applyMiniCodexEquipmentFilters();
+}
+
+function applyMiniCodexEquipmentFilters() {
+        const search = document.getElementById('mini-codex-equip-search').value.toLowerCase();
+        filteredEquipment = allEquipment.filter(e => {
+            if (search && !e.name.toLowerCase().includes(search) && !(e.description && e.description.toLowerCase().includes(search))) return false;
+            if (selectedCategory && e.category !== selectedCategory) return false;
+            if (selectedRarity && e.rarity !== selectedRarity) return false;
+            return true;
+        });
+        applySort(filteredEquipment, equipmentSortState, equipmentSortState.col);
+        renderMiniCodexEquipmentTable();
+}
+
+function renderMiniCodexEquipmentTable() {
+        const tbody = document.getElementById('mini-codex-equip-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = filteredEquipment.map(e => `
+            <tr>
+                <td>${e.name}</td>
+                <td>${e.description ? e.description.substring(0, 80) + (e.description.length > 80 ? '...' : '') : ''}</td>
+                <td>${e.category || ''}</td>
+                <td>${e.currency || ''}</td>
+                <td>${e.rarity || ''}</td>
+                <td><button class="small-button blue-button" onclick="window.addEquipmentToCharacter && window.addEquipmentToCharacter('${encodeURIComponent(e.name)}')">Add</button></td>
+            </tr>
+        `).join('');
+        // Update sort arrows
+        document.querySelectorAll('.sort-arrow').forEach(span => {
+            const col = span.getAttribute('data-col');
+            if (col === equipmentSortState.col) {
+                span.textContent = equipmentSortState.dir === 1 ? '▲' : '▼';
+            } else {
+                span.textContent = '';
+            }
+        });
 }
 
 // --- Add "Edit" button to character sheet header (top right, next to Save) ---

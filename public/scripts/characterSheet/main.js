@@ -7,7 +7,7 @@ import { renderSkills } from './components/skills.js';
 import { renderArchetype } from './components/archetype.js';
 import { renderLibrary } from './components/library.js';
 import './interactions.js';
-import { addEditButton } from './components/modal.js';
+import { addEditButton, showEquipmentModal } from './components/modal.js';
 
 window.userItemLibrary = []; // Array of all user's items (full objects)
 window.getItemFromLibraryByName = function(name) {
@@ -649,6 +649,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         document.getElementById('long-rest')?.addEventListener('click', longRest);
+
+        // Add 'Add Item' button to inventory tab
+        const librarySection = document.getElementById('library-section');
+        if (librarySection) {
+            let addBtn = document.createElement('button');
+            addBtn.textContent = '+ Add Item';
+            addBtn.className = 'action-button';
+            addBtn.style.marginBottom = '16px';
+            addBtn.onclick = () => showEquipmentModal();
+            librarySection.insertBefore(addBtn, librarySection.firstChild);
+        }
 
     } catch (error) {
         console.error('Error loading character:', error);

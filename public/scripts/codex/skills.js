@@ -36,6 +36,7 @@ function loadSkills() {
         ...s,
         ability: typeof s.ability === 'string' ? s.ability.split(',').map(a => a.trim()).filter(a => a) : (Array.isArray(s.ability) ? s.ability : []),
       }));
+      window.allSkills = allSkills;
       console.log(`✓ Loaded ${allSkills.length} skills successfully`);
       skillsLoaded = true;
       populateFilters();

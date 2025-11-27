@@ -174,7 +174,12 @@ function renderSpecies() {
         <div class="trait-section">
           <h3>Skills</h3>
           <div class="trait-grid">
-            ${s.skills.length ? s.skills.map(skill => `<div class="trait-item"><h4>${skill}</h4><p style="color:#000;">No description</p></div>`).join('') : '<div class="trait-item"><h4>No skills listed</h4></div>'}
+            ${s.skills.length ? s.skills.map(skillName => {
+              // Find the skill object from allSkills (loaded by skills.js)
+              let skillObj = (window.allSkills || []).find(sk => sk.name === skillName);
+              let desc = skillObj && skillObj.description ? skillObj.description : 'No description';
+              return `<div class="trait-item"><h4>${skillName}</h4><p style="color:#000;">${desc}</p></div>`;
+            }).join('') : '<div class="trait-item"><h4>No skills listed</h4></div>'}
           </div>
         </div>
         <div class="species-details">
