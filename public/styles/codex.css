@@ -260,6 +260,11 @@ select, input {
   margin-bottom: 16px;
 }
 
+.feat-type-chip.state-feat {
+  background: #f44336;
+  color: white;
+}
+
 .requirements .req-field {
   display: flex;
   margin-bottom: 12px;

@@ -7,6 +7,7 @@ import { renderSkills } from './components/skills.js';
 import { renderArchetype } from './components/archetype.js';
 import { renderLibrary } from './components/library.js';
 import './interactions.js';
+import { addEditButton } from './components/modal.js';
 
 window.userItemLibrary = []; // Array of all user's items (full objects)
 window.getItemFromLibraryByName = function(name) {
@@ -622,6 +623,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // For library, you may want to do the same if it displays weapons
         await renderLibrary({ ...charData, weapons: getWeaponsWithUnarmed(charData) });
+
+        // --- ADD: Place Edit button in top right of sheet-actions or header ---
+        // Wait for Firebase to be initialized and get rtdb
+        console.log('[Main] Initializing Firebase for modal');
+        const { rtdb } = await initializeFirebase();
+        console.log('[Main] Firebase initialized, rtdb:', !!rtdb);
+        addEditButton(rtdb);
 
         loadingOverlay.style.display = 'none';
         characterSheet.style.display = 'block';
