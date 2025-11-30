@@ -178,38 +178,38 @@ function renderMiniCodexEquipmentTable() {
         });
 }
 
-// --- Add "Edit" button to character sheet header (top right, next to Save) ---
-export function addEditButton(rtdb) {
-    console.log('[Modal] addEditButton called with rtdb:', !!rtdb);
-    // Try multiple selectors to ensure the button is added somewhere visible
-    let container = document.querySelector('.sheet-actions');
-    if (!container) {
-        console.log('[Modal] .sheet-actions not found, trying .character-sheet');
-        container = document.querySelector('.character-sheet');
-    }
-    if (!container) {
-        console.log('[Modal] .character-sheet not found, trying document.body');
-        container = document.body;
-    }
-    if (!container || document.getElementById('edit-sheet-btn')) {
-        console.log('[Modal] Container not found or button already exists');
+// --- Add Equipment to Character Logic ---
+window.addEquipmentToCharacter = function(encodedName) {
+    const name = decodeURIComponent(encodedName);
+    const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+    if (!charData) {
+        alert('Character data not loaded.');
         return;
     }
-    console.log('[Modal] Adding edit button to', container.className || container.tagName);
-    const btn = document.createElement('button');
-    btn.id = 'edit-sheet-btn';
-    btn.className = 'action-button';
-    btn.textContent = 'Edit';
-    btn.onclick = () => {
-        console.log('[Modal] Edit button clicked');
-        showEquipmentModal(rtdb);
-    };
-    container.appendChild(btn);
-    console.log('[Modal] Edit button added');
-}
-
-// --- Usage: In your main character sheet JS, after Firebase init ---
-// import { addEditButton } from './components/modal.js';
-// addEditButton(rtdb); // pass your RTDB instance
-
-// --- Style: Use modal.css for modal appearance ---
+    if (!Array.isArray(charData.equipment)) charData.equipment = [];
+    // Check if already present (by name)
+    const idx = charData.equipment.findIndex(e => {
+        if (typeof e === 'string') return e === name;
+        if (e && typeof e === 'object' && e.name) return e.name === name;
+        return false;
+    });
+    if (idx !== -1) {
+        // If already present, increment quantity
+        if (typeof charData.equipment[idx] === 'object' && charData.equipment[idx] !== null) {
+            charData.equipment[idx].quantity = (charData.equipment[idx].quantity || 1) + 1;
+        } else {
+            // If string, convert to object with quantity
+            charData.equipment[idx] = { name, quantity: 2 };
+        }
+    } else {
+        // Add new item with quantity 1
+        charData.equipment.push({ name, quantity: 1 });
+    }
+    // Trigger auto-save and UI update
+    if (window.scheduleAutoSave) window.scheduleAutoSave();
+    // Optionally, re-render inventory tab if needed (library.js will update on tab switch)
+    // Close modal
+    if (typeof window.closeResourceModal === 'function') window.closeResourceModal();
+    // Optionally, show notification
+    if (typeof window.showNotification === 'function') window.showNotification(`Added "${name}" to equipment.`, 'success');
+};

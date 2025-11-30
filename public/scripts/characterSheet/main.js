@@ -7,7 +7,7 @@ import { renderSkills } from './components/skills.js';
 import { renderArchetype } from './components/archetype.js';
 import { renderLibrary } from './components/library.js';
 import './interactions.js';
-import { addEditButton, showEquipmentModal } from './components/modal.js';
+import { showEquipmentModal } from './components/modal.js';
 
 window.userItemLibrary = []; // Array of all user's items (full objects)
 window.getItemFromLibraryByName = function(name) {
@@ -624,13 +624,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // For library, you may want to do the same if it displays weapons
         await renderLibrary({ ...charData, weapons: getWeaponsWithUnarmed(charData) });
 
-        // --- ADD: Place Edit button in top right of sheet-actions or header ---
-        // Wait for Firebase to be initialized and get rtdb
-        console.log('[Main] Initializing Firebase for modal');
-        const { rtdb } = await initializeFirebase();
-        console.log('[Main] Firebase initialized, rtdb:', !!rtdb);
-        addEditButton(rtdb);
-
         loadingOverlay.style.display = 'none';
         characterSheet.style.display = 'block';
 
@@ -650,17 +643,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.getElementById('long-rest')?.addEventListener('click', longRest);
 
-        // Add 'Add Item' button to inventory tab
-        const librarySection = document.getElementById('library-section');
-        if (librarySection) {
-            let addBtn = document.createElement('button');
-            addBtn.textContent = '+ Add Item';
-            addBtn.className = 'action-button';
-            addBtn.style.marginBottom = '16px';
-            addBtn.onclick = () => showEquipmentModal();
-            librarySection.insertBefore(addBtn, librarySection.firstChild);
-        }
-
     } catch (error) {
         console.error('Error loading character:', error);
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -677,3 +659,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 });
+
+window.showEquipmentModal = showEquipmentModal;
