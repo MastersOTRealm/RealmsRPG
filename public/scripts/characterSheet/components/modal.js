@@ -207,7 +207,32 @@ window.addEquipmentToCharacter = function(encodedName) {
     }
     // Trigger auto-save and UI update
     if (window.scheduleAutoSave) window.scheduleAutoSave();
-    // Optionally, re-render inventory tab if needed (library.js will update on tab switch)
+    // --- PATCH: Re-render library tab if visible ---
+    if (typeof window.renderLibrary === 'function') {
+        // Find the library-section container and check if inventory tab is active
+        const container = document.getElementById('library-section');
+        if (container) {
+            // Find the inventory tab button and content
+            const inventoryTabBtn = container.querySelector('.tab[data-tab="inventory"]');
+            const inventoryContent = container.querySelector('#inventory-content');
+            if (inventoryTabBtn && inventoryTabBtn.classList.contains('active')) {
+                // Re-render the library (will preserve tab state)
+                window.renderLibrary(charData);
+                // Re-activate the inventory tab after re-render
+                setTimeout(() => {
+                    const tabs = container.querySelectorAll('.tab');
+                    tabs.forEach(btn => {
+                        if (btn.dataset.tab === 'inventory') btn.classList.add('active');
+                        else btn.classList.remove('active');
+                    });
+                    container.querySelectorAll('.tab-content').forEach(content => {
+                        if (content.id === 'inventory-content') content.classList.add('active');
+                        else content.classList.remove('active');
+                    });
+                }, 0);
+            }
+        }
+    }
     // Close modal
     if (typeof window.closeResourceModal === 'function') window.closeResourceModal();
     // Optionally, show notification

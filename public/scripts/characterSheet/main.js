@@ -471,6 +471,8 @@ window.updateCharacterData = (updates) => {
     Object.assign(currentCharacterData, updates);
     scheduleAutoSave();
 };
+// --- PATCH: Expose renderLibrary globally for modal to trigger inventory refresh ---
+window.renderLibrary = renderLibrary;
 
 // Helper to ensure Unarmed Prowess is always present and correct in weapons list (for display only)
 function getWeaponsWithUnarmed(charData) {
@@ -642,6 +644,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         document.getElementById('long-rest')?.addEventListener('click', longRest);
+
+        window.isEditMode = false;
+
+        document.getElementById('toggle-edit-mode')?.addEventListener('click', () => {
+            window.isEditMode = !window.isEditMode;
+            document.getElementById('toggle-edit-mode').innerHTML = window.isEditMode ? '<span>✔️</span> Done' : '<span>🖉</span> Edit';
+            // Re-render all editable sections
+            renderHeader(charData, calculatedData);
+            renderAbilities(charData, calculatedData);
+            renderSkills(charData);
+            renderArchetype({ ...charData, weapons: getWeaponsWithUnarmed(charData) }, calculatedData);
+            renderLibrary({ ...charData, weapons: getWeaponsWithUnarmed(charData) });
+        });
 
     } catch (error) {
         console.error('Error loading character:', error);
