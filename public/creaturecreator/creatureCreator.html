@@ -18,7 +18,7 @@
     <div id="creatureDetailsBox">
         <h3>Creature Details</h3>
         <p>Total Feat Points: <span id="detailsFeatPoints">0</span></p>
-        <p>Total Building Points: <span id="detailsBP">0</span></p>
+        <p>Total Training Points: <span id="detailsTP">0</span></p>
         <p>Skill Points: <span id="detailsSkillPoints">0</span></p>
         <p>Currency: <span id="detailsCurrency">0</span></p>
         <div class="toggle-arrow" id="creatureDetailsToggle">&lt;</div>
@@ -60,13 +60,23 @@
                                 <option value="Other">Other</option>
                             </select>
                         </label>
-                        <label>
-                            Creature Type:
-                            <select id="creatureTypeDropdown">
-                                <option value="Martial" selected>Martial Creature</option>
-                                <option value="Power">Power Creature</option>
-                            </select>
-                        </label>
+                        <!-- Remove Creature Type dropdown -->
+                        <!-- Add Archetype Proficiency allocation -->
+                        <div id="archetypeProficiencyBox" style="margin-top:10px;">
+                            <label style="font-weight:bold;">Archetype Proficiency:</label>
+                            <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+                                <label>
+                                    Power Proficiency:
+                                    <input type="number" id="powerProficiencyInput" min="0" value="2" style="width:50px;">
+                                </label>
+                                <label>
+                                    Martial Proficiency:
+                                    <input type="number" id="martialProficiencyInput" min="0" value="0" style="width:50px;">
+                                </label>
+                                <span id="archetypeProficiencyTotal" style="margin-left:10px;font-weight:bold;color:#007bff;"></span>
+                            </div>
+                            <div id="archetypeProficiencyError" style="color:red;font-size:13px;display:none;"></div>
+                        </div>
                     </div>
                     <!-- Resistances & Weaknesses -->
                     <div class="mechanic-box" id="resistancesBox">

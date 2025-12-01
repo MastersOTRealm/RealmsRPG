@@ -37,10 +37,12 @@ export async function getCreatureSaveData() {
     });
     const featsArr = feats.map(f => {
         const featObj = typeof f === "string" ? { name: f } : f;
+        // Use feat_points instead of cost
         const found = creatureFeatsData.find(cf => cf.name === featObj.name);
         return {
             name: featObj.name,
-            description: found ? found.description : ""
+            description: found ? found.description : "",
+            feat_points: found ? found.feat_points : (featObj.points || 0)
         };
     });
     const allImmunities = [...immunities, ...conditionImmunities];
@@ -51,17 +53,19 @@ export async function getCreatureSaveData() {
     const armamentIds = extractIds(armaments);
     const hitPoints = parseInt(document.getElementById('hitPointsInput')?.value) || 0;
     const energy = parseInt(document.getElementById('energyInput')?.value) || 0;
-    const archetype = document.getElementById("creatureTypeDropdown")?.value || "";
+    const creatureName = document.getElementById("creatureName")?.value || "";
     const level = parseInt(document.getElementById("creatureLevel")?.value) || 1;
     const type = document.getElementById("creatureType")?.value || "";
-    const name = document.getElementById("creatureName")?.value || "";
     const languagesArr = creatureLanguages.slice();
     const description = document.getElementById("creatureDescription")?.value || "";
+    const powerProficiency = parseInt(document.getElementById("powerProficiencyInput")?.value) || 0;
+    const martialProficiency = parseInt(document.getElementById("martialProficiencyInput")?.value) || 0;
     return {
-        name,
+        name: creatureName,
         level,
         type,
-        archetype,
+        powerProficiency,
+        martialProficiency,
         resistances: resistances.slice(),
         weaknesses: weaknesses.slice(),
         immunities: allImmunities.slice(),
@@ -191,11 +195,16 @@ export function loadCreature(creature) {
     document.getElementById("creatureName").value = creature.name || "";
     document.getElementById("creatureLevel").value = creature.level || 1;
     document.getElementById("creatureType").value = creature.type || "";
-    document.getElementById("creatureTypeDropdown").value = creature.archetype || "Martial";
-    // ...populate other fields as needed...
+    if (document.getElementById("powerProficiencyInput")) {
+        document.getElementById("powerProficiencyInput").value = creature.powerProficiency || 0;
+    }
+    if (document.getElementById("martialProficiencyInput")) {
+        document.getElementById("martialProficiencyInput").value = creature.martialProficiency || 0;
+    }
     if (document.getElementById("creatureDescription")) {
         document.getElementById("creatureDescription").value = creature.description || "";
     }
+    // When loading feats, if you need to set points, use feat_points
     alert("Creature loaded! (You must implement full UI population logic.)");
     updateSummary();
 }

@@ -38,7 +38,7 @@ export function displaySavedPowers(powers) {
         const div = document.createElement('div');
         div.className = 'power-item';
         div.innerHTML = `
-            <span>${power.name} (BP: ${power.totalBP || 0})</span>
+            <span>${power.name} (TP: ${power.totalTP || 0})</span>
             <button class="small-button blue-button select-power-btn" data-id="${power.id}">Select</button>
         `;
         powerList.appendChild(div);
@@ -89,7 +89,7 @@ export function displaySavedTechniques(techniques) {
     }
     const table = document.createElement('table');
     table.className = 'powers-table';
-    const headers = ['Name', 'BP', 'Energy', 'Weapon', 'Damage', 'Select'];
+    const headers = ['Name', 'TP', 'Energy', 'Weapon', 'Damage', 'Select'];
     const headerRow = document.createElement('tr');
     headers.forEach(h => {
         const th = document.createElement('th');
@@ -103,7 +103,7 @@ export function displaySavedTechniques(techniques) {
         nameCell.textContent = tech.name || '';
         row.appendChild(nameCell);
         const bpCell = document.createElement('td');
-        bpCell.textContent = tech.totalBP !== undefined ? tech.totalBP : (tech.bp !== undefined ? tech.bp : '');
+        bpCell.textContent = tech.totalTP !== undefined ? tech.totalTP : (tech.bp !== undefined ? tech.bp : '');
         row.appendChild(bpCell);
         const energyCell = document.createElement('td');
         energyCell.textContent = tech.totalEnergy !== undefined ? tech.totalEnergy : '';
@@ -177,7 +177,7 @@ export function displaySavedArmaments(items) {
     }
     const table = document.createElement('table');
     table.className = 'powers-table';
-    const headers = ['Name', 'Rarity', 'Gold', 'BP', 'Range', 'Damage', 'Select'];
+    const headers = ['Name', 'Rarity', 'Gold', 'TP', 'Range', 'Damage', 'Select'];
     const headerRow = document.createElement('tr');
     headers.forEach(h => {
         const th = document.createElement('th');
@@ -197,7 +197,7 @@ export function displaySavedArmaments(items) {
         goldCell.textContent = item.totalGP !== undefined ? item.totalGP : '';
         row.appendChild(goldCell);
         const bpCell = document.createElement('td');
-        bpCell.textContent = item.totalBP !== undefined ? item.totalBP : '';
+        bpCell.textContent = item.totalTP !== undefined ? item.totalTP : '';
         row.appendChild(bpCell);
         const rangeCell = document.createElement('td');
         let rangeStr = "-";

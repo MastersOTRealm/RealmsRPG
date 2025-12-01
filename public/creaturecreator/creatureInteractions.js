@@ -1,5 +1,5 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
-import { updateList, capitalize, formatDamage, formatTechniqueAction, formatTechniqueDamage, formatTechniqueParts, SENSES_DESCRIPTIONS, SENSES_DISPLAY, MOVEMENT_DESCRIPTIONS, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getCreatureCurrency, getArmamentsTotalCurrency, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getCreatureTypeToggle, getInnatePowers, getInnateEnergy, getProficiency, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent } from './creatureUtils.js';
+import { updateList, capitalize, formatDamage, formatTechniqueAction, formatTechniqueDamage, formatTechniqueParts, SENSES_DESCRIPTIONS, SENSES_DISPLAY, MOVEMENT_DESCRIPTIONS, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getCreatureCurrency, getArmamentsTotalCurrency, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent } from './creatureUtils.js';
 import creatureFeatsData from './creatureFeatsData.js';
 
 let skills = []; // Will be set in initCreatureCreator
@@ -215,6 +215,13 @@ export function updateDefensesUI() {
         skillPointsElem.textContent = getSkillPointsRemaining();
         skillPointsElem.style.color = getSkillPointsRemaining() < 0 ? "red" : "";
     }
+    // --- Add this block to update skill points UI in the skills section as well ---
+    let skillPointsDisplay = document.getElementById("skillPointsBoxDisplay");
+    if (skillPointsDisplay) {
+        const points = getSkillPointsRemaining();
+        skillPointsDisplay.textContent = `Skill Points Remaining: ${points}`;
+        skillPointsDisplay.style.color = points < 0 ? "red" : "";
+    }
 }
 
 export function updateCreatureAbilityDropdowns() {
@@ -288,10 +295,9 @@ export function updateHealthEnergyUI() {
 }
 
 export function updateInnateInfo() {
-    const isPower = getCreatureTypeToggle();
     const level = document.getElementById("creatureLevel").value || 1;
-    const innatePowers = getInnatePowers(level, isPower);
-    const innateEnergy = getInnateEnergy(innatePowers, isPower);
+    const innatePowers = getInnatePowers(level);
+    const innateEnergy = getInnateEnergy(innatePowers);
     document.getElementById("innatePowers").textContent = innatePowers;
     document.getElementById("innateEnergy").textContent = innateEnergy;
     document.getElementById("summaryInnatePowers").textContent = innatePowers;
@@ -306,6 +312,27 @@ export function updateCreatureDetailsBox() {
     if (detailsFeat) {
         detailsFeat.textContent = `${(baseFeat - spentFeat).toFixed(1).replace(/\.0$/, "")} / ${baseFeat}`;
         detailsFeat.style.color = (baseFeat - spentFeat) < 0 ? "red" : "";
+    }
+    // --- Training Points (TP) ---
+    const tpTotal = (() => {
+        const highestNonVit = getHighestNonVitalityAbility();
+        if (level <= 1) return 9 + highestNonVit;
+        return 9 + highestNonVit + (level - 1) * (1 + highestNonVit);
+    })();
+    const tpSpent = (() => {
+        let spent = 0;
+        spent += powersTechniques.reduce((sum, item) => {
+            if (item.type === "power") return sum + (parseFloat(item.totalBP) || 0);
+            if (item.type === "technique") return sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0);
+            return sum;
+        }, 0);
+        spent += armaments.reduce((sum, item) => sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0), 0);
+        return spent;
+    })();
+    const detailsTP = document.getElementById("detailsTP");
+    if (detailsTP) {
+        detailsTP.textContent = `${tpTotal - tpSpent} / ${tpTotal}`;
+        detailsTP.style.color = (tpTotal - tpSpent) < 0 ? "red" : "";
     }
     const bpTotal = (() => {
         const highestNonVit = getHighestNonVitalityAbility();
@@ -385,40 +412,15 @@ export function updateSummary() {
         const langs = creatureLanguages.slice().sort((a, b) => a.localeCompare(b));
         summaryLanguagesElem.textContent = langs.length ? langs.join(", ") : "None";
     }
-    let level = document.getElementById("creatureLevel").value || 1;
-    let bpTotal = (() => {
-        const highestNonVit = getHighestNonVitalityAbility();
-        if (level <= 1) return 9 + highestNonVit;
-        return 9 + highestNonVit + (level - 1) * (1 + highestNonVit);
-    })();
-    let bpSpent = powersTechniques.reduce((sum, item) => {
-        if (item.type === "power") return sum + (parseFloat(item.totalBP) || 0);
-        if (item.type === "technique") return sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0);
-        return sum;
-    }, 0) + armaments.reduce((sum, item) => sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0), 0);
-    let summaryBP = document.getElementById("summaryBP");
-    if (summaryBP) summaryBP.textContent = `${bpTotal - bpSpent} / ${bpTotal}`;
-    const isPower = getCreatureTypeToggle();
-    const innatePowers = getInnatePowers(level, isPower);
-    const innateEnergy = getInnateEnergy(innatePowers, isPower);
-    let summaryInnatePowers = document.getElementById("summaryInnatePowers");
-    let summaryInnateEnergy = document.getElementById("summaryInnateEnergy");
-    if (summaryInnatePowers) summaryInnatePowers.textContent = innatePowers;
-    if (summaryInnateEnergy) summaryInnateEnergy.textContent = innateEnergy;
+    // --- Archetype Proficiency summary ---
     const profLabelElem = document.getElementById("summaryProfLabel");
     const profValueElem = document.getElementById("summaryProfValue");
-    const typeDropdown = document.getElementById("creatureTypeDropdown");
-    if (profLabelElem && profValueElem && typeDropdown) {
-        if (typeDropdown.value === "Power") {
-            profLabelElem.textContent = "Power Proficiency: ";
-            profValueElem.textContent = getProficiency(level);
-        } else if (typeDropdown.value === "Martial") {
-            profLabelElem.textContent = "Martial Proficiency: ";
-            profValueElem.textContent = getProficiency(level);
-        } else {
-            profLabelElem.textContent = "";
-            profValueElem.textContent = "";
-        }
+    if (profLabelElem && profValueElem) {
+        profLabelElem.textContent = "Power Proficiency: ";
+        profValueElem.textContent = getPowerProficiency();
+        // Add martial proficiency as well
+        if (profValueElem.nextSibling) profValueElem.nextSibling.remove();
+        profValueElem.insertAdjacentHTML('afterend', `<span style="margin-left:10px;"><strong>Martial Proficiency:</strong> ${getMartialProficiency()}</span>`);
     }
     // ...existing code for armament attacks, techniques, powers summaries...
     updateCreatureDetailsBox();
@@ -439,7 +441,8 @@ export function renderFeats() {
         creatureFeatsData.forEach(f => {
             const opt = document.createElement("option");
             opt.value = f.name;
-            opt.textContent = `${f.name} (${f.cost})`;
+            // Use feat_points instead of cost
+            opt.textContent = `${f.name} (${f.feat_points})`;
             if (feat.name === f.name) opt.selected = true;
             select.appendChild(opt);
         });
@@ -447,7 +450,7 @@ export function renderFeats() {
             const selected = creatureFeatsData.find(f => f.name === e.target.value);
             if (selected) {
                 feat.name = selected.name;
-                feat.points = selected.cost;
+                feat.points = selected.feat_points; // Use feat_points
             } else {
                 feat.name = "";
                 feat.points = 1;
@@ -461,7 +464,8 @@ export function renderFeats() {
             if (selected) {
                 const info = document.createElement("span");
                 info.style.marginLeft = "10px";
-                info.innerHTML = `<strong>${selected.name}</strong> (Feat Points: ${selected.cost})<br><span style="font-style:italic;font-size:13px;">${selected.description}</span>`;
+                // Use feat_points instead of cost
+                info.innerHTML = `<strong>${selected.name}</strong> (Feat Points: ${selected.feat_points})<br><span style="font-style:italic;font-size:13px;">${selected.description}</span>`;
                 row.appendChild(info);
             }
         }
@@ -500,7 +504,7 @@ export function renderPowersTechniques() {
                         <tr><th>Focus</th><td>${item.focus ? 'Yes' : (item.focusChecked ? 'Yes' : 'No')}</td></tr>
                         <tr><th>Sustain</th><td>${item.sustainValue > 0 ? item.sustainValue : 'None'}</td></tr>
                         <tr><th>Damage</th><td>${formatDamage(item.damage)}</td></tr>
-                        <tr><th>Building Points</th><td>${item.totalBP || item.bp || '-'}</td></tr>
+                        <tr><th>Training Points</th><td>${item.totalBP || item.bp || '-'}</td></tr>
                         <tr><th>Power Parts</th><td>${item.powerParts ? (Array.isArray(item.powerParts) ? item.powerParts.map(p => p.part || p).join(', ') : '-') : '-'}</td></tr>
                         <tr><th>Description</th><td>${item.description || '-'}</td></tr>
                     </table>
@@ -520,7 +524,7 @@ export function renderPowersTechniques() {
                         <tr><th>Action</th><td>${formatTechniqueAction(item)}</td></tr>
                         <tr><th>Weapon</th><td>${item.weapon && item.weapon.name ? item.weapon.name : "Unarmed Prowess"}</td></tr>
                         <tr><th>Damage</th><td>${formatTechniqueDamage(item.damage)}</td></tr>
-                        <tr><th>Building Points</th><td>${item.totalBP !== undefined ? item.totalBP : (item.bp !== undefined ? item.bp : '-')}</td></tr>
+                        <tr><th>Training Points</th><td>${item.totalBP !== undefined ? item.totalBP : (item.bp !== undefined ? item.bp : '-')}</td></tr>
                         <tr><th>Technique Parts</th><td>${formatTechniqueParts(item.techniqueParts)}</td></tr>
                         <tr><th>Description</th><td>${item.description || '-'}</td></tr>
                     </table>
@@ -941,6 +945,7 @@ export function initCreatureCreator(deps = {}) {
                 if (getSkillPointsRemaining() >= 2) {
                     defenseSkillState[def] = (defenseSkillState[def] || 0) + 1;
                     updateDefensesUI();
+                    updateSummary(); // <-- ensure summary and skill points update
                 }
             };
         });
@@ -952,6 +957,7 @@ export function initCreatureCreator(deps = {}) {
                 if ((defenseSkillState[def] || 0) > 0 && current > base) {
                     defenseSkillState[def] = (defenseSkillState[def] || 0) - 1;
                     updateDefensesUI();
+                    updateSummary(); // <-- ensure summary and skill points update
                 }
             };
         });
@@ -981,6 +987,71 @@ export function initCreatureCreator(deps = {}) {
     if (typeof deps.setupModalEventListeners === 'function') {
         deps.setupModalEventListeners();
     }
+
+    // --- Archetype Proficiency allocation logic ---
+    function updateArchetypeProficiencyUI() {
+        const level = getLevelValue();
+        const max = getMaxArchetypeProficiency(level);
+        const power = getPowerProficiency();
+        const martial = getMartialProficiency();
+        const totalElem = document.getElementById('archetypeProficiencyTotal');
+        const errorElem = document.getElementById('archetypeProficiencyError');
+        totalElem.textContent = `Total: ${power + martial} / ${max}`;
+        if ((power + martial) > max || power < 0 || martial < 0) {
+            totalElem.style.color = "red";
+            errorElem.style.display = "";
+            errorElem.textContent = "You cannot allocate more than the allowed total proficiency points.";
+        } else {
+            totalElem.style.color = "#007bff";
+            errorElem.style.display = "none";
+        }
+    }
+    function clampArchetypeProficiencyInputs() {
+        const level = getLevelValue();
+        const max = getMaxArchetypeProficiency(level);
+        const powerInput = document.getElementById('powerProficiencyInput');
+        const martialInput = document.getElementById('martialProficiencyInput');
+        let power = parseInt(powerInput.value) || 0;
+        let martial = parseInt(martialInput.value) || 0;
+        if (power < 0) power = 0;
+        if (martial < 0) martial = 0;
+        if (power + martial > max) {
+            // Reduce the one that was just changed
+            if (document.activeElement === powerInput) {
+                power = Math.max(0, max - martial);
+            } else {
+                martial = Math.max(0, max - power);
+            }
+        }
+        powerInput.value = power;
+        martialInput.value = martial;
+    }
+    const powerInput = document.getElementById('powerProficiencyInput');
+    const martialInput = document.getElementById('martialProficiencyInput');
+    if (powerInput && martialInput) {
+        powerInput.addEventListener('input', () => {
+            clampArchetypeProficiencyInputs();
+            updateArchetypeProficiencyUI();
+            updateInnateInfo();
+            updateSummary();
+        });
+        martialInput.addEventListener('input', () => {
+            clampArchetypeProficiencyInputs();
+            updateArchetypeProficiencyUI();
+            updateInnateInfo();
+            updateSummary();
+        });
+    }
+    // Update on level change as well
+    document.getElementById("creatureLevel").addEventListener("input", () => {
+        clampArchetypeProficiencyInputs();
+        updateArchetypeProficiencyUI();
+        updateInnateInfo();
+        updateSummary();
+    });
+    // Initial update
+    clampArchetypeProficiencyInputs();
+    updateArchetypeProficiencyUI();
 
     // Initial updates
     updateInnateInfo();

@@ -1,29 +1,9 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, conditionImmunities, defenseSkillState } from './creatureState.js';
-import creatureFeatsData from './creatureFeatsData.js';
 import {
-    BASE_ABILITY_POINTS,
-    ABILITY_POINTS_PER_3_LEVELS,
-    BASE_FEAT_POINTS,
-    FEAT_POINTS_PER_LEVEL,
-    MARTIAL_BONUS_FEAT_POINTS,
-    MARTIAL_BONUS_FEAT_POINTS_LEVEL_4,
-    BASE_SKILL_POINTS,
-    SKILL_POINTS_PER_LEVEL,
-    BASE_HIT_ENERGY,
-    HIT_ENERGY_PER_LEVEL,
-    BASE_CURRENCY,
-    CURRENCY_GROWTH,
-    BASE_BP,
-    BP_PER_LEVEL,
-    BASE_PROFICIENCY,
-    PROFICIENCY_PER_5_LEVELS,
     calcAbilityPointTotal,
-    calcBaseFeatPoints,
     calcSkillPointTotal,
     calcHitEnergyTotal,
-    calcCreatureCurrency,
-    calcBP,
-    calcProficiency
+    calcCreatureCurrency
 } from './creature_calc.js';
 
 // Descriptions and points for senses and movement
@@ -134,6 +114,30 @@ export const MOVEMENT_POINTS = {
     "Hover": 0
 };
 
+// --- Archetype Proficiency Logic ---
+export function getMaxArchetypeProficiency(level) {
+    level = parseInt(level) || 1;
+    return 2 + Math.floor(level / 5);
+}
+
+export function getPowerProficiency() {
+    const el = document.getElementById('powerProficiencyInput');
+    return el ? parseInt(el.value) || 0 : 0;
+}
+
+export function getMartialProficiency() {
+    const el = document.getElementById('martialProficiencyInput');
+    return el ? parseInt(el.value) || 0 : 0;
+}
+
+export function validateArchetypeProficiency() {
+    const level = getLevelValue();
+    const max = getMaxArchetypeProficiency(level);
+    const power = getPowerProficiency();
+    const martial = getMartialProficiency();
+    return (power >= 0 && martial >= 0 && (power + martial) <= max);
+}
+
 // Utility functions
 export function updateList(listId, arr, removeHandler, descMap, displayMap) {
     const ul = document.getElementById(listId);
@@ -195,14 +199,17 @@ export function formatTechniqueParts(partsArr) {
 }
 
 // Calculations
-export function isMartialCreature() {
-    const dropdown = document.getElementById("creatureTypeDropdown");
-    return dropdown && dropdown.value === "Martial";
-}
-
 export function getBaseFeatPoints(level) {
     level = parseInt(level) || 1;
-    return calcBaseFeatPoints(level, isMartialCreature());
+    // Martial bonus feat points: 1 per martial proficiency, max 2
+    const martialProf = getMartialProficiency();
+    let martialBonus = Math.min(martialProf, 2) * 1; // MARTIAL_BONUS_FEAT_POINTS = 1
+    // If martial proficiency >= 2, get +1 per 3 levels after 4
+    if (martialProf >= 2 && level >= 4) {
+        martialBonus += Math.floor((level - 1) / 3) * 1; // MARTIAL_BONUS_FEAT_POINTS_LEVEL_4 = 1
+    }
+    let base = 4 + 1 * (level - 1); // BASE_FEAT_POINTS + FEAT_POINTS_PER_LEVEL * (level - 1)
+    return base + martialBonus;
 }
 
 export function getSpecialFeatPoints() {
@@ -239,8 +246,8 @@ export function getRemainingFeatPoints() {
 }
 
 export function getProficiency(level) {
-    level = parseInt(level) || 1;
-    return calcProficiency(level);
+    // Not used anymore for summary, use getPowerProficiency/getMartialProficiency directly
+    return getMaxArchetypeProficiency(level);
 }
 
 export function getCreatureCurrency(level) {
@@ -369,19 +376,37 @@ export function getHitEnergyTotal(level) {
     return calcHitEnergyTotal(level);
 }
 
-export function getCreatureTypeToggle() {
-    const dropdown = document.getElementById("creatureTypeDropdown");
-    return dropdown && dropdown.value === "Power";
-}
-
-export function getInnatePowers(level, isPowerCreature) {
-    if (!isPowerCreature) return 0;
+export function getInnatePowers(level) {
+    // Only grant innate powers if Power Proficiency > 0
+    const powerProf = getPowerProficiency();
+    if (powerProf <= 0) return 0;
     level = parseInt(level) || 1;
     if (level < 1) return 0;
     return 2 + Math.floor((level - 1) / 3);
 }
 
-export function getInnateEnergy(innatePowers, isPowerCreature) {
-    if (!isPowerCreature || innatePowers === 0) return 0;
-    return 8 + (innatePowers - 2);
+export function getInnateEnergy(innatePowers) {
+    // Only grant innate energy if Power Proficiency > 0
+    const powerProf = getPowerProficiency();
+    if (powerProf <= 0 || innatePowers === 0) return 0;
+    if (powerProf === 1) return 6;
+    if (powerProf === 2) {
+        // 8 + 1 per 3 levels after 4
+        const level = getLevelValue();
+        let bonus = 0;
+        if (level >= 4) {
+            bonus = Math.floor((level - 1) / 3);
+        }
+        return 8 + bonus;
+    }
+    if (powerProf > 2) {
+        // For powerProf > 2, treat as 2 for this calculation (no extra benefit)
+        const level = getLevelValue();
+        let bonus = 0;
+        if (level >= 4) {
+            bonus = Math.floor((level - 1) / 3);
+        }
+        return 8 + bonus;
+    }
+    return 0;
 }
