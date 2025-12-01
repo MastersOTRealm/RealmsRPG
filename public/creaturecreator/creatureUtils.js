@@ -1,5 +1,30 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, conditionImmunities, defenseSkillState } from './creatureState.js';
 import creatureFeatsData from './creatureFeatsData.js';
+import {
+    BASE_ABILITY_POINTS,
+    ABILITY_POINTS_PER_3_LEVELS,
+    BASE_FEAT_POINTS,
+    FEAT_POINTS_PER_LEVEL,
+    MARTIAL_BONUS_FEAT_POINTS,
+    MARTIAL_BONUS_FEAT_POINTS_LEVEL_4,
+    BASE_SKILL_POINTS,
+    SKILL_POINTS_PER_LEVEL,
+    BASE_HIT_ENERGY,
+    HIT_ENERGY_PER_LEVEL,
+    BASE_CURRENCY,
+    CURRENCY_GROWTH,
+    BASE_BP,
+    BP_PER_LEVEL,
+    BASE_PROFICIENCY,
+    PROFICIENCY_PER_5_LEVELS,
+    calcAbilityPointTotal,
+    calcBaseFeatPoints,
+    calcSkillPointTotal,
+    calcHitEnergyTotal,
+    calcCreatureCurrency,
+    calcBP,
+    calcProficiency
+} from './creature_calc.js';
 
 // Descriptions and points for senses and movement
 export const SENSES_DESCRIPTIONS = {
@@ -177,14 +202,7 @@ export function isMartialCreature() {
 
 export function getBaseFeatPoints(level) {
     level = parseInt(level) || 1;
-    let base = 4.5 + 1.5 * (level - 1);
-    if (isMartialCreature()) {
-        base += 2;
-        if (level >= 4) {
-            base += Math.floor((level - 1) / 3);
-        }
-    }
-    return base;
+    return calcBaseFeatPoints(level, isMartialCreature());
 }
 
 export function getSpecialFeatPoints() {
@@ -222,12 +240,12 @@ export function getRemainingFeatPoints() {
 
 export function getProficiency(level) {
     level = parseInt(level) || 1;
-    return 2 + Math.floor((level) / 5);
+    return calcProficiency(level);
 }
 
 export function getCreatureCurrency(level) {
     level = parseInt(level) || 1;
-    return Math.round(200 * Math.pow(1.45, level - 1));
+    return calcCreatureCurrency(level);
 }
 
 export function getArmamentsTotalCurrency() {
@@ -250,12 +268,12 @@ export function getAbilityPointCost(val) {
 
 export function getAbilityPointTotal(level) {
     level = parseInt(level) || 1;
-    return 7 + Math.floor((level - 1) / 3);
+    return calcAbilityPointTotal(level);
 }
 
 export function getSkillPointTotal() {
     const level = parseInt(document.getElementById('creatureLevel')?.value) || 1;
-    return 2 + 3 * level;
+    return calcSkillPointTotal(level);
 }
 
 export function getSkillPointsSpent() {
@@ -348,7 +366,7 @@ export function getBaseEnergy() {
 
 export function getHitEnergyTotal(level) {
     level = parseInt(level) || 1;
-    return 26 + 12 * (level - 1);
+    return calcHitEnergyTotal(level);
 }
 
 export function getCreatureTypeToggle() {
