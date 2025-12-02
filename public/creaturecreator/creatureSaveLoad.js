@@ -1,4 +1,7 @@
-import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
+import { 
+    resistances, weaknesses, immunities, senses, movement, feats, creatureSkills, creatureSkillValues, 
+    creatureLanguages, conditionImmunities, defenseSkillState 
+} from './creatureState.js';
 import { getAbilityValue, getSkillBonus } from './creatureUtils.js';
 
 // Utility: Get IDs from array of objects
@@ -48,9 +51,9 @@ export async function getCreatureSaveData() {
     const allImmunities = [...immunities, ...conditionImmunities];
     const movementArr = movement.map(m => m.type || m);
     const sensesArr = senses.slice();
-    const powerIds = extractIds(powersTechniques.filter(x => x.type === "power"));
-    const techniqueIds = extractIds(powersTechniques.filter(x => x.type === "technique"));
-    const armamentIds = extractIds(armaments);
+    // const powerIds = extractIds(powersTechniques.filter(x => x.type === "power"));
+    // const techniqueIds = extractIds(powersTechniques.filter(x => x.type === "technique"));
+    // const armamentIds = extractIds(armaments);
     const hitPoints = parseInt(document.getElementById('hitPointsInput')?.value) || 0;
     const energy = parseInt(document.getElementById('energyInput')?.value) || 0;
     const creatureName = document.getElementById("creatureName")?.value || "";
@@ -78,9 +81,6 @@ export async function getCreatureSaveData() {
         abilities,
         defenses,
         feats: featsArr,
-        powers: powerIds,
-        techniques: techniqueIds,
-        armaments: armamentIds,
         description
     };
 }

@@ -1,5 +1,5 @@
 import { powersTechniques, armaments } from './creatureState.js';
-import { renderPowersTechniques, renderArmaments, updateSummary } from './creatureInteractions.js';
+import { updateSummary } from './creatureInteractions.js';
 
 // Modal variables
 let powerModalListenerAdded = false;
@@ -264,7 +264,6 @@ export function setupModalEventListeners() {
                     const power = powers.find(p => p.id === powerId);
                     if (power) {
                         powersTechniques.push(power);
-                        renderPowersTechniques();
                         closePowerModal();
                         updateSummary();
                     }
@@ -288,7 +287,6 @@ export function setupModalEventListeners() {
                     const tech = techniques.find(t => t.id === techId);
                     if (tech) {
                         powersTechniques.push(tech);
-                        renderPowersTechniques();
                         closeTechniqueModal();
                         updateSummary();
                     }
@@ -312,7 +310,6 @@ export function setupModalEventListeners() {
                     const item = items.find(i => i.id === armamentId);
                     if (item) {
                         armaments.push({ ...item });
-                        renderArmaments();
                         closeArmamentModal();
                         updateSummary();
                     }

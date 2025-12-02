@@ -1,5 +1,5 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
-import { updateList, capitalize, formatDamage, formatTechniqueAction, formatTechniqueDamage, formatTechniqueParts, SENSES_DESCRIPTIONS, SENSES_DISPLAY, MOVEMENT_DESCRIPTIONS, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getCreatureCurrency, getArmamentsTotalCurrency, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent } from './creatureUtils.js';
+import { updateList, capitalize, SENSES_DESCRIPTIONS, SENSES_DISPLAY, MOVEMENT_DESCRIPTIONS, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent } from './creatureUtils.js';
 import creatureFeatsData from './creatureFeatsData.js';
 
 let skills = []; // Will be set in initCreatureCreator
@@ -18,9 +18,38 @@ export function updateWeaknessesList() {
     weaknesses.sort();
     updateList("weaknessesList", weaknesses, idx => {
         weaknesses.splice(idx, 1);
+        // Remove one "Weakness" feat for each weakness removed
+        const featIdx = feats.findIndex(f => f.name === "Weakness");
+        if (featIdx !== -1) {
+            feats.splice(featIdx, 1);
+            renderFeats();
+        }
         updateWeaknessesList();
         updateSummary();
     });
+    // Ensure feats match number of weaknesses
+    syncWeaknessFeats();
+}
+
+// Helper to sync "Weakness" feats with weaknesses array
+function syncWeaknessFeats() {
+    const weaknessCount = weaknesses.length;
+    let featCount = feats.filter(f => f.name === "Weakness").length;
+    if (featCount < weaknessCount) {
+        for (let i = featCount; i < weaknessCount; i++) {
+            feats.push({ name: "Weakness", points: 1 });
+        }
+        renderFeats();
+    } else if (featCount > weaknessCount) {
+        let removed = 0;
+        feats.forEach((f, idx) => {
+            if (f.name === "Weakness" && removed < (featCount - weaknessCount)) {
+                feats.splice(idx, 1);
+                removed++;
+            }
+        });
+        renderFeats();
+    }
 }
 
 export function updateImmunitiesList() {
@@ -91,102 +120,6 @@ export function updateLanguagesList() {
         li.appendChild(btn);
         ul.appendChild(li);
     });
-}
-
-export function updateSkillsList() {
-    const ul = document.getElementById("skillsList");
-    ul.innerHTML = "";
-    creatureSkills.slice().sort().forEach((skill, idx) => {
-        const li = document.createElement("li");
-        li.textContent = skill + formatSkillBonusDisplay(skill);
-        const skillValue = typeof creatureSkillValues[skill] === "number" ? creatureSkillValues[skill] : 0;
-        const minusBtn = document.createElement("button");
-        minusBtn.textContent = "-";
-        minusBtn.className = "small-button";
-        minusBtn.style.marginLeft = "8px";
-        minusBtn.onclick = () => {
-            if (creatureSkillValues[skill] > 0) {
-                creatureSkillValues[skill]--;
-                updateSkillsList();
-                updateDefensesUI();
-                updateSummary();
-            }
-        };
-        minusBtn.disabled = skillValue <= 0;
-        const valueSpan = document.createElement("span");
-        valueSpan.textContent = ` ${skillValue} `;
-        valueSpan.style.fontWeight = "bold";
-        valueSpan.style.margin = "0 2px";
-        const plusBtn = document.createElement("button");
-        plusBtn.textContent = "+";
-        plusBtn.className = "small-button";
-        plusBtn.onclick = () => {
-            if (creatureSkillValues[skill] < 3 && getSkillPointsRemaining() > 0) {
-                creatureSkillValues[skill]++;
-                updateSkillsList();
-                updateDefensesUI();
-                updateSummary();
-            }
-        };
-        plusBtn.disabled = skillValue >= 3 || getSkillPointsRemaining() <= 0;
-        const skillObj = skills.find(s => s.name === skill);
-        if (skillObj && skillObj.description) {
-            li.title = skillObj.description;
-        }
-        li.appendChild(minusBtn);
-        li.appendChild(valueSpan);
-        li.appendChild(plusBtn);
-        const btn = document.createElement("button");
-        btn.textContent = "✕";
-        btn.className = "small-button red-button";
-        btn.onclick = () => {
-            creatureSkills.splice(idx, 1);
-            delete creatureSkillValues[skill];
-            updateSkillsList();
-            updateSkillsDropdownOptions();
-            updateDefensesUI();
-            updateSummary();
-        };
-        li.appendChild(btn);
-        ul.appendChild(li);
-    });
-    let skillPointsDisplay = document.getElementById("skillPointsBoxDisplay");
-    if (!skillPointsDisplay) {
-        skillPointsDisplay = document.createElement("div");
-        skillPointsDisplay.id = "skillPointsBoxDisplay";
-        skillPointsDisplay.style.marginTop = "8px";
-        skillPointsDisplay.style.fontWeight = "bold";
-        ul.parentElement.appendChild(skillPointsDisplay);
-    }
-    const points = getSkillPointsRemaining();
-    skillPointsDisplay.textContent = `Skill Points Remaining: ${points}`;
-    skillPointsDisplay.style.color = points < 0 ? "red" : "";
-}
-
-export function updateSkillsDropdownOptions() {
-    const skillsDropdown = document.getElementById("skillsDropdown");
-    while (skillsDropdown.options.length > 1) skillsDropdown.remove(1);
-    skills
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .forEach(skill => {
-            if (skill.subSkill) {
-                if (!skill.baseSkill || !creatureSkills.includes(skill.baseSkill)) return;
-            }
-            if (creatureSkills.includes(skill.name)) return;
-            const opt = document.createElement("option");
-            opt.value = skill.name;
-            opt.textContent = skill.name;
-            if (skill.description) opt.title = skill.description;
-            skillsDropdown.appendChild(opt);
-        });
-}
-
-export function formatSkillBonusDisplay(skillName) {
-    const skillObj = skills.find(s => s.name === skillName);
-    if (!skillObj) return "";
-    const bonus = getSkillBonus(skillObj);
-    const sign = bonus >= 0 ? "+" : "";
-    return ` (${sign}${bonus})`;
 }
 
 export function updateDefensesUI() {
@@ -313,60 +246,12 @@ export function updateCreatureDetailsBox() {
         detailsFeat.textContent = `${(baseFeat - spentFeat).toFixed(1).replace(/\.0$/, "")} / ${baseFeat}`;
         detailsFeat.style.color = (baseFeat - spentFeat) < 0 ? "red" : "";
     }
-    // --- Training Points (TP) ---
-    const tpTotal = (() => {
-        const highestNonVit = getHighestNonVitalityAbility();
-        if (level <= 1) return 9 + highestNonVit;
-        return 9 + highestNonVit + (level - 1) * (1 + highestNonVit);
-    })();
-    const tpSpent = (() => {
-        let spent = 0;
-        spent += powersTechniques.reduce((sum, item) => {
-            if (item.type === "power") return sum + (parseFloat(item.totalBP) || 0);
-            if (item.type === "technique") return sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0);
-            return sum;
-        }, 0);
-        spent += armaments.reduce((sum, item) => sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0), 0);
-        return spent;
-    })();
-    const detailsTP = document.getElementById("detailsTP");
-    if (detailsTP) {
-        detailsTP.textContent = `${tpTotal - tpSpent} / ${tpTotal}`;
-        detailsTP.style.color = (tpTotal - tpSpent) < 0 ? "red" : "";
-    }
-    const bpTotal = (() => {
-        const highestNonVit = getHighestNonVitalityAbility();
-        if (level <= 1) return 9 + highestNonVit;
-        return 9 + highestNonVit + (level - 1) * (1 + highestNonVit);
-    })();
-    const bpSpent = (() => {
-        let spent = 0;
-        spent += powersTechniques.reduce((sum, item) => {
-            if (item.type === "power") return sum + (parseFloat(item.totalBP) || 0);
-            if (item.type === "technique") return sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0);
-            return sum;
-        }, 0);
-        spent += armaments.reduce((sum, item) => sum + (parseFloat(item.totalBP) || parseFloat(item.bp) || 0), 0);
-        return spent;
-    })();
-    const detailsBP = document.getElementById("detailsBP");
-    if (detailsBP) {
-        detailsBP.textContent = `${bpTotal - bpSpent} / ${bpTotal}`;
-        detailsBP.style.color = (bpTotal - bpSpent) < 0 ? "red" : "";
-    }
     const skillTotal = getSkillPointTotal();
     const skillSpent = getSkillPointsSpent();
     const detailsSkill = document.getElementById("detailsSkillPoints");
     if (detailsSkill) {
         detailsSkill.textContent = `${skillTotal - skillSpent} / ${skillTotal}`;
         detailsSkill.style.color = (skillTotal - skillSpent) < 0 ? "red" : "";
-    }
-    const baseCurrency = getCreatureCurrency(level);
-    const spentCurrency = getArmamentsTotalCurrency();
-    const detailsCurrency = document.getElementById("detailsCurrency");
-    if (detailsCurrency) {
-        detailsCurrency.textContent = `${baseCurrency - spentCurrency} / ${baseCurrency}`;
-        detailsCurrency.style.color = (baseCurrency - spentCurrency) < 0 ? "red" : "";
     }
 }
 
@@ -478,169 +363,6 @@ export function renderFeats() {
     });
 }
 
-export function renderPowersTechniques() {
-    const container = document.getElementById("powersTechniquesContainer");
-    container.innerHTML = "";
-    powersTechniques.forEach((item, idx) => {
-        const isPower = item.type === "power";
-        const isTechnique = item.type === "technique";
-        const div = document.createElement("div");
-        div.className = "power-technique-item";
-        if (isPower) {
-            const detailsId = `power-details-${idx}`;
-            div.innerHTML = `
-                <div class="power-header">
-                    <span class="toggle-details" data-details-id="${detailsId}" style="cursor:pointer;">[+]</span>
-                    <span>${item.name} (BP: ${item.totalBP || item.bp || 0})</span>
-                    <button class="small-button red-button remove-btn">✕</button>
-                </div>
-                <div id="${detailsId}" class="power-details" style="display: none;">
-                    <table class="power-table">
-                        <tr><th>Energy</th><td>${item.totalEnergy || item.energy || '-'}</td></tr>
-                        <tr><th>Action</th><td>${item.action || '-'}</td></tr>
-                        <tr><th>Duration</th><td>${item.duration ? `${item.duration} ${item.durationType || ''}` : '-'}</td></tr>
-                        <tr><th>Range</th><td>${item.range || '-'}</td></tr>
-                        <tr><th>Area of Effect</th><td>${item.areaOfEffect || item.areaEffect || '-'}</td></tr>
-                        <tr><th>Focus</th><td>${item.focus ? 'Yes' : (item.focusChecked ? 'Yes' : 'No')}</td></tr>
-                        <tr><th>Sustain</th><td>${item.sustainValue > 0 ? item.sustainValue : 'None'}</td></tr>
-                        <tr><th>Damage</th><td>${formatDamage(item.damage)}</td></tr>
-                        <tr><th>Training Points</th><td>${item.totalBP || item.bp || '-'}</td></tr>
-                        <tr><th>Power Parts</th><td>${item.powerParts ? (Array.isArray(item.powerParts) ? item.powerParts.map(p => p.part || p).join(', ') : '-') : '-'}</td></tr>
-                        <tr><th>Description</th><td>${item.description || '-'}</td></tr>
-                    </table>
-                </div>
-            `;
-        } else if (isTechnique) {
-            const detailsId = `technique-details-${idx}`;
-            div.innerHTML = `
-                <div class="power-header">
-                    <span class="toggle-details" data-details-id="${detailsId}" style="cursor:pointer;">[+]</span>
-                    <span>${item.name} (BP: ${item.totalBP || item.bp || 0})</span>
-                    <button class="small-button red-button remove-btn">✕</button>
-                </div>
-                <div id="${detailsId}" class="power-details" style="display: none;">
-                    <table class="power-table">
-                        <tr><th>Energy</th><td>${item.totalEnergy !== undefined ? item.totalEnergy : (item.energy !== undefined ? item.energy : '-')}</td></tr>
-                        <tr><th>Action</th><td>${formatTechniqueAction(item)}</td></tr>
-                        <tr><th>Weapon</th><td>${item.weapon && item.weapon.name ? item.weapon.name : "Unarmed Prowess"}</td></tr>
-                        <tr><th>Damage</th><td>${formatTechniqueDamage(item.damage)}</td></tr>
-                        <tr><th>Training Points</th><td>${item.totalBP !== undefined ? item.totalBP : (item.bp !== undefined ? item.bp : '-')}</td></tr>
-                        <tr><th>Technique Parts</th><td>${formatTechniqueParts(item.techniqueParts)}</td></tr>
-                        <tr><th>Description</th><td>${item.description || '-'}</td></tr>
-                    </table>
-                </div>
-            `;
-        }
-        div.querySelector('.remove-btn').onclick = () => {
-            powersTechniques.splice(idx, 1);
-            renderPowersTechniques();
-            updateSummary();
-        };
-        if (div.querySelector('.toggle-details')) {
-            div.querySelector('.toggle-details').onclick = () => {
-                const details = document.getElementById(isPower ? `power-details-${idx}` : `technique-details-${idx}`);
-                const toggle = div.querySelector('.toggle-details');
-                if (details.style.display === 'none') {
-                    details.style.display = 'block';
-                    toggle.textContent = '[-]';
-                } else {
-                    details.style.display = 'none';
-                    toggle.textContent = '[+]';
-                }
-            };
-        }
-        container.appendChild(div);
-    });
-    updateSummary();
-}
-
-export function renderArmaments() {
-    const container = document.getElementById("armamentsContainer");
-    container.innerHTML = "";
-    if (!armaments.length) return;
-    const table = document.createElement('table');
-    table.className = 'powers-table';
-    const headers = ['Name', 'Rarity', 'Gold', 'BP', 'Range', 'Damage', 'Parts', 'Description', 'Remove'];
-    const headerRow = document.createElement('tr');
-    headers.forEach(h => {
-        const th = document.createElement('th');
-        th.textContent = h;
-        headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
-    armaments.forEach((item, idx) => {
-        const row = document.createElement('tr');
-        const nameCell = document.createElement('td');
-        nameCell.textContent = item.name || '';
-        row.appendChild(nameCell);
-        const rarityCell = document.createElement('td');
-        rarityCell.textContent = item.rarity || '';
-        row.appendChild(rarityCell);
-        const goldCell = document.createElement('td');
-        goldCell.textContent = item.totalGP !== undefined ? item.totalGP : (item.gp !== undefined ? item.gp : '');
-        row.appendChild(goldCell);
-        const bpCell = document.createElement('td');
-        bpCell.textContent = item.totalBP !== undefined ? item.totalBP : (item.bp !== undefined ? item.bp : '');
-        row.appendChild(bpCell);
-        const rangeCell = document.createElement('td');
-        let rangeStr = "-";
-        if (item.range !== undefined && item.range !== null && item.range !== "") {
-            if (typeof item.range === "number" && item.range > 0) {
-                rangeStr = `${item.range} spaces`;
-            } else if (typeof item.range === "string" && item.range.trim() !== "") {
-                rangeStr = item.range;
-            } else if (item.range === 0) {
-                rangeStr = "Melee";
-            }
-        }
-        rangeCell.textContent = rangeStr;
-        row.appendChild(rangeCell);
-        const dmgCell = document.createElement('td');
-        let damageStr = "";
-        if (item.damage && Array.isArray(item.damage)) {
-            damageStr = item.damage
-                .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
-                .map(d => `${d.amount}d${d.size} ${d.type}`)
-                .join(', ');
-        }
-        dmgCell.textContent = damageStr;
-        row.appendChild(dmgCell);
-        const partsCell = document.createElement('td');
-        if (item.itemParts && item.itemParts.length > 0) {
-            partsCell.innerHTML = item.itemParts.map(part => {
-                let desc = "";
-                if (window.itemPartsData) {
-                    const found = window.itemPartsData.find(p => p.name === part.part);
-                    if (found && found.description) desc = found.description;
-                }
-                let opt = "";
-                if (part.opt1Level) opt += ` Opt 1: (${part.opt1Level})`;
-                if (part.opt2Level) opt += ` Opt 2: (${part.opt2Level})`;
-                if (part.opt3Level) opt += ` Opt 3: (${part.opt3Level})`;
-                return `<span style="margin-right:10px;cursor:help;" title="${desc}">${part.part}${opt}</span>`;
-            }).join('');
-        }
-        row.appendChild(partsCell);
-        const descCell = document.createElement('td');
-        descCell.textContent = item.description || '';
-        row.appendChild(descCell);
-        const removeCell = document.createElement('td');
-        const removeBtn = document.createElement('button');
-        removeBtn.className = "small-button red-button";
-        removeBtn.textContent = "✕";
-        removeBtn.onclick = () => {
-            armaments.splice(idx, 1);
-            renderArmaments();
-            updateSummary();
-        };
-        removeCell.appendChild(removeBtn);
-        row.appendChild(removeCell);
-        table.appendChild(row);
-    });
-    container.appendChild(table);
-    updateSummary();
-}
-
 // Main initialization function to be called from creatureCreator.js
 export function initCreatureCreator(deps = {}) {
     // Accept skills from deps
@@ -657,7 +379,6 @@ export function initCreatureCreator(deps = {}) {
         updateCreatureAbilityDropdowns();
         updateHealthEnergyUI();
         updateDefensesUI();
-        updateSkillsList();
     });
     document.getElementById("creatureType").addEventListener("change", updateSummary);
 
@@ -692,6 +413,9 @@ export function initCreatureCreator(deps = {}) {
         const val = document.getElementById("weaknessDropdown").value;
         if (val && !weaknesses.includes(val)) {
             weaknesses.push(val);
+            // Add a "Weakness" feat for each weakness added
+            feats.push({ name: "Weakness", points: 1 });
+            renderFeats();
             updateWeaknessesList();
             updateSummary();
         }
@@ -704,6 +428,11 @@ export function initCreatureCreator(deps = {}) {
         removeAllWeakBtn.style.marginLeft = "5px";
         removeAllWeakBtn.onclick = () => {
             weaknesses.length = 0;
+            // Remove all "Weakness" feats
+            for (let i = feats.length - 1; i >= 0; i--) {
+                if (feats[i].name === "Weakness") feats.splice(i, 1);
+            }
+            renderFeats();
             updateWeaknessesList();
             updateSummary();
         };
@@ -838,54 +567,11 @@ export function initCreatureCreator(deps = {}) {
     };
 
     // Powers/Techniques
-    renderPowersTechniques();
     document.getElementById("addPowerBtn").onclick = window.openPowerModal || (() => {});
     document.getElementById("addTechniqueBtn").onclick = window.openTechniqueModal || (() => {});
 
     // Armaments
-    renderArmaments();
     document.getElementById("addArmamentBtn").onclick = window.openArmamentModal || (() => {});
-
-    // Skills
-    updateSkillsDropdownOptions();
-    updateSkillsList();
-    document.getElementById("addSkillBtn").onclick = () => {
-        const val = document.getElementById("skillsDropdown").value;
-        if (!val) return;
-        const skillObj = skills.find(s => s.name === val);
-        if (skillObj && skillObj.subSkill && skillObj.baseSkill && !creatureSkills.includes(skillObj.baseSkill)) {
-            alert(`You must add the base skill "${skillObj.baseSkill}" before adding "${skillObj.name}".`);
-            return;
-        }
-        if (getSkillPointsRemaining() < 1) {
-            alert("You do not have enough skill points to add another skill.");
-            return;
-        }
-        if (!creatureSkills.includes(val)) {
-            creatureSkills.push(val);
-            creatureSkillValues[val] = 0;
-            updateSkillsList();
-            updateSkillsDropdownOptions();
-            updateDefensesUI();
-            updateSummary();
-        }
-    };
-    if (!document.getElementById("removeAllSkillsBtn")) {
-        const removeAllSkillsBtn = document.createElement("button");
-        removeAllSkillsBtn.id = "removeAllSkillsBtn";
-        removeAllSkillsBtn.textContent = "Remove All";
-        removeAllSkillsBtn.className = "small-button red-button";
-        removeAllSkillsBtn.style.marginLeft = "5px";
-        removeAllSkillsBtn.onclick = () => {
-            creatureSkills.length = 0;
-            for (const k in creatureSkillValues) delete creatureSkillValues[k];
-            updateSkillsList();
-            updateSkillsDropdownOptions();
-            updateDefensesUI();
-            updateSummary();
-        };
-        document.getElementById("addSkillBtn").after(removeAllSkillsBtn);
-    }
 
     // Languages
     updateLanguagesList();
@@ -908,7 +594,6 @@ export function initCreatureCreator(deps = {}) {
             updateCreatureAbilityDropdowns();
             updateHealthEnergyUI();
             updateDefensesUI();
-            updateSkillsList();
         });
     });
 

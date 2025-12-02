@@ -11,6 +11,7 @@ import * as creatureState from './creatureState.js';
 import * as creatureInteractions from './creatureInteractions.js';
 import * as creatureModals from './creatureModals.js';
 import * as creatureSaveLoad from './creatureSaveLoad.js';
+import * as creatureSkillInteractions from './creatureSkillInteractions.js';
 
 // --- Firebase Initialization (v11 compat, global) ---
 let firebaseApp, firebaseAuth, firebaseDb, currentUser, firebaseRTDB;
@@ -77,6 +78,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             ...creatureState,
             ...creatureModals,
             ...creatureSaveLoad
+        });
+    }
+    // --- Initialize skill interactions ---
+    if (creatureSkillInteractions && typeof creatureSkillInteractions.initCreatureSkills === 'function') {
+        creatureSkillInteractions.initCreatureSkills({
+            skills,
+            updateDefensesUI: creatureInteractions.updateDefensesUI,
+            updateSummary: creatureInteractions.updateSummary
         });
     }
     // If the modules do not provide an init function, ensure all UI/event logic is handled in those modules.

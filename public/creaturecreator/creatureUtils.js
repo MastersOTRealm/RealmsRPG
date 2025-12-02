@@ -1,4 +1,7 @@
-import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, conditionImmunities, defenseSkillState } from './creatureState.js';
+import { 
+    resistances, weaknesses, immunities, senses, movement, feats, creatureSkills, creatureSkillValues, 
+    conditionImmunities, defenseSkillState 
+} from './creatureState.js';
 import {
     calcAbilityPointTotal,
     calcSkillPointTotal,
@@ -255,17 +258,6 @@ export function getCreatureCurrency(level) {
     return calcCreatureCurrency(level);
 }
 
-export function getArmamentsTotalCurrency() {
-    return armaments.reduce((sum, item) => {
-        let currency = 0;
-        if (typeof item.totalCurrency === "number") currency = item.totalCurrency;
-        else if (typeof item.currency === "number") currency = item.currency;
-        else if (!isNaN(Number(item.totalCurrency))) currency = Number(item.totalCurrency);
-        else if (!isNaN(Number(item.currency))) currency = Number(item.currency);
-        return sum + (currency || 0);
-    }, 0);
-}
-
 export function getAbilityPointCost(val) {
     val = parseInt(val);
     if (isNaN(val)) return 0;
@@ -301,7 +293,17 @@ export function getAbilityValue(id) {
 }
 
 export function getSkillBonus(skillObj) {
-    if (!skillObj || !Array.isArray(skillObj.abilities) || skillObj.abilities.length === 0) return 0;
+    if (!skillObj) return 0;
+    // Support both 'ability' (from DB) and 'abilities' (legacy)
+    let abilityArr = [];
+    if (Array.isArray(skillObj.abilities)) {
+        abilityArr = skillObj.abilities;
+    } else if (Array.isArray(skillObj.ability)) {
+        abilityArr = skillObj.ability;
+    } else if (typeof skillObj.ability === "string") {
+        abilityArr = [skillObj.ability];
+    }
+    if (!abilityArr.length) return 0;
     const abilityMap = {
         strength: 'creatureAbilityStrength',
         vitality: 'creatureAbilityVitality',
@@ -311,14 +313,16 @@ export function getSkillBonus(skillObj) {
         charisma: 'creatureAbilityCharisma'
     };
     let max = -Infinity;
-    skillObj.abilities.forEach(ability => {
+    abilityArr.forEach(ability => {
         const id = abilityMap[ability.toLowerCase()];
         if (id) {
             const val = getAbilityValue(id);
             if (val > max) max = val;
         }
     });
-    const skillValue = typeof creatureSkillValues[skillObj.name] === "number" ? creatureSkillValues[skillObj.name] : 0;
+    // Always use the skill's name for value lookup
+    const skillName = skillObj.name;
+    const skillValue = typeof creatureSkillValues[skillName] === "number" ? creatureSkillValues[skillName] : 0;
     return (max === -Infinity ? 0 : max) + skillValue;
 }
 
