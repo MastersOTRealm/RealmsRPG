@@ -1,5 +1,4 @@
 import { powersTechniques, armaments } from './creatureState.js';
-import { updateSummary } from './creatureInteractions.js';
 
 // Modal variables
 let powerModalListenerAdded = false;
@@ -248,6 +247,14 @@ export function closeArmamentModal() {
     document.getElementById('loadArmamentModal').style.display = 'none';
 }
 
+// --- Add this at the top ---
+let modalUpdateSummary = () => {}
+
+// Allow main to inject updateSummary
+export function setModalUpdateSummary(fn) {
+    if (typeof fn === "function") modalUpdateSummary = fn;
+}
+
 // Setup modal event listeners
 export function setupModalEventListeners() {
     // Power modal
@@ -265,7 +272,7 @@ export function setupModalEventListeners() {
                     if (power) {
                         powersTechniques.push(power);
                         closePowerModal();
-                        updateSummary();
+                        modalUpdateSummary();
                     }
                 }
             });
@@ -288,7 +295,7 @@ export function setupModalEventListeners() {
                     if (tech) {
                         powersTechniques.push(tech);
                         closeTechniqueModal();
-                        updateSummary();
+                        modalUpdateSummary();
                     }
                 }
             });
@@ -311,7 +318,7 @@ export function setupModalEventListeners() {
                     if (item) {
                         armaments.push({ ...item });
                         closeArmamentModal();
-                        updateSummary();
+                        modalUpdateSummary();
                     }
                 }
             });

@@ -82,41 +82,6 @@ export const MOVEMENT_DISPLAY = {
     "Hover": "Hover"
 };
 
-export const SENSES_POINTS = {
-    "Darkvision": 1,
-    "Darkvision II": 2,
-    "Darkvision III": 4,
-    "Blindsense": 0.5,
-    "Blindsense II": 1,
-    "Blindsense III": 2,
-    "Blindsense IV": 4,
-    "Amphibious": 1,
-    "All-Surface Climber": 2,
-    "Telepathy": 1,
-    "Telepathy II": 2,
-    "Telepathically Intune": 1,
-    "Waterbreathing": 0,
-    "Unrestrained Movement": 1.5
-};
-
-export const MOVEMENT_POINTS = {
-    "Fly Half": 2,
-    "Fly": 3,
-    "Burrow": 1,
-    "Burrow II": 2,
-    "Jump": 1,
-    "Jump II": 2,
-    "Jump III": 3,
-    "Speedy": 1,
-    "Speedy II": 2,
-    "Speedy III": 3,
-    "Slow": -0.5,
-    "Slow II": -1.5,
-    "Slow III": -3,
-    "Slow Walker": -0.5,
-    "Hover": 0
-};
-
 // --- Archetype Proficiency Logic ---
 export function getMaxArchetypeProficiency(level) {
     level = parseInt(level) || 1;
@@ -216,25 +181,9 @@ export function getBaseFeatPoints(level) {
 }
 
 export function getSpecialFeatPoints() {
-    let points = 0;
-    points += immunities.length * 2;
-    points += resistances.length * 1;
-    points += weaknesses.length * -0.5;
-    senses.forEach(sense => {
-        if (SENSES_POINTS.hasOwnProperty(sense)) points += SENSES_POINTS[sense];
-    });
-    movement.forEach(move => {
-        if (move.type === "Ground") return;
-        if (MOVEMENT_POINTS.hasOwnProperty(move.type)) points += MOVEMENT_POINTS[move.type];
-    });
-    if (movement.some(m => m.type === "Hover")) {
-        let flyingLevel = 0;
-        if (movement.some(m => m.type === "Fly")) flyingLevel = 2;
-        else if (movement.some(m => m.type === "Fly Half")) flyingLevel = 1;
-        points += -1 * flyingLevel;
-    }
-    points += conditionImmunities.length * 1.5;
-    return points;
+    // Removed all calculations for senses, movement, condition immunities, and Hover adjustments
+    // These elements now only have names and descriptions, no feat point contributions
+    return 0;
 }
 
 export function getSpentFeatPoints() {

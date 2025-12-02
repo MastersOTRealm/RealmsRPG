@@ -18,38 +18,9 @@ export function updateWeaknessesList() {
     weaknesses.sort();
     updateList("weaknessesList", weaknesses, idx => {
         weaknesses.splice(idx, 1);
-        // Remove one "Weakness" feat for each weakness removed
-        const featIdx = feats.findIndex(f => f.name === "Weakness");
-        if (featIdx !== -1) {
-            feats.splice(featIdx, 1);
-            renderFeats();
-        }
         updateWeaknessesList();
         updateSummary();
     });
-    // Ensure feats match number of weaknesses
-    syncWeaknessFeats();
-}
-
-// Helper to sync "Weakness" feats with weaknesses array
-function syncWeaknessFeats() {
-    const weaknessCount = weaknesses.length;
-    let featCount = feats.filter(f => f.name === "Weakness").length;
-    if (featCount < weaknessCount) {
-        for (let i = featCount; i < weaknessCount; i++) {
-            feats.push({ name: "Weakness", points: 1 });
-        }
-        renderFeats();
-    } else if (featCount > weaknessCount) {
-        let removed = 0;
-        feats.forEach((f, idx) => {
-            if (f.name === "Weakness" && removed < (featCount - weaknessCount)) {
-                feats.splice(idx, 1);
-                removed++;
-            }
-        });
-        renderFeats();
-    }
 }
 
 export function updateImmunitiesList() {
@@ -413,9 +384,6 @@ export function initCreatureCreator(deps = {}) {
         const val = document.getElementById("weaknessDropdown").value;
         if (val && !weaknesses.includes(val)) {
             weaknesses.push(val);
-            // Add a "Weakness" feat for each weakness added
-            feats.push({ name: "Weakness", points: 1 });
-            renderFeats();
             updateWeaknessesList();
             updateSummary();
         }
@@ -428,11 +396,6 @@ export function initCreatureCreator(deps = {}) {
         removeAllWeakBtn.style.marginLeft = "5px";
         removeAllWeakBtn.onclick = () => {
             weaknesses.length = 0;
-            // Remove all "Weakness" feats
-            for (let i = feats.length - 1; i >= 0; i--) {
-                if (feats[i].name === "Weakness") feats.splice(i, 1);
-            }
-            renderFeats();
             updateWeaknessesList();
             updateSummary();
         };
