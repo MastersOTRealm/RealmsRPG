@@ -344,8 +344,8 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
             }
         }
     
-        // Damage mechanic parts - never applied to duration
-        const addDamagePart = (damageType, dieAmount, dieSize) => {
+        // Damage mechanic parts - now allow applyDuration for each damage row
+        const addDamagePart = (damageType, dieAmount, dieSize, applyDuration) => {
             let partName = '';
             if (damageType === 'magic') partName = 'Magic Damage';
             else if (damageType === 'light') partName = 'Light Damage';
@@ -361,7 +361,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
                 if (damagePart) {
                     const totalDamage = dieAmount * dieSize;
                     const opt1Level = Math.floor((totalDamage - 4) / 2);
-                    mechanicParts.push({ part: damagePart, op_1_lvl: Math.max(0, opt1Level), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); // Explicitly never apply to duration
+                    mechanicParts.push({ part: damagePart, op_1_lvl: Math.max(0, opt1Level), op_2_lvl: 0, op_3_lvl: 0, applyDuration: !!applyDuration });
                 }
             }
         };
@@ -370,16 +370,18 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         const dieAmount1 = parseInt(document.getElementById('dieAmount1').value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1').value, 10);
         const damageType1 = document.getElementById('damageType1').value;
+        const damageApplyDuration1 = document.getElementById('damageApplyDuration1')?.checked;
         if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 !== "none") {
-            addDamagePart(damageType1, dieAmount1, dieSize1);
+            addDamagePart(damageType1, dieAmount1, dieSize1, damageApplyDuration1);
         }
 
         // Second damage row
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
         const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
         const damageType2 = document.getElementById('damageType2')?.value;
+        const damageApplyDuration2 = document.getElementById('damageApplyDuration2')?.checked;
         if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 !== "none") {
-            addDamagePart(damageType2, dieAmount2, dieSize2);
+            addDamagePart(damageType2, dieAmount2, dieSize2, damageApplyDuration2);
         }
 
         // Duration mechanic parts (from database)
@@ -801,6 +803,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
                 <select id="damageType2" onchange="updateDamageType()">
                     <option value="none" selected>No Damage</option>
                     <option value="magic">Magic</option>
+                    <option value="light">Light</option>
                     <option value="fire">Fire</option>
                     <option value="ice">Ice</option>
                     <option value="lightning">Lightning</option>
@@ -815,6 +818,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
                     <option value="slashing">Slashing</option>
                 </select>
                 <button id="removeDamageRowButton" class="medium-button red-button" onclick="removeDamageRow()">-</button>
+                <label style="margin-left:10px;"><input type="checkbox" id="damageApplyDuration2" onclick="updateTotalCosts()"> Apply Duration</label>
             </h4>
         `;
         document.getElementById('addDamageRowButton').style.display = 'none';
@@ -904,8 +908,8 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
             }
         }
 
-        // Damage (both rows, but never apply to duration)
-        const addDamagePart = (damageType, dieAmount, dieSize) => {
+        // Damage (both rows, now allow applyDuration)
+        const addDamagePart = (damageType, dieAmount, dieSize, applyDuration) => {
             let partName = '';
             if (damageType === 'magic') partName = 'Magic Damage';
             else if (damageType === 'light') partName = 'Light Damage';
@@ -921,7 +925,7 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
                 if (damagePart) {
                     const totalDamage = dieAmount * dieSize;
                     const op1 = Math.max(0, Math.floor((totalDamage - 4) / 2));
-                    mechanicParts.push({ part: damagePart, op_1_lvl: op1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+                    mechanicParts.push({ part: damagePart, op_1_lvl: op1, op_2_lvl: 0, op_3_lvl: 0, applyDuration: !!applyDuration });
                 }
             }
         };
@@ -929,33 +933,15 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         const dieAmount1 = parseInt(document.getElementById('dieAmount1')?.value, 10);
         const dieSize1 = parseInt(document.getElementById('dieSize1')?.value, 10);
         const damageType1 = document.getElementById('damageType1')?.value;
-        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 && damageType1 !== "none") addDamagePart(damageType1, dieAmount1, dieSize1);
+        const damageApplyDuration1 = document.getElementById('damageApplyDuration1')?.checked;
+        if (!isNaN(dieAmount1) && !isNaN(dieSize1) && damageType1 && damageType1 !== "none") addDamagePart(damageType1, dieAmount1, dieSize1, damageApplyDuration1);
 
         const dieAmount2 = parseInt(document.getElementById('dieAmount2')?.value, 10);
         const dieSize2 = parseInt(document.getElementById('dieSize2')?.value, 10);
         const damageType2 = document.getElementById('damageType2')?.value;
-        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 && damageType2 !== "none") addDamagePart(damageType2, dieAmount2, dieSize2);
+        const damageApplyDuration2 = document.getElementById('damageApplyDuration2')?.checked;
+        if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 && damageType2 !== "none") addDamagePart(damageType2, dieAmount2, dieSize2, damageApplyDuration2);
 
-        const durationType = document.getElementById('durationType')?.value;
-        const durationValue = parseInt(document.getElementById('durationValue')?.value, 10) || 1;
-        const idx = durationValue - 1;
-        const getMP = (n) => powerParts.find(p => p.name === n && (p.mechanic || p.duration));
-        if (document.getElementById('focusCheckbox')?.checked) { const p = getMP('Focus for Duration'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        if (document.getElementById('noHarmCheckbox')?.checked) { const p = getMP('No Harm or Adaptation for Duration'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        if (document.getElementById('endsOnceCheckbox')?.checked) { const p = getMP('Duration Ends On Activation'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        const sustainValue = parseInt(document.getElementById('sustainValue')?.value, 10) || 0;
-        if (sustainValue > 0) { const p = getMP('Sustain for Duration'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, sustainValue - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        if (durationType === 'permanent') { const p = getMP('Duration (Permanent)'); if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        else if (durationType === 'days') { const p = getMP('Duration (Days)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        else if (durationType === 'hours') { const p = getMP('Duration (Hour)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        else if (durationType === 'minutes') { const p = getMP('Duration (Minute)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }
-        else if (durationType === 'rounds') { if (durationValue > 1) { const p = getMP('Duration (Round)'); if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false }); }}
-
-        const rangeSteps = range;
-        if (rangeSteps > 0) {
-            const rangePart = powerParts.find(p => p.name === 'Power Range' && p.mechanic);
-            if (rangePart) mechanicParts.push({ part: rangePart, op_1_lvl: Math.max(0, rangeSteps - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
-        }
         return mechanicParts;
     }
 
@@ -972,15 +958,17 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         const dieAmount1 = document.getElementById('dieAmount1')?.value || '';
         const dieSize1 = document.getElementById('dieSize1')?.value || '';
         const damageType1 = document.getElementById('damageType1')?.value || 'none';
+        const damageApplyDuration1 = document.getElementById('damageApplyDuration1')?.checked || false;
         if (dieAmount1 && dieSize1 && damageType1 !== 'none') {
-            damageArray.push({ amount: dieAmount1, size: dieSize1, type: damageType1 });
+            damageArray.push({ amount: dieAmount1, size: dieSize1, type: damageType1, applyDuration: damageApplyDuration1 });
         }
 
         const dieAmount2 = document.getElementById('dieAmount2')?.value || '';
         const dieSize2 = document.getElementById('dieSize2')?.value || '';
         const damageType2 = document.getElementById('damageType2')?.value || 'none';
+        const damageApplyDuration2 = document.getElementById('damageApplyDuration2')?.checked || false;
         if (dieAmount2 && dieSize2 && damageType2 !== 'none') {
-            damageArray.push({ amount: dieAmount2, size: dieSize2, type: damageType2 });
+            damageArray.push({ amount: dieAmount2, size: dieSize2, type: damageType2, applyDuration: damageApplyDuration2 });
         }
 
         // Build mechanic parts
@@ -1073,17 +1061,19 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
         document.getElementById('powerName').value = power.name || '';
         document.getElementById('powerDescription').value = power.description || '';
 
-        // Handle damage (new format: array of objects with amount, size, type)
+        // Handle damage (now includes applyDuration)
         const damageData = power.damage || [];
         if (damageData.length > 0) {
             const dmg1 = damageData[0];
             document.getElementById('dieAmount1').value = dmg1.amount || '';
             document.getElementById('dieSize1').value = dmg1.size || '';
             document.getElementById('damageType1').value = dmg1.type || 'none';
+            document.getElementById('damageApplyDuration1').checked = !!dmg1.applyDuration;
         } else {
             document.getElementById('dieAmount1').value = '';
             document.getElementById('dieSize1').value = '';
             document.getElementById('damageType1').value = 'none';
+            document.getElementById('damageApplyDuration1').checked = false;
         }
 
         if (damageData.length > 1) {
@@ -1092,8 +1082,8 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
             document.getElementById('dieAmount2').value = dmg2.amount || '';
             document.getElementById('dieSize2').value = dmg2.size || '';
             document.getElementById('damageType2').value = dmg2.type || 'none';
+            document.getElementById('damageApplyDuration2').checked = !!dmg2.applyDuration;
         }
-
         // CHANGED: Load ALL parts, including mechanic parts, to preserve applyDuration state
         const savedParts = power.parts || power.powerParts || [];
         selectedPowerParts.length = 0;

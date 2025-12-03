@@ -105,6 +105,7 @@
                         <select id="damageType1" onchange="updateDamageType()">
                             <option value="none" selected>No Damage</option>
                             <option value="magic">Magic</option>
+                            <option value="light">Light</option>
                             <option value="fire">Fire</option>
                             <option value="ice">Ice</option>
                             <option value="lightning">Lightning</option>
@@ -119,7 +120,9 @@
                             <option value="slashing">Slashing</option>
                         </select>
                         <button id="addDamageRowButton" class="medium-button blue-button" onclick="addDamageRow()">+</button>
+                        <label style="margin-left:10px;"><input type="checkbox" id="damageApplyDuration1" onclick="updateTotalCosts()"> Apply Duration</label>
                     </h4>
+                    <div id="additionalDamageRow"></div>
                 </div>
             </div>
             <div class="advanced-toggle" onclick="toggleAdvancedMechanics()">
