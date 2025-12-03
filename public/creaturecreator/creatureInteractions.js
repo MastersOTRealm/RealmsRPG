@@ -1,8 +1,53 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
 import { updateList, capitalize, SENSES_DESCRIPTIONS, SENSES_DISPLAY, MOVEMENT_DESCRIPTIONS, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent } from './creatureUtils.js';
-import creatureFeatsData from './creatureFeatsData.js';
+// REMOVE: import creatureFeatsData from './creatureFeatsData.js';
+
+// Add Firebase import for Realtime Database
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 let skills = []; // Will be set in initCreatureCreator
+let allCreatureFeats = []; // Will be loaded from Realtime Database
+
+// Helper: Load all feats from Realtime Database
+async function loadCreatureFeatsFromDatabase() {
+    const db = getDatabase();
+    const featsRef = ref(db, 'creature_feats');
+    const snapshot = await get(featsRef);
+    if (snapshot.exists()) {
+        allCreatureFeats = Object.values(snapshot.val());
+    } else {
+        allCreatureFeats = [];
+    }
+}
+
+// Helper: get background feat points for resistances/weaknesses/immunities/condition immunities
+function getBackgroundFeatPoints() {
+    let total = 0;
+    // For each resistance, add "Resistance" feat points
+    const resistanceFeat = allCreatureFeats.find(f => f.name === "Resistance");
+    if (resistanceFeat) total += resistances.length * resistanceFeat.feat_points;
+    // For each weakness, add "Weakness" feat points
+    const weaknessFeat = allCreatureFeats.find(f => f.name === "Weakness");
+    if (weaknessFeat) total += weaknesses.length * weaknessFeat.feat_points;
+    // For each immunity, add "Immunity" feat points
+    const immunityFeat = allCreatureFeats.find(f => f.name === "Immunity");
+    if (immunityFeat) total += immunities.length * immunityFeat.feat_points;
+    // For each condition immunity, add "Condition Immunity" feat points
+    const condImmunityFeat = allCreatureFeats.find(f => f.name === "Condition Immunity");
+    if (condImmunityFeat) total += conditionImmunities.length * condImmunityFeat.feat_points;
+    return total;
+}
+
+// Patch getSpentFeatPoints to include background feats
+import { getSpentFeatPoints as originalGetSpentFeatPoints } from './creatureUtils.js';
+function getSpentFeatPointsWithBackground() {
+    return originalGetSpentFeatPoints() + getBackgroundFeatPoints();
+}
+
+function getRemainingFeatPointsWithBackground() {
+    const level = getLevelValue();
+    return getBaseFeatPoints(level) - getSpentFeatPointsWithBackground();
+}
 
 // Update functions for lists
 export function updateResistancesList() {
@@ -211,7 +256,7 @@ export function updateInnateInfo() {
 export function updateCreatureDetailsBox() {
     const level = document.getElementById("creatureLevel")?.value || 1;
     const baseFeat = getBaseFeatPoints(level);
-    const spentFeat = getSpentFeatPoints();
+    const spentFeat = getSpentFeatPointsWithBackground();
     const detailsFeat = document.getElementById("detailsFeatPoints");
     if (detailsFeat) {
         detailsFeat.textContent = `${(baseFeat - spentFeat).toFixed(1).replace(/\.0$/, "")} / ${baseFeat}`;
@@ -242,7 +287,7 @@ export function updateSummary() {
     const others = movement.slice().sort((a, b) => a.type.localeCompare(b.type));
     let movementSummary = others.map(m => MOVEMENT_DISPLAY[m.type] || m.type);
     document.getElementById("summaryMovement").textContent = movementSummary.length ? movementSummary.join(", ") : "None";
-    const remaining = getRemainingFeatPoints();
+    const remaining = getRemainingFeatPointsWithBackground();
     const featPointsElem = document.getElementById("summaryFeatPoints");
     if (featPointsElem) {
         featPointsElem.textContent = remaining.toFixed(1).replace(/\.0$/, "");
@@ -294,33 +339,34 @@ export function renderFeats() {
         defaultOption.value = "";
         defaultOption.textContent = "Select Feat";
         select.appendChild(defaultOption);
-        creatureFeatsData.forEach(f => {
-            const opt = document.createElement("option");
-            opt.value = f.name;
-            // Use feat_points instead of cost
-            opt.textContent = `${f.name} (${f.feat_points})`;
-            if (feat.name === f.name) opt.selected = true;
-            select.appendChild(opt);
-        });
+        // Only show feats with mechanic: false
+        allCreatureFeats
+            .filter(f => !f.mechanic)
+            .forEach(f => {
+                const opt = document.createElement("option");
+                opt.value = f.name;
+                opt.textContent = `${f.name} (${f.feat_points})`;
+                if (feat.name === f.name) opt.selected = true;
+                select.appendChild(opt);
+            });
         select.onchange = e => {
-            const selected = creatureFeatsData.find(f => f.name === e.target.value);
+            const selected = allCreatureFeats.find(f => f.name === e.target.value);
             if (selected) {
                 feat.name = selected.name;
-                feat.points = selected.feat_points; // Use feat_points
+                feat.points = selected.feat_points;
             } else {
                 feat.name = "";
-                feat.points = 1;
+                feat.points = 0; // No points for blank
             }
             renderFeats();
             updateSummary();
         };
         row.appendChild(select);
         if (feat.name) {
-            const selected = creatureFeatsData.find(f => f.name === feat.name);
+            const selected = allCreatureFeats.find(f => f.name === feat.name);
             if (selected) {
                 const info = document.createElement("span");
                 info.style.marginLeft = "10px";
-                // Use feat_points instead of cost
                 info.innerHTML = `<strong>${selected.name}</strong> (Feat Points: ${selected.feat_points})<br><span style="font-style:italic;font-size:13px;">${selected.description}</span>`;
                 row.appendChild(info);
             }
@@ -335,7 +381,10 @@ export function renderFeats() {
 }
 
 // Main initialization function to be called from creatureCreator.js
-export function initCreatureCreator(deps = {}) {
+export async function initCreatureCreator(deps = {}) {
+    // Load feats from realtime database before anything else
+    await loadCreatureFeatsFromDatabase();
+
     // Accept skills from deps
     if (deps.skills && Array.isArray(deps.skills)) {
         skills = deps.skills;
@@ -524,7 +573,7 @@ export function initCreatureCreator(deps = {}) {
     // Feats
     renderFeats();
     document.getElementById("addFeatBtn").onclick = () => {
-        feats.push({ name: "", points: 1 });
+        feats.push({ name: "", points: 0 }); // Start with blank feat, no points
         renderFeats();
         updateSummary();
     };
@@ -707,4 +756,16 @@ export function initCreatureCreator(deps = {}) {
     updateHealthEnergyUI();
     updateDefensesUI();
     updateSummary();
+}
+
+function addFeatByName(featName) {
+    // Only add if not already present
+    if (!feats.some(f => f.name === featName)) {
+        const featData = allCreatureFeats.find(f => f.name === featName);
+        if (featData) {
+            feats.push({ name: featData.name, points: featData.feat_points });
+            renderFeats();
+            updateSummary();
+        }
+    }
 }
