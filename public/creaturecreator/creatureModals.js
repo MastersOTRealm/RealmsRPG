@@ -1,5 +1,8 @@
 import { powersTechniques, armaments } from './creatureState.js';
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { addArmament } from './creatureInteractions.js';
+import { addPower } from './creatureInteractions.js';
+import { addTechnique } from './creatureInteractions.js';
 
 // Modal variables
 let powerModalListenerAdded = false;
@@ -234,9 +237,8 @@ export function setupModalEventListeners() {
                     const powers = await fetchSavedPowers();
                     const power = powers.find(p => p.id === powerId);
                     if (power) {
-                        powersTechniques.push(power);
+                        addPower({ ...power });
                         closePowerModal();
-                        modalUpdateSummary();
                     }
                 }
             });
@@ -257,9 +259,8 @@ export function setupModalEventListeners() {
                     const techniques = await fetchSavedTechniques();
                     const tech = techniques.find(t => t.id === techId);
                     if (tech) {
-                        powersTechniques.push(tech);
+                        addTechnique({ ...tech });
                         closeTechniqueModal();
-                        modalUpdateSummary();
                     }
                 }
             });
@@ -280,9 +281,8 @@ export function setupModalEventListeners() {
                     const items = await fetchSavedArmaments();
                     const item = items.find(i => i.id === armamentId);
                     if (item) {
-                        armaments.push({ ...item });
+                        addArmament({ ...item });
                         closeArmamentModal();
-                        modalUpdateSummary();
                     }
                 }
             });

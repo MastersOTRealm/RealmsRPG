@@ -450,17 +450,58 @@
                     </div>
                 </div>
             </section>
-            <!-- Powers and Techniques Section -->
-            <section id="powersTechniquesSection" class="powers-techniques-section">
+            <!-- Powers Section -->
+            <section id="powersSection" class="feats-section">
                 <div class="powers-techniques-header">
-                    <h2>Powers and Techniques</h2>
+                    <h2>Powers</h2>
                     <span class="innate-info">
                         Innate Powers: <span id="innatePowers">0</span> |
                         Innate Energy: <span id="innateEnergy">0</span>
                     </span>
                 </div>
-                <div id="powersTechniquesContainer"></div>
+                <div class="equipment-table-container">
+                    <table class="equipment-table" id="powers-table">
+                        <thead>
+                            <tr>
+                                <th>NAME</th>
+                                <th>ENERGY</th>
+                                <th>ACTION</th>
+                                <th>DURATION</th>
+                                <th>RANGE</th>
+                                <th>AREA</th>
+                                <th>DAMAGE</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="powers-list">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
                 <button id="addPowerBtn" class="medium-button blue-button">Add Power</button>
+            </section>
+
+            <!-- Techniques Section -->
+            <section id="techniquesSection" class="feats-section">
+                <h2>Techniques</h2>
+                <div class="equipment-table-container">
+                    <table class="equipment-table" id="techniques-table">
+                        <thead>
+                            <tr>
+                                <th>NAME</th>
+                                <th>ENERGY</th>
+                                <th>TP</th>
+                                <th>ACTION</th>
+                                <th>WEAPON</th>
+                                <th>DAMAGE</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="techniques-list">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
                 <button id="addTechniqueBtn" class="medium-button blue-button">Add Technique</button>
             </section>
             <section id="featsSection" class="feats-section">
@@ -490,6 +531,7 @@
                 </div>
                 <button id="addArmamentBtn" class="medium-button blue-button">Add Armament</button>
             </section>
+            <!-- Creature Summary -->
             <section id="creatureSummary" class="summary-section">
                 <h3>Creature Summary</h3>
                 <div>

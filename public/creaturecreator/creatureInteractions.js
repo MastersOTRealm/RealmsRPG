@@ -5,8 +5,16 @@ import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityVal
 // Add Firebase import for Realtime Database
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
+// Add imports for item, power, and technique calculations
+import { calculateItemCosts, calculateCurrencyCostAndRarity } from '../scripts/item_calc.js';
+import { derivePowerDisplay } from '../scripts/power_calc.js';
+import { deriveTechniqueDisplay } from '../scripts/technique_calc.js';
+
 let skills = []; // Will be set in initCreatureCreator
 let allCreatureFeats = []; // Will be loaded from Realtime Database
+let itemPropertiesData = []; // Will be loaded from Realtime Database
+let powerPartsData = []; // Will be loaded from Realtime Database
+let techniquePartsData = []; // Will be loaded from Realtime Database
 
 // Helper: Load all feats from Realtime Database
 async function loadCreatureFeatsFromDatabase() {
@@ -17,6 +25,90 @@ async function loadCreatureFeatsFromDatabase() {
         allCreatureFeats = Object.values(snapshot.val());
     } else {
         allCreatureFeats = [];
+    }
+}
+
+// Helper: Load item properties from Realtime Database
+async function loadItemPropertiesFromDatabase() {
+    const db = getDatabase();
+    const propsRef = ref(db, 'properties');
+    const snapshot = await get(propsRef);
+    if (snapshot.exists()) {
+        itemPropertiesData = Object.values(snapshot.val());
+    } else {
+        itemPropertiesData = [];
+    }
+}
+
+// Helper: Load power parts from Realtime Database
+async function loadPowerPartsFromDatabase() {
+    const db = getDatabase();
+    const partsRef = ref(db, 'parts');
+    const snapshot = await get(partsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        powerPartsData = Object.entries(data)
+            .filter(([id, part]) => part.type && part.type.toLowerCase() === 'power')
+            .map(([id, part]) => ({
+                id: id,
+                name: part.name || '',
+                description: part.description || '',
+                category: part.category || '',
+                base_en: parseFloat(part.base_en) || 0,
+                base_tp: parseFloat(part.base_tp) || 0,
+                op_1_desc: part.op_1_desc || '',
+                op_1_en: parseFloat(part.op_1_en) || 0,
+                op_1_tp: parseFloat(part.op_1_tp) || 0,
+                op_2_desc: part.op_2_desc || '',
+                op_2_en: parseFloat(part.op_2_en) || 0,
+                op_2_tp: parseFloat(part.op_2_tp) || 0,
+                op_3_desc: part.op_3_desc || '',
+                op_3_en: parseFloat(part.op_3_en) || 0,
+                op_3_tp: parseFloat(part.op_3_tp) || 0,
+                type: part.type || 'power',
+                mechanic: part.mechanic === 'true' || part.mechanic === true,
+                percentage: part.percentage === 'true' || part.percentage === true,
+                duration: part.duration === 'true' || part.duration === true
+            }));
+    } else {
+        powerPartsData = [];
+    }
+}
+
+// Helper: Load technique parts from Realtime Database
+async function loadTechniquePartsFromDatabase() {
+    const db = getDatabase();
+    const partsRef = ref(db, 'parts');
+    const snapshot = await get(partsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        techniquePartsData = Object.entries(data)
+            .filter(([id, part]) => part.type && part.type.toLowerCase() === 'technique')
+            .map(([id, part]) => ({
+                id: id,
+                name: part.name || '',
+                description: part.description || '',
+                category: part.category || '',
+                base_en: parseFloat(part.base_en) || 0,
+                base_tp: parseFloat(part.base_tp) || 0,
+                op_1_desc: part.op_1_desc || '',
+                op_1_en: parseFloat(part.op_1_en) || 0,
+                op_1_tp: parseFloat(part.op_1_tp) || 0,
+                op_2_desc: part.op_2_desc || '',
+                op_2_en: parseFloat(part.op_2_en) || 0,
+                op_2_tp: parseFloat(part.op_2_tp) || 0,
+                op_3_desc: part.op_3_desc || '',
+                op_3_en: parseFloat(part.op_3_en) || 0,
+                op_3_tp: parseFloat(part.op_3_tp) || 0,
+                type: part.type || 'technique',
+                mechanic: part.mechanic === 'true' || part.mechanic === true,
+                percentage: part.percentage === 'true' || part.percentage === true,
+                alt_base_en: parseFloat(part.alt_base_en) || 0,
+                alt_tp: parseFloat(part.alt_tp) || 0,
+                alt_desc: part.alt_desc || ''
+            }));
+    } else {
+        techniquePartsData = [];
     }
 }
 
@@ -386,13 +478,15 @@ export function renderArmaments() {
     if (!tbody) return;
     tbody.innerHTML = '';
     armaments.forEach((armament, idx) => {
+        const costs = calculateItemCosts(armament.properties || [], itemPropertiesData);
+        const { currencyCost, rarity } = calculateCurrencyCostAndRarity(costs.totalCurrency, costs.totalIP);
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${armament.name || 'Unnamed'}</td>
             <td>${armament.armamentType || 'Unknown'}</td>
-            <td>${armament.totalTP || 0}</td>
-            <td>${armament.currencyCost || armament.goldCost || 0}</td>
-            <td>${armament.rarity || 'Common'}</td>
+            <td>${costs.totalTP}</td>
+            <td>${currencyCost}</td>
+            <td>${rarity}</td>
             <td><button class="small-button red-button" onclick="removeArmament(${idx})">Remove</button></td>
         `;
         tbody.appendChild(row);
@@ -405,10 +499,100 @@ export function removeArmament(idx) {
     updateSummary();
 }
 
+export function addArmament(item) {
+    armaments.push({ ...item });
+    renderArmaments();
+    updateSummary();
+}
+
+export function renderPowers() {
+    const tbody = document.getElementById('powers-list');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    powersTechniques.forEach((item, idx) => {
+        if (item.type === 'power') {
+            const display = derivePowerDisplay(item, powerPartsData);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${display.name}</td>
+                <td>${display.energy}</td>
+                <td>${display.actionType}</td>
+                <td>${display.duration}</td>
+                <td>${display.range}</td>
+                <td>${display.area}</td>
+                <td>${display.damageStr || '-'}</td>
+                <td><button class="small-button red-button" onclick="removePower(${idx})">Remove</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+    });
+}
+
+export function renderTechniques() {
+    const tbody = document.getElementById('techniques-list');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    powersTechniques.forEach((item, idx) => {
+        if (item.type === 'technique') {
+            const partsArr = Array.isArray(item.parts)
+                ? item.parts.map(p => ({
+                    name: p.name,
+                    op_1_lvl: p.op_1_lvl || 0,
+                    op_2_lvl: p.op_2_lvl || 0,
+                    op_3_lvl: p.op_3_lvl || 0
+                }))
+                : [];
+            const display = deriveTechniqueDisplay({ ...item, parts: partsArr }, techniquePartsData);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${display.name}</td>
+                <td>${display.energy}</td>
+                <td>${display.tp}</td>
+                <td>${display.actionType}</td>
+                <td>${display.weaponName}</td>
+                <td>${display.damageStr}</td>
+                <td><button class="small-button red-button" onclick="removePower(${idx})">Remove</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+    });
+}
+
+export function removePower(idx) {
+    powersTechniques.splice(idx, 1);
+    renderPowers();
+    renderTechniques();
+    updateSummary();
+}
+
+export function addPower(item) {
+    powersTechniques.push({ ...item });
+    renderPowers();
+    renderTechniques();
+    updateSummary();
+}
+
+export function addTechnique(item) {
+    powersTechniques.push({ ...item });
+    renderPowers();
+    renderTechniques();
+    updateSummary();
+}
+
+// Expose functions to window for HTML onclick
+window.removeArmament = removeArmament;
+window.removePower = removePower;
+
 // Main initialization function to be called from creatureCreator.js
 export async function initCreatureCreator(deps = {}) {
     // Load feats from realtime database before anything else
     await loadCreatureFeatsFromDatabase();
+    // Load item properties
+    await loadItemPropertiesFromDatabase();
+    // Load power parts
+    await loadPowerPartsFromDatabase();
+    // Load technique parts
+    await loadTechniquePartsFromDatabase();
 
     // Accept skills from deps
     if (deps.skills && Array.isArray(deps.skills)) {
@@ -602,6 +786,10 @@ export async function initCreatureCreator(deps = {}) {
         renderFeats();
         updateSummary();
     };
+
+    // Expose removeArmament and removePower to window for HTML onclick
+    window.removeArmament = removeArmament;
+    window.removePower = removePower;
 
     // Set window functions for modals
     window.openPowerModal = deps.openPowerModal;
