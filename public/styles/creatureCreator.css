@@ -1,3 +1,4 @@
+@import url('library.css');
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Merriweather:wght@700&display=swap');
 
         body {
@@ -561,6 +562,7 @@
 
         .equipment-table-container {
             overflow-x: auto;
+            overflow-y: visible;
             margin-bottom: 16px;
         }
 
@@ -569,7 +571,7 @@
             border-collapse: collapse;
             background: white;
             border-radius: 8px;
-            overflow: hidden;
+            overflow: visible; /* Changed from hidden to visible to allow expanded content to show */
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
@@ -587,6 +589,41 @@
 
         .equipment-table tr:hover {
             background: #f9f9f9;
+        }
+
+        .expandable {
+            position: relative;
+        }
+
+        .expandable .expand-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: var(--gray);
+            transition: transform 0.2s;
+            pointer-events: none; /* Prevent icon from interfering with row click */
+        }
+
+        .expandable.expanded .expand-icon {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .feats-section {
+          overflow: visible;
+        }
+
+        .library-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            padding: 0 16px;
+        }
+
+        .expanded .library-body {
+            max-height: 2000px;
+            padding: 16px;
         }
 
         @media (max-width: 1200px) {

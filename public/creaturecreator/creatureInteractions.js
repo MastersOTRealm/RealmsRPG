@@ -513,6 +513,20 @@ export function renderPowers() {
         if (item.type === 'power') {
             const display = derivePowerDisplay(item, powerPartsData);
             const row = document.createElement('tr');
+            row.className = 'power-row expandable';
+            row.onclick = () => {
+                row.classList.toggle('expanded');
+                const nextRow = row.nextElementSibling;
+                if (nextRow && nextRow.classList.contains('details-row')) {
+                    if (nextRow.style.display === 'none') {
+                        nextRow.style.display = 'table-row';
+                        nextRow.classList.add('expanded');
+                    } else {
+                        nextRow.classList.remove('expanded');
+                        setTimeout(() => nextRow.style.display = 'none', 300);
+                    }
+                }
+            };
             row.innerHTML = `
                 <td>${display.name}</td>
                 <td>${display.energy}</td>
@@ -521,9 +535,30 @@ export function renderPowers() {
                 <td>${display.range}</td>
                 <td>${display.area}</td>
                 <td>${display.damageStr || '-'}</td>
-                <td><button class="small-button red-button" onclick="removePower(${idx})">Remove</button></td>
+                <td><button class="small-button red-button" onclick="removePower(${idx})">Remove</button><span class="expand-icon">▼</span></td>
             `;
             tbody.appendChild(row);
+
+            // Details row
+            const detailsRow = document.createElement('tr');
+            detailsRow.className = 'details-row';
+            detailsRow.style.display = 'none';
+            detailsRow.innerHTML = `
+                <td colspan="8">
+                    <div class="library-body">
+                        ${display.description ? `<div class="library-description">${display.description}</div>` : ''}
+                        <div class="library-details">
+                            <div class="detail-field">
+                                <label>Training Points:</label>
+                                <span>${display.tp}</span>
+                            </div>
+                        </div>
+                        ${display.partChipsHTML ? `<h4 style="margin:16px 0 8px;color:var(--primary);">Parts & Proficiencies</h4><div class="library-parts">${display.partChipsHTML}</div>` : ''}
+                        ${display.tpSources.length > 0 ? `<div class="power-summary-proficiencies"><h4>Proficiencies:</h4><div>${display.tpSources.map(source => `<p>${source}</p>`).join('')}</div></div>` : ''}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(detailsRow);
         }
     });
 }
@@ -544,6 +579,20 @@ export function renderTechniques() {
                 : [];
             const display = deriveTechniqueDisplay({ ...item, parts: partsArr }, techniquePartsData);
             const row = document.createElement('tr');
+            row.className = 'technique-row expandable';
+            row.onclick = () => {
+                row.classList.toggle('expanded');
+                const nextRow = row.nextElementSibling;
+                if (nextRow && nextRow.classList.contains('details-row')) {
+                    if (nextRow.style.display === 'none') {
+                        nextRow.style.display = 'table-row';
+                        nextRow.classList.add('expanded');
+                    } else {
+                        nextRow.classList.remove('expanded');
+                        setTimeout(() => nextRow.style.display = 'none', 300);
+                    }
+                }
+            };
             row.innerHTML = `
                 <td>${display.name}</td>
                 <td>${display.energy}</td>
@@ -551,9 +600,30 @@ export function renderTechniques() {
                 <td>${display.actionType}</td>
                 <td>${display.weaponName}</td>
                 <td>${display.damageStr}</td>
-                <td><button class="small-button red-button" onclick="removePower(${idx})">Remove</button></td>
+                <td><button class="small-button red-button" onclick="removePower(${idx})">Remove</button><span class="expand-icon">▼</span></td>
             `;
             tbody.appendChild(row);
+
+            // Details row
+            const detailsRow = document.createElement('tr');
+            detailsRow.className = 'details-row';
+            detailsRow.style.display = 'none';
+            detailsRow.innerHTML = `
+                <td colspan="7">
+                    <div class="library-body">
+                        ${display.description ? `<div class="library-description">${display.description}</div>` : ''}
+                        <div class="library-details">
+                            <div class="detail-field">
+                                <label>Training Points:</label>
+                                <span>${display.tp}</span>
+                            </div>
+                        </div>
+                        ${display.partChipsHTML ? `<h4 style="margin:16px 0 8px;color:var(--primary);">Technique Parts & Proficiencies</h4><div class="library-parts">${display.partChipsHTML}</div>` : ''}
+                        ${display.tpSources.length > 0 ? `<div class="power-summary-proficiencies"><h4>Proficiencies:</h4><div>${display.tpSources.map(source => `<p>${source}</p>`).join('')}</div></div>` : ''}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(detailsRow);
         }
     });
 }
