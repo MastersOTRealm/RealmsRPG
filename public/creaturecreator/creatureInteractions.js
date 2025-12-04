@@ -6,7 +6,7 @@ import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityVal
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 // Add imports for item, power, and technique calculations
-import { calculateItemCosts, calculateCurrencyCostAndRarity } from '../scripts/item_calc.js';
+import { calculateItemCosts, calculateCurrencyCostAndRarity, extractProficiencies } from '../scripts/item_calc.js';
 import { derivePowerDisplay } from '../scripts/power_calc.js';
 import { deriveTechniqueDisplay } from '../scripts/technique_calc.js';
 
@@ -480,16 +480,51 @@ export function renderArmaments() {
     armaments.forEach((armament, idx) => {
         const costs = calculateItemCosts(armament.properties || [], itemPropertiesData);
         const { currencyCost, rarity } = calculateCurrencyCostAndRarity(costs.totalCurrency, costs.totalIP);
+        const proficiencies = extractProficiencies(armament.properties || [], itemPropertiesData);
         const row = document.createElement('tr');
+        row.className = 'armament-row expandable';
+        row.onclick = () => {
+            row.classList.toggle('expanded');
+            const nextRow = row.nextElementSibling;
+            if (nextRow && nextRow.classList.contains('details-row')) {
+                if (nextRow.style.display === 'none') {
+                    nextRow.style.display = 'table-row';
+                    nextRow.classList.add('expanded');
+                } else {
+                    nextRow.classList.remove('expanded');
+                    setTimeout(() => nextRow.style.display = 'none', 300);
+                }
+            }
+        };
         row.innerHTML = `
             <td>${armament.name || 'Unnamed'}</td>
             <td>${armament.armamentType || 'Unknown'}</td>
             <td>${costs.totalTP}</td>
             <td>${currencyCost}</td>
             <td>${rarity}</td>
-            <td><button class="small-button red-button" onclick="removeArmament(${idx})">Remove</button></td>
+            <td><button class="small-button red-button" onclick="removeArmament(${idx})">Remove</button><span class="expand-icon">▼</span></td>
         `;
         tbody.appendChild(row);
+
+        // Details row
+        const detailsRow = document.createElement('tr');
+        detailsRow.className = 'details-row';
+        detailsRow.style.display = 'none';
+        detailsRow.innerHTML = `
+            <td colspan="6">
+                <div class="library-body">
+                    ${armament.description ? `<div class="library-description">${armament.description}</div>` : ''}
+                    <div class="library-details">
+                        <div class="detail-field">
+                            <label>Training Points:</label>
+                            <span>${costs.totalTP}</span>
+                        </div>
+                    </div>
+                    ${proficiencies.length > 0 ? `<h4 style="margin:16px 0 8px;color:var(--primary);">Properties & Proficiencies</h4><div class="library-parts">${proficiencies.map(p => `<div class="part-chip proficiency-chip" title="${p.description}">${p.name}${p.level > 0 ? ` (Level ${p.level})` : ''} | TP: ${p.baseTP}${p.optionTP > 0 ? ` + ${p.optionTP}` : ''}</div>`).join('')}</div>` : ''}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(detailsRow);
     });
 }
 

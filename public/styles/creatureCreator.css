@@ -626,6 +626,40 @@
             padding: 16px;
         }
 
+        #powersSection {
+            width: 100%;
+            padding: 15px;
+            background-color: #e6f7ff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            margin-top: 0;
+        }
+
+        #powersSection h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
+        #techniquesSection {
+            width: 100%;
+            padding: 15px;
+            background-color: #e6f7ff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            margin-top: 0;
+        }
+
+        #techniquesSection h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
         @media (max-width: 1200px) {
             #creatureCreatorContainer {
                 width: 95vw;
