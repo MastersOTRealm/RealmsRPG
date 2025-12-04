@@ -381,6 +381,30 @@ export function renderFeats() {
     });
 }
 
+export function renderArmaments() {
+    const tbody = document.getElementById('armaments-list');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    armaments.forEach((armament, idx) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${armament.name || 'Unnamed'}</td>
+            <td>${armament.armamentType || 'Unknown'}</td>
+            <td>${armament.totalTP || 0}</td>
+            <td>${armament.currencyCost || armament.goldCost || 0}</td>
+            <td>${armament.rarity || 'Common'}</td>
+            <td><button class="small-button red-button" onclick="removeArmament(${idx})">Remove</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+export function removeArmament(idx) {
+    armaments.splice(idx, 1);
+    renderArmaments();
+    updateSummary();
+}
+
 // Main initialization function to be called from creatureCreator.js
 export async function initCreatureCreator(deps = {}) {
     // Load feats from realtime database before anything else
@@ -579,6 +603,11 @@ export async function initCreatureCreator(deps = {}) {
         updateSummary();
     };
 
+    // Set window functions for modals
+    window.openPowerModal = deps.openPowerModal;
+    window.openTechniqueModal = deps.openTechniqueModal;
+    window.openArmamentModal = deps.openArmamentModal;
+
     // Powers/Techniques
     document.getElementById("addPowerBtn").onclick = window.openPowerModal || (() => {});
     document.getElementById("addTechniqueBtn").onclick = window.openTechniqueModal || (() => {});
@@ -684,6 +713,11 @@ export async function initCreatureCreator(deps = {}) {
     // Modal event listeners
     if (typeof deps.setupModalEventListeners === 'function') {
         deps.setupModalEventListeners();
+    }
+
+    // Set modal update summary
+    if (typeof deps.setModalUpdateSummary === 'function') {
+        deps.setModalUpdateSummary(updateSummary);
     }
 
     // --- Archetype Proficiency allocation logic ---

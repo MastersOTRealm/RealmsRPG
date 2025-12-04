@@ -1,9 +1,21 @@
 import { powersTechniques, armaments } from './creatureState.js';
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 // Modal variables
 let powerModalListenerAdded = false;
 let techniqueModalListenerAdded = false;
 let armamentModalListenerAdded = false;
+
+// Firebase dependencies
+let currentUser = null;
+let firebaseDb = null;
+let authReadyPromise = null;
+
+export function setFirebaseDeps(user, db, promise) {
+    currentUser = user;
+    firebaseDb = db;
+    authReadyPromise = promise;
+}
 
 // Power modal functions
 export async function fetchSavedPowers() {
@@ -174,63 +186,15 @@ export function displaySavedArmaments(items) {
         armamentList.innerHTML = '<div>No saved armaments found.</div>';
         return;
     }
-    const table = document.createElement('table');
-    table.className = 'powers-table';
-    const headers = ['Name', 'Rarity', 'Gold', 'TP', 'Range', 'Damage', 'Select'];
-    const headerRow = document.createElement('tr');
-    headers.forEach(h => {
-        const th = document.createElement('th');
-        th.textContent = h;
-        headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
     items.forEach(item => {
-        const row = document.createElement('tr');
-        const nameCell = document.createElement('td');
-        nameCell.textContent = item.name || '';
-        row.appendChild(nameCell);
-        const rarityCell = document.createElement('td');
-        rarityCell.textContent = item.rarity || '';
-        row.appendChild(rarityCell);
-        const goldCell = document.createElement('td');
-        goldCell.textContent = item.totalGP !== undefined ? item.totalGP : '';
-        row.appendChild(goldCell);
-        const bpCell = document.createElement('td');
-        bpCell.textContent = item.totalTP !== undefined ? item.totalTP : '';
-        row.appendChild(bpCell);
-        const rangeCell = document.createElement('td');
-        let rangeStr = "-";
-        if (item.range !== undefined && item.range !== null && item.range !== "") {
-            if (typeof item.range === "number" && item.range > 0) {
-                rangeStr = `${item.range} spaces`;
-            } else if (typeof item.range === "string" && item.range.trim() !== "") {
-                rangeStr = item.range;
-            } else if (item.range === 0) {
-                rangeStr = "Melee";
-            }
-        }
-        rangeCell.textContent = rangeStr;
-        row.appendChild(rangeCell);
-        const dmgCell = document.createElement('td');
-        let damageStr = "";
-        if (item.damage && Array.isArray(item.damage)) {
-            damageStr = item.damage
-                .filter(d => d && d.amount && d.size && d.type && d.type !== 'none')
-                .map(d => `${d.amount}d${d.size} ${d.type}`)
-                .join(', ');
-        }
-        dmgCell.textContent = damageStr;
-        row.appendChild(dmgCell);
-        const selectCell = document.createElement('td');
-        const selectBtn = document.createElement('button');
-        selectBtn.className = 'small-button blue-button select-armament-btn';
-        selectBtn.dataset.id = item.id;
-        selectBtn.textContent = 'Select';
-        selectCell.appendChild(selectBtn);
-        row.appendChild(selectCell);
-        table.appendChild(row);
+        const div = document.createElement('div');
+        div.className = 'power-item';
+        div.innerHTML = `
+            <span>${item.name} (${item.armamentType})</span>
+            <button class="small-button blue-button select-armament-btn" data-id="${item.id}">Select</button>
+        `;
+        armamentList.appendChild(div);
     });
-    armamentList.appendChild(table);
 }
 
 export function openArmamentModal() {

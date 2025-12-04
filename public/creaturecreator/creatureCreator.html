@@ -11,6 +11,18 @@
     <script defer src="/__/firebase/11.3.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/init.js?useEmulator=true"></script>
     <script type="module" src="./creatureCreator.js" defer></script>
+    <style>
+        #armamentsContainer .armament-row {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+        }
+    </style>
 </head>
 <body>
     <header id="header"></header>
@@ -459,7 +471,23 @@
             <!-- Armaments Section (placeholder, like powers/techniques) -->
             <section id="armamentsSection" class="feats-section">
                 <h2>Armaments</h2>
-                <div id="armamentsContainer"></div>
+                <div class="equipment-table-container">
+                    <table class="equipment-table" id="armaments-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>TP</th>
+                                <th>Currency</th>
+                                <th>Rarity</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="armaments-list">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
                 <button id="addArmamentBtn" class="medium-button blue-button">Add Armament</button>
             </section>
             <section id="creatureSummary" class="summary-section">

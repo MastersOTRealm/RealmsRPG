@@ -35,6 +35,7 @@ let authReadyPromise = new Promise(resolve => {
 
         onAuthStateChanged(firebaseAuth, (user) => {
             currentUser = user;
+            creatureModals.setFirebaseDeps(user, firebaseDb, authReadyPromise);
             resolve();
         });
     });
