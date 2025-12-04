@@ -1,4 +1,3 @@
-import creatureFeatsData from './creatureFeatsData.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -74,7 +73,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentUser,
             authReadyPromise,
             skills,
-            creatureFeatsData,
             ...creatureState,
             ...creatureModals,
             ...creatureSaveLoad

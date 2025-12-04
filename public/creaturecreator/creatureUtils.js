@@ -8,79 +8,7 @@ import {
     calcHitEnergyTotal,
     calcCreatureCurrency
 } from './creature_calc.js';
-
-// Descriptions and points for senses and movement
-export const SENSES_DESCRIPTIONS = {
-    "Darkvision": "Can see in darkness up to 6 spaces as shades of grey.",
-    "Darkvision II": "Can see in darkness up to 12 spaces as shades of grey.",
-    "Darkvision III": "Can see in darkness up to 24 spaces as shades of grey.",
-    "Blindsense": "Has Blindsense out to 3 spaces.",
-    "Blindsense II": "Has Blindsense out to 6 spaces.",
-    "Blindsense III": "Has Blindsense out to 12 spaces.",
-    "Blindsense IV": "Has Blindsense out to 24 spaces.",
-    "Amphibious": "Can breathe air and water.",
-    "All-Surface Climber": "Can climb on difficult vertical and horizontal surfaces, even upside down, without needing to make a Climb Roll.",
-    "Telepathy": "This creature can communicate telepathically with creatures it is aware of within 12 spaces.",
-    "Telepathy II": "This creature can communicate telepathically with creatures it is aware of within 48 spaces.",
-    "Telepathically Intune": "Can perceive content of all telepathic communication within 12 spaces.",
-    "Waterbreathing": "This creature can only breathe underwater.",
-    "Unrestrained Movement": "Ignores difficult terrain, the slowed condition, and any other effect that would slow its movement due to environmental effects."
-};
-
-export const MOVEMENT_DESCRIPTIONS = {
-    "Ground": "Standard ground movement.",
-    "Fly Half": "You can fly with a speed equal to half of your regular speed.",
-    "Fly": "You can fly with a speed equal to your regular speed.",
-    "Burrow": "You can burrow with a speed equal to half of your regular speed.",
-    "Burrow II": "You can burrow with a speed equal to your regular speed.",
-    "Jump": "Can long jump 3 spaces and high jump 2.",
-    "Jump II": "Can long jump 4 spaces and high jump 3.",
-    "Jump III": "Can long jump 5 spaces and high jump 4.",
-    "Speedy": "Movement speed is increased by 2.",
-    "Speedy II": "Movement speed is increased by 4.",
-    "Speedy III": "Movement speed is increased by 6.",
-    "Slow": "Movement speed is decreased by 2.",
-    "Slow II": "Movement speed is decreased by 4.",
-    "Slow III": "Movement speed is decreased by 6.",
-    "Slow Walker": "Ground Speed is 1/4 of your normal speed.",
-    "Hover": "Must end turn within 1 space of the ground, but need not touch it. Only applicable if the creature has a flying speed."
-};
-
-export const SENSES_DISPLAY = {
-    "Darkvision": "Darkvision (6 spaces)",
-    "Darkvision II": "Darkvision II (12 spaces)",
-    "Darkvision III": "Darkvision III (24 spaces)",
-    "Blindsense": "Blindsense (3 spaces)",
-    "Blindsense II": "Blindsense II (6 spaces)",
-    "Blindsense III": "Blindsense III (12 spaces)",
-    "Blindsense IV": "Blindsense IV (24 spaces)",
-    "Amphibious": "Amphibious",
-    "All-Surface Climber": "All-Surface Climber",
-    "Telepathy": "Telepathy (12 spaces)",
-    "Telepathy II": "Telepathy II (48 spaces)",
-    "Telepathically Intune": "Telepathically Intune (12 spaces)",
-    "Waterbreathing": "Waterbreathing",
-    "Unrestrained Movement": "Unrestrained Movement"
-};
-
-export const MOVEMENT_DISPLAY = {
-    "Ground": "Ground",
-    "Fly Half": "Flying (Half Speed)",
-    "Fly": "Flying II (Full Speed)",
-    "Burrow": "Burrow (Half Speed)",
-    "Burrow II": "Burrow II (Full Speed)",
-    "Jump": "Jump (Long 3, High 2 spaces)",
-    "Jump II": "Jump II (Long 4, High 3 spaces)",
-    "Jump III": "Jump III (Long 5, High 4 spaces)",
-    "Speedy": "Speedy (+2 spaces)",
-    "Speedy II": "Speedy II (+4 spaces)",
-    "Speedy III": "Speedy III (+6 spaces)",
-    "Slow": "Slow (-2 spaces)",
-    "Slow II": "Slow II (-4 spaces)",
-    "Slow III": "Slow III (-6 spaces)",
-    "Slow Walker": "Slow Walker",
-    "Hover": "Hover"
-};
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 // --- Archetype Proficiency Logic ---
 export function getMaxArchetypeProficiency(level) {
@@ -107,22 +35,53 @@ export function validateArchetypeProficiency() {
 }
 
 // Utility functions
-export function updateList(listId, arr, removeHandler, descMap, displayMap) {
+// Helper: Add feat to feats list if it doesn't already exist
+export async function addFeatFromDatabase(featName) {
+    const db = getDatabase();
+    const featsRef = ref(db, 'creature_feats');
+    const snapshot = await get(featsRef);
+    if (snapshot.exists()) {
+        const allFeats = Object.values(snapshot.val());
+        const feat = allFeats.find(f => f.name === featName);
+        if (feat && !feats.some(f => f.name === feat.name)) {
+            feats.push({ name: feat.name, points: feat.feat_points });
+        }
+    }
+}
+
+// Helper: Remove feat from feats list by name
+export function removeFeat(featName) {
+    const idx = feats.findIndex(f => f.name === featName);
+    if (idx !== -1) {
+        feats.splice(idx, 1);
+    }
+}
+
+export async function updateList(listId, arr, removeHandler, displayMap, allCreatureFeats) {
     const ul = document.getElementById(listId);
     ul.innerHTML = "";
-    arr.slice().sort().forEach((val, idx) => {
+    for (const [idx, val] of arr.slice().sort().entries()) {
         const li = document.createElement("li");
         li.textContent = displayMap && displayMap[val] ? displayMap[val] : val;
-        if (descMap && descMap[val]) {
-            li.title = descMap[val];
+        // Fetch description from database for tooltip
+        if (allCreatureFeats && Array.isArray(allCreatureFeats)) {
+            const feat = allCreatureFeats.find(f => f.name === val);
+            if (feat && feat.description) {
+                li.title = feat.description;
+            }
         }
         const btn = document.createElement("button");
         btn.textContent = "✕";
         btn.className = "small-button red-button";
-        btn.onclick = () => { removeHandler(idx); };
+        btn.onclick = () => { removeHandler(val, idx); };
         li.appendChild(btn);
         ul.appendChild(li);
-    });
+
+        // Add associated feat from the database for senses or movement
+        if (listId === "sensesList" || listId === "movementList") {
+            await addFeatFromDatabase(val);
+        }
+    }
 }
 
 export function capitalize(str) {
@@ -363,3 +322,46 @@ export function getInnateEnergy(innatePowers) {
     }
     return 0;
 }
+
+// Remove hardcoded descriptions
+// export const SENSES_DESCRIPTIONS = { ... };
+// export const MOVEMENT_DESCRIPTIONS = { ... };
+
+// Keep display names for UI
+export const SENSES_DISPLAY = {
+    "Darkvision": "Darkvision (6 spaces)",
+    "Darkvision II": "Darkvision II (12 spaces)",
+    "Darkvision III": "Darkvision III (24 spaces)",
+    "Blindsense": "Blindsense (3 spaces)",
+    "Blindsense II": "Blindsense II (6 spaces)",
+    "Blindsense III": "Blindsense III (12 spaces)",
+    "Blindsense IV": "Blindsense IV (24 spaces)",
+    "Amphibious": "Amphibious",
+    "All-Surface Climber": "All-Surface Climber",
+    "Telepathy": "Telepathy (12 spaces)",
+    "Telepathy II": "Telepathy II (48 spaces)",
+    "Telepathically Intune": "Telepathically Intune (12 spaces)",
+    "Waterbreathing": "Waterbreathing",
+    "Unrestrained Movement": "Unrestrained Movement"
+};
+
+export const MOVEMENT_DISPLAY = {
+    "Ground": "Ground",
+    "Fly Half": "Flying (Half Speed)",
+    "Fly": "Flying II (Full Speed)",
+    "Burrow": "Burrow (Half Speed)",
+    "Burrow II": "Burrow II (Full Speed)",
+    "Jump": "Jump (Long 3, High 2 spaces)",
+    "Jump II": "Jump II (Long 4, High 3 spaces)",
+    "Jump III": "Jump III (Long 5, High 4 spaces)",
+    "Speedy": "Speedy (+2 spaces)",
+    "Speedy II": "Speedy II (+4 spaces)",
+    "Speedy III": "Speedy III (+6 spaces)",
+    "Slow": "Slow (-2 spaces)",
+    "Slow II": "Slow II (-4 spaces)",
+    "Slow III": "Slow III (-6 spaces)",
+    "Slow Walker": "Slow Walker",
+    "Hover": "Hover"
+};
+
+// Ensure all feat-related logic dynamically fetches data from the database

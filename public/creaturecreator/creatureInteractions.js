@@ -1,5 +1,5 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
-import { updateList, capitalize, SENSES_DESCRIPTIONS, SENSES_DISPLAY, MOVEMENT_DESCRIPTIONS, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent } from './creatureUtils.js';
+import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent, addFeatFromDatabase, removeFeat } from './creatureUtils.js';
 // REMOVE: import creatureFeatsData from './creatureFeatsData.js';
 
 // Add Firebase import for Realtime Database
@@ -20,7 +20,7 @@ async function loadCreatureFeatsFromDatabase() {
     }
 }
 
-// Helper: get background feat points for resistances/weaknesses/immunities/condition immunities
+// Helper: get background feat points for resistances/weaknesses/immunities/condition immunities/senses/movements
 function getBackgroundFeatPoints() {
     let total = 0;
     // For each resistance, add "Resistance" feat points
@@ -35,6 +35,16 @@ function getBackgroundFeatPoints() {
     // For each condition immunity, add "Condition Immunity" feat points
     const condImmunityFeat = allCreatureFeats.find(f => f.name === "Condition Immunity");
     if (condImmunityFeat) total += conditionImmunities.length * condImmunityFeat.feat_points;
+    // For each sense, add the corresponding feat points
+    senses.forEach(sense => {
+        const senseFeat = allCreatureFeats.find(f => f.name === sense);
+        if (senseFeat) total += senseFeat.feat_points;
+    });
+    // For each movement, add the corresponding feat points
+    movement.forEach(move => {
+        const moveFeat = allCreatureFeats.find(f => f.name === move.type);
+        if (moveFeat) total += moveFeat.feat_points;
+    });
     return total;
 }
 
@@ -56,7 +66,7 @@ export function updateResistancesList() {
         resistances.splice(idx, 1);
         updateResistancesList();
         updateSummary();
-    });
+    }, null, allCreatureFeats);
 }
 
 export function updateWeaknessesList() {
@@ -65,7 +75,7 @@ export function updateWeaknessesList() {
         weaknesses.splice(idx, 1);
         updateWeaknessesList();
         updateSummary();
-    });
+    }, null, allCreatureFeats);
 }
 
 export function updateImmunitiesList() {
@@ -74,38 +84,29 @@ export function updateImmunitiesList() {
         immunities.splice(idx, 1);
         updateImmunitiesList();
         updateSummary();
-    });
+    }, null, allCreatureFeats);
 }
 
 export function updateSensesList() {
-    senses.sort();
-    updateList("sensesList", senses, idx => {
-        senses.splice(idx, 1);
+    updateList("sensesList", senses, (val, idx) => {
+        senses.splice(senses.indexOf(val), 1);
+        removeFeat(val);
         updateSensesList();
         updateSummary();
-    }, SENSES_DESCRIPTIONS, SENSES_DISPLAY);
+    }, null, allCreatureFeats); // Pass allCreatureFeats for descriptions
 }
 
 export function updateMovementList() {
-    const ul = document.getElementById("movementList");
-    ul.innerHTML = "";
-    const sorted = movement.slice().sort((a, b) => a.type.localeCompare(b.type));
-    sorted.forEach((move, idx) => {
-        const li = document.createElement("li");
-        li.textContent = MOVEMENT_DISPLAY[move.type] || move.type;
-        if (MOVEMENT_DESCRIPTIONS[move.type]) {
-            li.title = MOVEMENT_DESCRIPTIONS[move.type];
-        }
-        const btn = document.createElement("button");
-        btn.textContent = "✕";
-        btn.className = "small-button red-button";
-        btn.onclick = () => {
-            movement.splice(idx, 1);
-            updateMovementList();
-            updateSummary();
-        };
-        li.appendChild(btn);
-        ul.appendChild(li);
+    const movementTypes = movement.map(m => m.type);
+    updateList("movementList", movementTypes, (val) => {
+        movement.splice(movement.findIndex(m => m.type === val), 1);
+        removeFeat(val);
+        updateMovementList();
+        updateSummary();
+    }, MOVEMENT_DISPLAY, allCreatureFeats);
+    // Add associated feat from the database for movement
+    movement.forEach(move => {
+        addFeatFromDatabase(move.type);
     });
 }
 
@@ -115,7 +116,7 @@ export function updateConditionImmunityList() {
         conditionImmunities.splice(idx, 1);
         updateConditionImmunityList();
         updateSummary();
-    });
+    }, null, allCreatureFeats);
 }
 
 export function updateLanguagesList() {

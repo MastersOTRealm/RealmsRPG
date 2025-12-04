@@ -40,12 +40,10 @@ export async function getCreatureSaveData() {
     });
     const featsArr = feats.map(f => {
         const featObj = typeof f === "string" ? { name: f } : f;
-        // Use feat_points instead of cost
-        const found = creatureFeatsData.find(cf => cf.name === featObj.name);
         return {
             name: featObj.name,
-            description: found ? found.description : "",
-            feat_points: found ? found.feat_points : (featObj.points || 0)
+            description: featObj.description || "",
+            feat_points: featObj.points || 0
         };
     });
     const allImmunities = [...immunities, ...conditionImmunities];
