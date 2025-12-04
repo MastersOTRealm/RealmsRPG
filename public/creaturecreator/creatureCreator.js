@@ -56,6 +56,26 @@ async function loadSkillsFromFirebase() {
     return [];
 }
 
+// --- Training Points Calculation ---
+function getHighestAbility() {
+    const abilities = [
+        parseInt(document.getElementById('creatureAbilityStrength')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityVitality')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityAgility')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityAcuity')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityIntelligence')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityCharisma')?.value || 0)
+    ];
+    return Math.max(...abilities);
+}
+
+function updateDetailsTP() {
+    const level = parseInt(document.getElementById('creatureLevel')?.value || 1);
+    const highestAbility = getHighestAbility();
+    const totalTP = 22 + highestAbility + ((highestAbility + 2) * (level - 1));
+    document.getElementById('detailsTP').textContent = totalTP;
+}
+
 // --- Main Entry Point: Delegate all UI/event logic to modules ---
 document.addEventListener('DOMContentLoaded', async () => {
     await authReadyPromise;
@@ -92,3 +112,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Expose Firebase/auth for modules if needed
 export { firebaseApp, firebaseAuth, firebaseDb, firebaseRTDB, currentUser, authReadyPromise };
+
+// Attach listeners after DOM loaded
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('creatureLevel')?.addEventListener('input', updateDetailsTP);
+    [
+        'creatureAbilityStrength',
+        'creatureAbilityVitality',
+        'creatureAbilityAgility',
+        'creatureAbilityAcuity',
+        'creatureAbilityIntelligence',
+        'creatureAbilityCharisma'
+    ].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', updateDetailsTP);
+    });
+    updateDetailsTP();
+});
