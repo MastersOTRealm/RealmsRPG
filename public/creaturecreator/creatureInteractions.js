@@ -351,19 +351,19 @@ export function updateInnateInfo() {
 
 export function updateCreatureDetailsBox() {
     const level = document.getElementById("creatureLevel")?.value || 1;
-    const baseFeat = getBaseFeatPoints(level);
-    const spentFeat = getSpentFeatPointsWithBackground();
-    const detailsFeat = document.getElementById("detailsFeatPoints");
-    if (detailsFeat) {
-        detailsFeat.textContent = `${(baseFeat - spentFeat).toFixed(1).replace(/\.0$/, "")} / ${baseFeat}`;
-        detailsFeat.style.color = (baseFeat - spentFeat) < 0 ? "red" : "";
-    }
-    const skillTotal = getSkillPointTotal();
-    const skillSpent = getSkillPointsSpent();
-    const detailsSkill = document.getElementById("detailsSkillPoints");
-    if (detailsSkill) {
-        detailsSkill.textContent = `${skillTotal - skillSpent} / ${skillTotal}`;
-        detailsSkill.style.color = (skillTotal - skillSpent) < 0 ? "red" : "";
+    const highestAbility = getHighestAbility();
+    // Correct base TP calculation
+    const baseTP = (22 + highestAbility) + ((2 + highestAbility) * (parseInt(level) - 1));
+    const detailsTP = document.getElementById("detailsTP");
+    if (detailsTP) {
+        const creatureData = {
+            armaments,
+            powersTechniques,
+        };
+        const adjustedTP = calculateCreatureTPSpent(creatureData, itemPropertiesData, powerPartsData, techniquePartsData);
+        const currentTP = baseTP - adjustedTP;
+        detailsTP.textContent = `${currentTP} / ${baseTP}`;
+        detailsTP.style.color = currentTP < 0 ? "red" : "";
     }
 }
 
@@ -419,24 +419,23 @@ export function updateSummary() {
         if (profValueElem.nextSibling) profValueElem.nextSibling.remove();
         profValueElem.insertAdjacentHTML('afterend', `<span style="margin-left:10px;"><strong>Martial Proficiency:</strong> ${getMartialProficiency()}</span>`);
     }
-    // NEW: Calculate spent TP and adjust total TP
+    // --- Calculate spent TP and adjust total TP ---
     const level = getLevelValue();
     const highestAbility = getHighestAbility();
-    const baseTP = 22 + highestAbility + ((highestAbility + 2) * (level - 1));
-    
-    // NEW: Calculate spent TP and adjust total TP
+    // Correct base TP calculation
+    const baseTP = (22 + highestAbility) + ((2 + highestAbility) * (level - 1));
     const creatureData = {
         armaments,
         powersTechniques,
-        // Add other relevant data if needed (e.g., resistances, etc.)
     };
-    const spentTP = calculateCreatureTPSpent(creatureData, itemPropertiesData, powerPartsData, techniquePartsData);
-    const adjustedTP = getAdjustedCreatureTP(creatureData, baseTP, itemPropertiesData, powerPartsData, techniquePartsData);
-    
+    const adjustedTP = calculateCreatureTPSpent(creatureData, itemPropertiesData, powerPartsData, techniquePartsData);
+    const currentTP = baseTP - adjustedTP;
+
     // Update summary with adjusted TP (assuming there's a summary element for TP; add if missing)
     const summaryTPElem = document.getElementById('summaryTP');
     if (summaryTPElem) {
-        summaryTPElem.textContent = adjustedTP;
+        summaryTPElem.textContent = `${currentTP} / ${baseTP}`;
+        summaryTPElem.style.color = currentTP < 0 ? "red" : "";
     }
     updateCreatureDetailsBox();
 }
