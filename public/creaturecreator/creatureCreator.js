@@ -56,18 +56,8 @@ async function loadSkillsFromFirebase() {
     return [];
 }
 
-// --- Training Points Calculation ---
-function getHighestAbility() {
-    const abilities = [
-        parseInt(document.getElementById('creatureAbilityStrength')?.value || 0),
-        parseInt(document.getElementById('creatureAbilityVitality')?.value || 0),
-        parseInt(document.getElementById('creatureAbilityAgility')?.value || 0),
-        parseInt(document.getElementById('creatureAbilityAcuity')?.value || 0),
-        parseInt(document.getElementById('creatureAbilityIntelligence')?.value || 0),
-        parseInt(document.getElementById('creatureAbilityCharisma')?.value || 0)
-    ];
-    return Math.max(...abilities);
-}
+
+import { getHighestAbility } from './creatureUtils.js';
 
 function updateDetailsTP() {
     const level = parseInt(document.getElementById('creatureLevel')?.value || 1);

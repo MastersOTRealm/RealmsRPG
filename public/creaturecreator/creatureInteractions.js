@@ -112,6 +112,7 @@ async function loadTechniquePartsFromDatabase() {
     }
 }
 
+import { getHighestAbility } from './creatureUtils.js';
 // Helper: get background feat points for resistances/weaknesses/immunities/condition immunities/senses/movements
 function getBackgroundFeatPoints() {
     let total = 0;
