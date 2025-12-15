@@ -68,9 +68,31 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
     function addPowerPart() {
         if (powerParts.length === 0) return;
         const partIndex = selectedPowerParts.length;
-        selectedPowerParts.push({ part: powerParts[0], op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        // Add selectedCategory: 'any' to each part
+        selectedPowerParts.push({ part: powerParts[0], op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false, selectedCategory: 'any' });
         renderPowerParts();
         updateTotalCosts();
+    }
+
+    // NEW: Handle category change for a part
+    function updateSelectedCategory(index, category) {
+        selectedPowerParts[index].selectedCategory = category;
+        // If current part doesn't match, reset to first in filtered
+        const filtered = getFilteredParts(category);
+        if (!filtered.includes(selectedPowerParts[index].part)) {
+            selectedPowerParts[index].part = filtered[0] || powerParts[0];
+            selectedPowerParts[index].op_1_lvl = 0;
+            selectedPowerParts[index].op_2_lvl = 0;
+            selectedPowerParts[index].op_3_lvl = 0;
+        }
+        renderPowerParts();
+        updateTotalCosts();
+    }
+
+    // Helper: get filtered parts by category
+    function getFilteredParts(category) {
+        if (!category || category === 'any') return [...powerParts].sort((a, b) => a.name.localeCompare(b.name));
+        return powerParts.filter(p => p.category === category).sort((a, b) => a.name.localeCompare(b.name));
     }
 
     function generatePartContent(partIndex, part) {
@@ -123,7 +145,10 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
     }
 
     function updateSelectedPart(index, selectedValue) {
-        const selectedPart = powerParts[selectedValue];
+        // Use filtered list for this part's category
+        const category = selectedPowerParts[index].selectedCategory || 'any';
+        const filtered = getFilteredParts(category);
+        const selectedPart = filtered[selectedValue] || filtered[0] || powerParts[0];
         selectedPowerParts[index].part = selectedPart;
         selectedPowerParts[index].op_1_lvl = 0;
         selectedPowerParts[index].op_2_lvl = 0;
@@ -833,18 +858,37 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
     function renderPowerParts() {
         const powerPartsContainer = document.getElementById("powerPartsContainer");
         powerPartsContainer.innerHTML = "";
-    
+
+        // Get all unique categories, sorted
+        const categories = [...new Set(powerParts.map(p => p.category).filter(Boolean))].sort();
+
         selectedPowerParts.forEach((partData, partIndex) => {
             const powerPartSection = document.createElement("div");
             powerPartSection.id = `powerPart-${partIndex}`;
             powerPartSection.classList.add("power-part-section");
 
-            const sortedParts = [...powerParts].sort((a, b) => a.name.localeCompare(b.name));
+            // Use selectedCategory for this part, default to 'any'
+            const selectedCategory = partData.selectedCategory || 'any';
+            const filteredParts = getFilteredParts(selectedCategory);
+
+            // Build category dropdown
+            const categoryOptions = [`<option value="any"${selectedCategory === 'any' ? ' selected' : ''}>Any</option>`]
+                .concat(categories.map(cat => `<option value="${cat}"${selectedCategory === cat ? ' selected' : ''}>${cat}</option>`)).join('');
+
+            // Build part dropdown (filtered)
+            const partOptions = filteredParts.map((part, idx) =>
+                `<option value="${idx}"${partData.part === part ? ' selected' : ''}>${part.name}</option>`
+            ).join('');
 
             powerPartSection.innerHTML = `
-                <select onchange="updateSelectedPart(${partIndex}, this.value)">
-                    ${sortedParts.map((part, index) => `<option value="${powerParts.indexOf(part)}" ${partData.part === part ? 'selected' : ''}>${part.name}</option>`).join('')}
-                </select>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select onchange="updateSelectedPart(${partIndex}, this.value)">
+                        ${partOptions}
+                    </select>
+                    <select style="margin-left:8px;" onchange="updateSelectedCategory(${partIndex}, this.value)">
+                        ${categoryOptions}
+                    </select>
+                </div>
                 <div id="partContent-${partIndex}">
                     ${generatePartContent(partIndex, partData.part)}
                 </div>
@@ -1303,5 +1347,6 @@ window.changeAdvancedOptionLevel = changeAdvancedOptionLevel; // NEW
 window.toggleAdvancedApplyDuration = toggleAdvancedApplyDuration; // NEW
 window.removeAdvancedPart = removeAdvancedPart; // NEW
 window.populateAdvancedMechanics = populateAdvancedMechanics; // NEW
+window.updateSelectedCategory = updateSelectedCategory; // NEW
 
 })();

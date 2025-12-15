@@ -1,3 +1,15 @@
+// Returns the highest ability score from the UI
+export function getHighestAbility() {
+    const abilities = [
+        parseInt(document.getElementById('creatureAbilityStrength')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityVitality')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityAgility')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityAcuity')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityIntelligence')?.value || 0),
+        parseInt(document.getElementById('creatureAbilityCharisma')?.value || 0)
+    ];
+    return Math.max(...abilities);
+}
 import { 
     resistances, weaknesses, immunities, senses, movement, feats, creatureSkills, creatureSkillValues, 
     conditionImmunities, defenseSkillState 
