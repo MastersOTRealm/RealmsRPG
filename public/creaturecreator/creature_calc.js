@@ -22,32 +22,50 @@ export const PROFICIENCY_PER_5_LEVELS = 1;
 
 export function calcAbilityPointTotal(level) {
     level = parseFloat(level) || 1;
+    if (level < 1) {
+        return Math.ceil(7 * level);
+    }
     return BASE_ABILITY_POINTS + Math.floor((level - 1) / 3) * ABILITY_POINTS_PER_3_LEVELS;
 }
 
 export function calcSkillPointTotal(level) {
     level = parseFloat(level) || 1;
+    if (level < 1) {
+        return Math.ceil(5 * level);
+    }
     return BASE_SKILL_POINTS + SKILL_POINTS_PER_LEVEL * level;
 }
 
 export function calcHitEnergyTotal(level) {
     level = parseFloat(level) || 1;
+    if (level < 1) {
+        // 26 * level + Vitality (Vitality is added in getBaseHitPoints, not here)
+        // This function only returns the pool, so just 26 * level, rounded up
+        return Math.ceil(26 * level);
+    }
     return BASE_HIT_ENERGY + HIT_ENERGY_PER_LEVEL * (level - 1);
 }
 
 export function calcCreatureCurrency(level) {
     level = parseFloat(level) || 1;
+    // No special rule for currency at sub-1 levels, keep as is
     return Math.round(BASE_CURRENCY * Math.pow(CURRENCY_GROWTH, level - 1));
 }
 
 export function calcTP(level, highestNonVit) {
     level = parseFloat(level) || 1;
+    if (level < 1) {
+        return Math.ceil(22 * level) + highestNonVit;
+    }
     if (level <= 1) return BASE_TP + highestNonVit;
     return BASE_TP + highestNonVit + (level - 1) * (TP_PER_LEVEL + highestNonVit);
 }
 
 export function calcProficiency(level) {
     level = parseFloat(level) || 1;
+    if (level < 1) {
+        return Math.ceil(2 * level);
+    }
     return BASE_PROFICIENCY + Math.floor(level / 5) * PROFICIENCY_PER_5_LEVELS;
 }
 

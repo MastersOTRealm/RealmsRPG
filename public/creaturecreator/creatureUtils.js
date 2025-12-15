@@ -25,6 +25,9 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
 // --- Archetype Proficiency Logic ---
 export function getMaxArchetypeProficiency(level) {
     level = parseFloat(level) || 1;
+    if (level < 1) {
+        return Math.ceil(2 * level);
+    }
     return 2 + Math.floor(level / 5);
 }
 
@@ -140,8 +143,11 @@ export function formatTechniqueParts(partsArr) {
 // Calculations
 export function getBaseFeatPoints(level) {
     level = parseFloat(level) || 1;
-    // Martial bonus feat points: 1 per martial proficiency, max 2
     const martialProf = getMartialProficiency();
+    if (level < 1) {
+        // 4 * level + martial proficiency, rounded up
+        return Math.ceil(4 * level) + martialProf;
+    }
     let martialBonus = Math.min(martialProf, 2) * 1; // MARTIAL_BONUS_FEAT_POINTS = 1
     // If martial proficiency >= 2, get +1 per 3 levels after 4
     if (martialProf >= 2 && level >= 4) {
@@ -375,5 +381,17 @@ export const MOVEMENT_DISPLAY = {
     "Slow Walker": "Slow Walker",
     "Hover": "Hover"
 };
+
+// For base TP, update where it's calculated in summary/details
+// In updateCreatureDetailsBox and updateSummary, replace:
+// const baseTP = (22 + highestAbility) + ((2 + highestAbility) * (parseFloat(level) - 1));
+// with:
+export function getBaseTP(level, highestAbility) {
+    level = parseFloat(level) || 1;
+    if (level < 1) {
+        return Math.ceil(22 * level) + highestAbility;
+    }
+    return (22 + highestAbility) + ((2 + highestAbility) * (level - 1));
+}
 
 // Ensure all feat-related logic dynamically fetches data from the database

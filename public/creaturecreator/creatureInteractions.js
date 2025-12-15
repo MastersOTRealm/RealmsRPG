@@ -1,6 +1,7 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
 import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent, addFeatFromDatabase, removeFeat, getCreatureCurrency } from './creatureUtils.js';
 import { calculateCreatureTPSpent, getAdjustedCreatureTP } from './creatureTPcalc.js';
+import { getBaseTP } from './creatureUtils.js';
 
 // REMOVE: import creatureFeatsData from './creatureFeatsData.js';
 
@@ -352,8 +353,8 @@ export function updateInnateInfo() {
 export function updateCreatureDetailsBox() {
     const level = document.getElementById("creatureLevel")?.value || 1;
     const highestAbility = getHighestAbility();
-    // Correct base TP calculation
-    const baseTP = (22 + highestAbility) + ((2 + highestAbility) * (parseFloat(level) - 1));
+    // Use new base TP formula
+    const baseTP = getBaseTP(level, highestAbility);
     const detailsTP = document.getElementById("detailsTP");
     if (detailsTP) {
         const creatureData = {
@@ -443,8 +444,8 @@ export function updateSummary() {
     // --- Calculate spent TP and adjust total TP ---
     const level = getLevelValue();
     const highestAbility = getHighestAbility();
-    // Correct base TP calculation
-    const baseTP = (22 + highestAbility) + ((2 + highestAbility) * (level - 1));
+    // Use new base TP formula
+    const baseTP = getBaseTP(level, highestAbility);
     const creatureData = {
         armaments,
         powersTechniques,
