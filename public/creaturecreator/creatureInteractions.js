@@ -1,5 +1,5 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
-import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent, addFeatFromDatabase, removeFeat } from './creatureUtils.js';
+import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent, addFeatFromDatabase, removeFeat, getCreatureCurrency } from './creatureUtils.js';
 import { calculateCreatureTPSpent, getAdjustedCreatureTP } from './creatureTPcalc.js';
 
 // REMOVE: import creatureFeatsData from './creatureFeatsData.js';
@@ -282,7 +282,7 @@ export function updateCreatureAbilityDropdowns() {
     let level = 1;
     const levelInput = document.getElementById('creatureLevel');
     if (levelInput) {
-        level = parseInt(levelInput.value) || 1;
+        level = parseFloat(levelInput.value) || 1;
     }
     const maxPoints = getAbilityPointTotal(level);
     const counter = document.getElementById('remaining-points');
@@ -353,7 +353,7 @@ export function updateCreatureDetailsBox() {
     const level = document.getElementById("creatureLevel")?.value || 1;
     const highestAbility = getHighestAbility();
     // Correct base TP calculation
-    const baseTP = (22 + highestAbility) + ((2 + highestAbility) * (parseInt(level) - 1));
+    const baseTP = (22 + highestAbility) + ((2 + highestAbility) * (parseFloat(level) - 1));
     const detailsTP = document.getElementById("detailsTP");
     if (detailsTP) {
         const creatureData = {
@@ -364,6 +364,27 @@ export function updateCreatureDetailsBox() {
         const currentTP = baseTP - adjustedTP;
         detailsTP.textContent = `${currentTP} / ${baseTP}`;
         detailsTP.style.color = currentTP < 0 ? "red" : "";
+    }
+    // Update Feat Points
+    const detailsFeatPoints = document.getElementById("detailsFeatPoints");
+    if (detailsFeatPoints) {
+        const remaining = getRemainingFeatPointsWithBackground ? getRemainingFeatPointsWithBackground() : getRemainingFeatPoints();
+        detailsFeatPoints.textContent = remaining.toFixed(1).replace(/\.0$/, "");
+        detailsFeatPoints.style.color = remaining < 0 ? "red" : "";
+    }
+    // Update Skill Points
+    const detailsSkillPoints = document.getElementById("detailsSkillPoints");
+    if (detailsSkillPoints) {
+        const skillPoints = getSkillPointsRemaining();
+        detailsSkillPoints.textContent = skillPoints;
+        detailsSkillPoints.style.color = skillPoints < 0 ? "red" : "";
+    }
+    // Update Currency
+    const detailsCurrency = document.getElementById("detailsCurrency");
+    if (detailsCurrency) {
+        const currency = getCreatureCurrency(level);
+        detailsCurrency.textContent = currency;
+        detailsCurrency.style.color = "";
     }
 }
 
@@ -727,14 +748,21 @@ export async function initCreatureCreator(deps = {}) {
     // Setup event listeners for all UI elements
 
     // Level, Name, Type
-    document.getElementById("creatureName").addEventListener("input", updateSummary);
+    document.getElementById("creatureName").addEventListener("input", () => {
+        updateSummary();
+        updateCreatureDetailsBox();
+    });
     document.getElementById("creatureLevel").addEventListener("input", () => {
         updateSummary();
         updateCreatureAbilityDropdowns();
         updateHealthEnergyUI();
         updateDefensesUI();
+        updateCreatureDetailsBox();
     });
-    document.getElementById("creatureType").addEventListener("change", updateSummary);
+    document.getElementById("creatureType").addEventListener("change", () => {
+        updateSummary();
+        updateCreatureDetailsBox();
+    });
 
     // Resistances
     updateResistancesList();
@@ -949,6 +977,7 @@ export async function initCreatureCreator(deps = {}) {
             updateCreatureAbilityDropdowns();
             updateHealthEnergyUI();
             updateDefensesUI();
+            updateCreatureDetailsBox();
         });
     });
 
@@ -1104,6 +1133,7 @@ export async function initCreatureCreator(deps = {}) {
     updateHealthEnergyUI();
     updateDefensesUI();
     updateSummary();
+    updateCreatureDetailsBox(); // Ensure details box is correct on load
 }
 
 function addFeatByName(featName) {

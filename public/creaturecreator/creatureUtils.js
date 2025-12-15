@@ -24,7 +24,7 @@ import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/
 
 // --- Archetype Proficiency Logic ---
 export function getMaxArchetypeProficiency(level) {
-    level = parseInt(level) || 1;
+    level = parseFloat(level) || 1;
     return 2 + Math.floor(level / 5);
 }
 
@@ -139,7 +139,7 @@ export function formatTechniqueParts(partsArr) {
 
 // Calculations
 export function getBaseFeatPoints(level) {
-    level = parseInt(level) || 1;
+    level = parseFloat(level) || 1;
     // Martial bonus feat points: 1 per martial proficiency, max 2
     const martialProf = getMartialProficiency();
     let martialBonus = Math.min(martialProf, 2) * 1; // MARTIAL_BONUS_FEAT_POINTS = 1
@@ -174,7 +174,7 @@ export function getProficiency(level) {
 }
 
 export function getCreatureCurrency(level) {
-    level = parseInt(level) || 1;
+    level = parseFloat(level) || 1;
     return calcCreatureCurrency(level);
 }
 
@@ -186,12 +186,12 @@ export function getAbilityPointCost(val) {
 }
 
 export function getAbilityPointTotal(level) {
-    level = parseInt(level) || 1;
+    level = parseFloat(level) || 1;
     return calcAbilityPointTotal(level);
 }
 
 export function getSkillPointTotal() {
-    const level = parseInt(document.getElementById('creatureLevel')?.value) || 1;
+    const level = parseFloat(document.getElementById('creatureLevel')?.value) || 1;
     return calcSkillPointTotal(level);
 }
 
@@ -204,7 +204,7 @@ export function getSkillPointsSpent() {
 }
 
 export function getSkillPointsRemaining() {
-    return Math.max(0, getSkillPointTotal() - getSkillPointsSpent());
+    return getSkillPointTotal() - getSkillPointsSpent();
 }
 
 export function getAbilityValue(id) {
@@ -279,7 +279,7 @@ export function getHighestNonVitalityAbility() {
 
 export function getLevelValue() {
     const l = document.getElementById('creatureLevel');
-    return l ? parseInt(l.value) || 1 : 1;
+    return l ? parseFloat(l.value) || 1 : 1;
 }
 
 export function getVitalityValue() {
@@ -296,7 +296,7 @@ export function getBaseEnergy() {
 }
 
 export function getHitEnergyTotal(level) {
-    level = parseInt(level) || 1;
+    level = parseFloat(level) || 1;
     return calcHitEnergyTotal(level);
 }
 
@@ -304,7 +304,7 @@ export function getInnatePowers(level) {
     // Only grant innate powers if Power Proficiency > 0
     const powerProf = getPowerProficiency();
     if (powerProf <= 0) return 0;
-    level = parseInt(level) || 1;
+    level = parseFloat(level) || 1;
     if (level < 1) return 0;
     return 2 + Math.floor((level - 1) / 3);
 }

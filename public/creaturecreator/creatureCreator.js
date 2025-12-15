@@ -60,10 +60,14 @@ async function loadSkillsFromFirebase() {
 import { getHighestAbility } from './creatureUtils.js';
 
 function updateDetailsTP() {
-    const level = parseInt(document.getElementById('creatureLevel')?.value || 1);
+    const level = parseFloat(document.getElementById('creatureLevel')?.value || 1);
     const highestAbility = getHighestAbility();
     const totalTP = 22 + highestAbility + ((highestAbility + 2) * (level - 1));
     document.getElementById('detailsTP').textContent = totalTP;
+    // --- Add this to update the details box for feat/skill points/currency ---
+    if (window.creatureInteractions && typeof window.creatureInteractions.updateCreatureDetailsBox === "function") {
+        window.creatureInteractions.updateCreatureDetailsBox();
+    }
 }
 
 // --- Main Entry Point: Delegate all UI/event logic to modules ---

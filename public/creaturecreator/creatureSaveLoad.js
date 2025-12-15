@@ -55,7 +55,7 @@ export async function getCreatureSaveData() {
     const hitPoints = parseInt(document.getElementById('hitPointsInput')?.value) || 0;
     const energy = parseInt(document.getElementById('energyInput')?.value) || 0;
     const creatureName = document.getElementById("creatureName")?.value || "";
-    const level = parseInt(document.getElementById("creatureLevel")?.value) || 1;
+    const level = parseFloat(document.getElementById("creatureLevel")?.value) || 1;
     const type = document.getElementById("creatureType")?.value || "";
     const languagesArr = creatureLanguages.slice();
     const description = document.getElementById("creatureDescription")?.value || "";
