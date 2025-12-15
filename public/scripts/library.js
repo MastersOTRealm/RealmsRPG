@@ -9,12 +9,121 @@ import {
   formatRange,
   formatDamage as formatItemDamage,
   deriveItemDisplay,
-  formatProficiencyChip
+  formatProficiencyChip,
+  deriveDamageReductionFromProperties
 } from './item_calc.js';
 import { calculateTechniqueCosts, computeActionType, formatTechniqueDamage, deriveTechniqueDisplay } from './technique_calc.js';
 import {
-  calculatePowerCosts, derivePowerDisplay, formatPowerDamage
+  calculatePowerCosts, derivePowerDisplay, formatPowerDamage,
+  deriveRange, deriveArea, deriveDuration
 } from './power_calc.js';
+
+// Cache for database data
+let creatureFeatsCache = null;
+let powerPartsCache = null;
+let techniquePartsCache = null;
+let itemPropertiesCache = null;
+
+// Load creature feats from database
+async function loadCreatureFeats(database) {
+    if (creatureFeatsCache) return creatureFeatsCache;
+    try {
+        const featsRef = ref(database, 'creature_feats');
+        const snapshot = await get(featsRef);
+        if (snapshot.exists()) {
+            const featsData = snapshot.val();
+            // Convert to object keyed by feat name for easy lookup
+            creatureFeatsCache = {};
+            Object.values(featsData).forEach(feat => {
+                if (feat.name) {
+                    creatureFeatsCache[feat.name] = feat;
+                }
+            });
+            console.log(`Loaded ${Object.keys(creatureFeatsCache).length} creature feats from database`);
+        } else {
+            creatureFeatsCache = {};
+        }
+    } catch (error) {
+        console.error('Error loading creature feats:', error);
+        creatureFeatsCache = {};
+    }
+    return creatureFeatsCache;
+}
+
+// Helper: Fetch techniques from Realtime Database
+async function fetchTechniqueParts(database) {
+    if (techniquePartsCache) return techniquePartsCache;
+    try {
+        const partsRef = ref(database, 'technique_parts');
+        const snapshot = await get(partsRef);
+        if (snapshot.exists()) {
+            techniquePartsCache = Object.values(snapshot.val());
+        } else {
+            techniquePartsCache = [];
+        }
+    } catch (error) {
+        console.error('Error loading technique parts:', error);
+        techniquePartsCache = [];
+    }
+    return techniquePartsCache;
+}
+
+// Helper: Fetch user powers by names
+async function fetchUserPowersByNames(db, userId, powerNames) {
+    if (!powerNames || powerNames.length === 0) return [];
+    try {
+        const querySnapshot = await getDocs(collection(db, 'users', userId, 'library'));
+        const powers = [];
+        querySnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (powerNames.includes(data.name)) {
+                powers.push({ ...data, docId: docSnap.id });
+            }
+        });
+        return powers;
+    } catch (error) {
+        console.error('Error fetching user powers:', error);
+        return [];
+    }
+}
+
+// Helper: Fetch user techniques by names
+async function fetchUserTechniquesByNames(db, userId, techniqueNames) {
+    if (!techniqueNames || techniqueNames.length === 0) return [];
+    try {
+        const querySnapshot = await getDocs(collection(db, 'users', userId, 'techniqueLibrary'));
+        const techniques = [];
+        querySnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (techniqueNames.includes(data.name)) {
+                techniques.push({ ...data, docId: docSnap.id });
+            }
+        });
+        return techniques;
+    } catch (error) {
+        console.error('Error fetching user techniques:', error);
+        return [];
+    }
+}
+
+// Helper: Fetch user armaments by names
+async function fetchUserArmamentsByNames(db, userId, armamentNames) {
+    if (!armamentNames || armamentNames.length === 0) return [];
+    try {
+        const querySnapshot = await getDocs(collection(db, 'users', userId, 'itemLibrary'));
+        const armaments = [];
+        querySnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (armamentNames.includes(data.name)) {
+                armaments.push({ ...data, docId: docSnap.id });
+            }
+        });
+        return armaments;
+    } catch (error) {
+        console.error('Error fetching user armaments:', error);
+        return [];
+    }
+}
 
 // Add sorting state
 let sortState = {
@@ -45,7 +154,6 @@ function capitalize(str) {
 }
 
 // Load properties from Realtime Database
-let itemPropertiesCache = null;
 async function loadItemProperties(database) {
     if (itemPropertiesCache) return itemPropertiesCache;
     
@@ -78,7 +186,6 @@ async function loadItemProperties(database) {
 }
 
 // NEW: Fetch power parts from Realtime Database (similar to technique parts)
-let powerPartsCache = null;
 async function fetchPowerParts(database) {
     if (powerPartsCache) return powerPartsCache;
     
@@ -509,7 +616,7 @@ function createTechniqueCardDynamic(technique, techniquePartsDb, db, userId) {
   return card;
 }
 
-async function showSavedCreatures(db, userId) {
+async function showSavedCreatures(db, userId, database) {
     const creaturesList = document.getElementById('creaturesList');
     if (!creaturesList) return;
     creaturesList.innerHTML = '';
@@ -531,88 +638,358 @@ async function showSavedCreatures(db, userId) {
         // Sort creatures
         sortItems(creatures, sortState.creatures);
 
-        // Render creatures
-        creatures.forEach(creature => {
-            const card = createCreatureCard(creature);
+        // Render creatures (async for database lookups)
+        for (const creature of creatures) {
+            const card = await createCreatureCard(creature, database, db, userId);
             creaturesList.appendChild(card);
-        });
+        }
     } catch (e) {
         creaturesList.innerHTML = '<div class="no-results">Error loading creatures.</div>';
         console.error('Error fetching saved creatures: ', e);
     }
 }
 
-function createCreatureCard(creature) {
+async function createCreatureCard(creature, database, db, userId) {
     const card = document.createElement('div');
-    card.className = 'library-card';
+    card.className = 'creature-card';
+    
+    // Load database data for details
+    const creatureFeats = await loadCreatureFeats(database);
+    const powerPartsDb = await fetchPowerParts(database);
+    const techniquePartsDb = await fetchTechniqueParts(database);
+    const itemPropertiesDb = await loadItemProperties(database);
+    
+    // Fetch full details for powers, techniques, and armaments from user library
+    const userPowers = creature.powers ? await fetchUserPowersByNames(db, userId, creature.powers) : [];
+    const userTechniques = creature.techniques ? await fetchUserTechniquesByNames(db, userId, creature.techniques) : [];
+    const userArmaments = creature.armaments ? await fetchUserArmamentsByNames(db, userId, creature.armaments) : [];
+    
+    // Separate weapons and armor
+    const weapons = userArmaments.filter(a => a.armamentType === 'Weapon');
+    const armor = userArmaments.filter(a => a.armamentType === 'Armor' || a.armamentType === 'Shield');
 
-    const header = document.createElement('div');
-    header.className = 'library-header creature-header';
-    header.onclick = () => toggleExpand(card);
-
-    header.innerHTML = `
-        <div class="col">${creature.name || '-'}</div>
-        <div class="col">Level ${creature.level || '-'}</div>
-        <div class="col">${creature.type || '-'}</div>
-        <div class="col">${creature.archetype || '-'}</div>
-        <span class="expand-icon">▼</span>
-    `;
-
-    const body = document.createElement('div');
-    body.className = 'library-body';
-
-    // Build creature stat blocks (reuse existing logic)
     const ab = creature.abilities || {};
     const df = creature.defenses || {};
     
-    function abilityCell(val) {
+    function abilityMod(val) {
         if (typeof val === 'number' && val >= 0) return `+${val}`;
-        return val;
+        return val ?? '-';
     }
 
-    const abilitiesTable = `
-        <table style="width:100%;border-collapse:collapse;font-size:0.9em;">
-            <tr><th>STR</th><th>VIT</th><th>AGG</th></tr>
-            <tr><td>${abilityCell(ab.strength)}</td><td>${abilityCell(ab.vitality)}</td><td>${abilityCell(ab.agility)}</td></tr>
-            <tr><th>ACU</th><th>INT</th><th>CHA</th></tr>
-            <tr><td>${abilityCell(ab.acuity)}</td><td>${abilityCell(ab.intelligence)}</td><td>${abilityCell(ab.charisma)}</td></tr>
-        </table>
-    `;
+    // Helper to render inline comma-separated lists
+    function renderInline(arr) {
+        if (!arr || arr.length === 0) return '—';
+        return arr.join(', ');
+    }
 
-    const defensesTable = `
-        <table style="width:100%;border-collapse:collapse;font-size:0.9em;">
-            <tr><th>MGT</th><th>FRT</th><th>RFX</th></tr>
-            <tr><td>${df.might ?? ''}</td><td>${df.fortitude ?? ''}</td><td>${df.reflex ?? ''}</td></tr>
-            <tr><th>DSC</th><th>MFT</th><th>RSL</th></tr>
-            <tr><td>${df.discernment ?? ''}</td><td>${df.mentalFortitude ?? ''}</td><td>${df.resolve ?? ''}</td></tr>
-        </table>
-    `;
+    // Helper to render skills inline
+    function renderSkillsInline(skills) {
+        if (!skills || skills.length === 0) return '—';
+        return skills.map(s => {
+            const bonus = s.bonus >= 0 ? `+${s.bonus}` : s.bonus;
+            return `${s.name} ${bonus}`;
+        }).join(', ');
+    }
 
-    body.innerHTML = `
-        <div class="creature-expanded-content">
-            <div class="creature-section">
-                <h4>Abilities</h4>
-                ${abilitiesTable}
+    // Collapsed header (shows by default)
+    const martialProf = creature.martialProficiency || 0;
+    const powerProf = creature.powerProficiency || 0;
+    
+    let proficiencyText = '';
+    if (martialProf > 0 || powerProf > 0) {
+        const parts = [];
+        if (martialProf > 0) parts.push(`Martial +${martialProf}`);
+        if (powerProf > 0) parts.push(`Power +${powerProf}`);
+        proficiencyText = ` | ${parts.join(', ')}`;
+    }
+    
+    const collapsedHeader = `
+        <div class="creature-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="creature-header-content">
+                <span class="creature-name">${creature.name || 'Unnamed Creature'}</span>
+                <span class="creature-info">Level ${creature.level || 1} ${creature.type || 'Unknown Type'}${proficiencyText}</span>
             </div>
-            <div class="creature-section">
-                <h4>Defenses</h4>
-                ${defensesTable}
-            </div>
-            <div class="creature-section">
-                <h4>Details</h4>
-                <p><strong>Type:</strong> ${creature.type || '-'}</p>
-                <p><strong>Level:</strong> ${creature.level || '-'}</p>
-                <p><strong>Archetype:</strong> ${creature.archetype || '-'}</p>
-            </div>
+            <span class="expand-toggle">▼</span>
         </div>
     `;
+    
+    // Full stat block (hidden by default, shown when expanded)
+    const statblockContent = `
+        <div class="creature-statblock-content">
+            <div class="statblock-separator"></div>
+    `;
 
-    if (creature.description) {
-        body.innerHTML += `<div class="library-description">${creature.description}</div>`;
+    // Core stats section (always visible)
+    const coreStats = `
+        <div class="statblock-section">
+            <div class="statblock-attribute">
+                <span class="attr-label">Hit Points</span>
+                <span class="attr-value">${creature.hitPoints || 0}</span>
+            </div>
+            <div class="statblock-attribute">
+                <span class="attr-label">Energy</span>
+                <span class="attr-value">${creature.energy || 0}</span>
+            </div>
+        </div>
+        <div class="statblock-separator"></div>
+    `;
+
+    // Abilities inline
+    const abilities = `
+        <div class="statblock-section">
+            <div class="statblock-abilities">
+                <div class="ability-score"><strong>STR</strong> ${abilityMod(ab.strength)}</div>
+                <div class="ability-score"><strong>VIT</strong> ${abilityMod(ab.vitality)}</div>
+                <div class="ability-score"><strong>AGI</strong> ${abilityMod(ab.agility)}</div>
+                <div class="ability-score"><strong>ACU</strong> ${abilityMod(ab.acuity)}</div>
+                <div class="ability-score"><strong>INT</strong> ${abilityMod(ab.intelligence)}</div>
+                <div class="ability-score"><strong>CHA</strong> ${abilityMod(ab.charisma)}</div>
+            </div>
+        </div>
+        <div class="statblock-separator"></div>
+    `;
+
+    // Defenses inline
+    const defenses = `
+        <div class="statblock-section">
+            <div class="statblock-defenses">
+                <div><strong>Might</strong> ${df.might ?? '-'}</div>
+                <div><strong>Fortitude</strong> ${df.fortitude ?? '-'}</div>
+                <div><strong>Reflex</strong> ${df.reflex ?? '-'}</div>
+                <div><strong>Discernment</strong> ${df.discernment ?? '-'}</div>
+                <div><strong>Mental Fortitude</strong> ${df.mentalFortitude ?? '-'}</div>
+                <div><strong>Resolve</strong> ${df.resolve ?? '-'}</div>
+            </div>
+        </div>
+        <div class="statblock-separator"></div>
+    `;
+
+    // Compact features section
+    let features = '<div class="statblock-section">';
+    
+    if (creature.senses && creature.senses.length > 0) {
+        features += `<div class="statblock-trait"><strong>Senses</strong> ${renderInline(creature.senses)}</div>`;
+    }
+    if (creature.movement && creature.movement.length > 0) {
+        features += `<div class="statblock-trait"><strong>Movement</strong> ${renderInline(creature.movement)}</div>`;
+    }
+    if (creature.languages && creature.languages.length > 0) {
+        features += `<div class="statblock-trait"><strong>Languages</strong> ${renderInline(creature.languages)}</div>`;
+    }
+    if (creature.skills && creature.skills.length > 0) {
+        features += `<div class="statblock-trait"><strong>Skills</strong> ${renderSkillsInline(creature.skills)}</div>`;
+    }
+    
+    const hasRes = creature.resistances && creature.resistances.length > 0;
+    const hasImm = creature.immunities && creature.immunities.length > 0;
+    const hasWeak = creature.weaknesses && creature.weaknesses.length > 0;
+    const hasCondImm = creature.conditionImmunities && creature.conditionImmunities.length > 0;
+    
+    if (hasRes) {
+        features += `<div class="statblock-trait"><strong>Damage Resistances</strong> ${renderInline(creature.resistances)}</div>`;
+    }
+    if (hasImm) {
+        features += `<div class="statblock-trait"><strong>Damage Immunities</strong> ${renderInline(creature.immunities)}</div>`;
+    }
+    if (hasWeak) {
+        features += `<div class="statblock-trait"><strong>Weaknesses</strong> ${renderInline(creature.weaknesses)}</div>`;
+    }
+    if (hasCondImm) {
+        features += `<div class="statblock-trait"><strong>Condition Immunities</strong> ${renderInline(creature.conditionImmunities)}</div>`;
+    }
+    
+    features += '</div>';
+    
+    if (hasRes || hasImm || hasWeak || hasCondImm || (creature.senses && creature.senses.length) || (creature.movement && creature.movement.length) || (creature.languages && creature.languages.length) || (creature.skills && creature.skills.length)) {
+        features += '<div class="statblock-separator"></div>';
     }
 
-    card.appendChild(header);
-    card.appendChild(body);
+    // Expandable sections for feats, powers, techniques, weapons, armor
+    let expandableSections = '';
+    
+    // FEATS - expandable with descriptions from database
+    if (creature.feats && creature.feats.length > 0) {
+        const featItems = creature.feats.map(featName => {
+            const featData = creatureFeats[featName];
+            const description = featData?.description || 'No description available.';
+            return `
+                <div class="statblock-feature-item" onclick="this.classList.toggle('expanded')">
+                    <span class="statblock-feature-name">${featName}</span>
+                    <div class="statblock-feature-details">
+                        <div class="statblock-feature-detail-line">${description}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        expandableSections += `
+            <div class="statblock-expandable-section">
+                <div class="statblock-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <strong>Feats</strong> <span class="expand-count">(${creature.feats.length})</span>
+                    <span class="expand-toggle">▼</span>
+                </div>
+                <div class="statblock-expandable-body">
+                    ${featItems}
+                </div>
+            </div>
+        `;
+    }
+    
+    // POWERS - expandable with energy, range, area, duration, damage
+    if (userPowers.length > 0) {
+        const powerItems = userPowers.map(power => {
+            const powerCosts = calculatePowerCosts(power.parts || [], powerPartsDb);
+            const energyCost = powerCosts.totalEnergy || 0;
+            const range = deriveRange(power.parts || []);
+            const area = deriveArea(power.parts || []);
+            const duration = deriveDuration(power.parts || []);
+            const damageDisplay = formatPowerDamage(power.damage);
+            const description = power.description || '';
+            
+            return `
+                <div class="statblock-feature-item" onclick="this.classList.toggle('expanded')">
+                    <span class="statblock-feature-name">${power.name}</span>
+                    <div class="statblock-feature-details">
+                        <div class="statblock-feature-detail-line"><strong>Energy:</strong> ${energyCost}</div>
+                        ${range ? `<div class="statblock-feature-detail-line"><strong>Range:</strong> ${range}</div>` : ''}
+                        ${area ? `<div class="statblock-feature-detail-line"><strong>Area:</strong> ${area}</div>` : ''}
+                        ${duration ? `<div class="statblock-feature-detail-line"><strong>Duration:</strong> ${duration}</div>` : ''}
+                        ${damageDisplay ? `<div class="statblock-feature-detail-line"><strong>Damage:</strong> ${damageDisplay}</div>` : ''}
+                        ${description ? `<div class="statblock-feature-detail-line" style="margin-top: 4px;">${description}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        expandableSections += `
+            <div class="statblock-expandable-section">
+                <div class="statblock-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <strong>Powers</strong> <span class="expand-count">(${userPowers.length})</span>
+                    <span class="expand-toggle">▼</span>
+                </div>
+                <div class="statblock-expandable-body">
+                    ${powerItems}
+                </div>
+            </div>
+        `;
+    }
+    
+    // TECHNIQUES - expandable with TP, energy, weapon, action type, damage
+    if (userTechniques.length > 0) {
+        const techniqueItems = userTechniques.map(technique => {
+            const costs = calculateTechniqueCosts(technique.mechanics || [], techniquePartsDb);
+            const energyCost = costs.totalEnergy || 0;
+            const weaponName = technique.weapon?.name || 'Any';
+            const actionType = computeActionType(technique.mechanics || []);
+            const damageDisplay = formatTechniqueDamage(technique.damage);
+            const description = technique.description || '';
+            
+            return `
+                <div class="statblock-feature-item" onclick="this.classList.toggle('expanded')">
+                    <span class="statblock-feature-name">${technique.name}</span>
+                    <div class="statblock-feature-details">
+                        <div class="statblock-feature-detail-line"><strong>Energy:</strong> ${energyCost}</div>
+                        <div class="statblock-feature-detail-line"><strong>Weapon:</strong> ${weaponName}</div>
+                        <div class="statblock-feature-detail-line"><strong>Action:</strong> ${actionType}</div>
+                        ${damageDisplay ? `<div class="statblock-feature-detail-line"><strong>Damage:</strong> ${damageDisplay}</div>` : ''}
+                        ${description ? `<div class="statblock-feature-detail-line" style="margin-top: 4px;">${description}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        expandableSections += `
+            <div class="statblock-expandable-section">
+                <div class="statblock-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <strong>Techniques</strong> <span class="expand-count">(${userTechniques.length})</span>
+                    <span class="expand-toggle">▼</span>
+                </div>
+                <div class="statblock-expandable-body">
+                    ${techniqueItems}
+                </div>
+            </div>
+        `;
+    }
+    
+    // WEAPONS - expandable with range, damage, properties
+    if (weapons.length > 0) {
+        const weaponItems = weapons.map(weapon => {
+            const rangeDisplay = formatRange(weapon.properties) || '—';
+            const damageDisplay = formatItemDamage(weapon.damage);
+            const propertiesList = weapon.properties ? weapon.properties.map(p => p.name || p).join(', ') : 'None';
+            const description = weapon.description || '';
+            
+            return `
+                <div class="statblock-feature-item" onclick="this.classList.toggle('expanded')">
+                    <span class="statblock-feature-name">${weapon.name}</span>
+                    <div class="statblock-feature-details">
+                        <div class="statblock-feature-detail-line"><strong>Range:</strong> ${rangeDisplay}</div>
+                        ${damageDisplay ? `<div class="statblock-feature-detail-line"><strong>Damage:</strong> ${damageDisplay}</div>` : ''}
+                        <div class="statblock-feature-detail-line"><strong>Properties:</strong> ${propertiesList}</div>
+                        ${description ? `<div class="statblock-feature-detail-line" style="margin-top: 4px;">${description}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        expandableSections += `
+            <div class="statblock-expandable-section">
+                <div class="statblock-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <strong>Weapons</strong> <span class="expand-count">(${weapons.length})</span>
+                    <span class="expand-toggle">▼</span>
+                </div>
+                <div class="statblock-expandable-body">
+                    ${weaponItems}
+                </div>
+            </div>
+        `;
+    }
+    
+    // ARMOR - expandable with damage reduction, description
+    if (armor.length > 0) {
+        const armorItems = armor.map(armorItem => {
+            const damageReduction = deriveDamageReductionFromProperties(armorItem.properties || []);
+            const description = armorItem.description || '';
+            
+            return `
+                <div class="statblock-feature-item" onclick="this.classList.toggle('expanded')">
+                    <span class="statblock-feature-name">${armorItem.name}</span>
+                    <div class="statblock-feature-details">
+                        <div class="statblock-feature-detail-line"><strong>Damage Reduction:</strong> ${damageReduction}</div>
+                        ${description ? `<div class="statblock-feature-detail-line" style="margin-top: 4px;">${description}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        expandableSections += `
+            <div class="statblock-expandable-section">
+                <div class="statblock-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <strong>Armor</strong> <span class="expand-count">(${armor.length})</span>
+                    <span class="expand-toggle">▼</span>
+                </div>
+                <div class="statblock-expandable-body">
+                    ${armorItems}
+                </div>
+            </div>
+        `;
+    }
+
+    // Description
+    let descriptionSection = '';
+    if (creature.description) {
+        descriptionSection += `
+            <div class="statblock-separator"></div>
+            <div class="statblock-section">
+                <div class="statblock-description">${creature.description}</div>
+            </div>
+        `;
+    }
+    
+    // Assemble final stat block
+    const closingDiv = '</div>'; // Close creature-statblock-content
+    card.innerHTML = collapsedHeader + statblockContent + coreStats + abilities + defenses + features + expandableSections + descriptionSection + closingDiv;
+    
     return card;
 }
 
@@ -688,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             showSavedPowers(db, user.uid);
             showSavedItems(db, user.uid, database); // Pass database instance
             showSavedTechniques(db, user.uid);
-            showSavedCreatures(db, user.uid);
+            showSavedCreatures(db, user.uid, database);
         } else {
             console.log('No user is signed in');
         }
@@ -708,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (tab === 'powers') showSavedPowers(db, auth.currentUser.uid);
                 else if (tab === 'techniques') showSavedTechniques(db, auth.currentUser.uid);
                 else if (tab === 'armaments') showSavedItems(db, auth.currentUser.uid, database);
-                else if (tab === 'creatures') showSavedCreatures(db, auth.currentUser.uid);
+                else if (tab === 'creatures') showSavedCreatures(db, auth.currentUser.uid, database);
             }
         });
     });

@@ -237,6 +237,306 @@
 }
 
 /* Creature-specific styles */
+/* Creature Stat Block Styling (Site-Matched Design) */
+.creatures-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+/* Creature card - collapsible line item */
+.creature-card {
+  background: #ffffff;
+  border: 2px solid #e8eaed;
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  color: #333;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.creature-card:hover {
+  border-color: #1a73e8;
+}
+
+.creature-card.expanded {
+  border-color: #1a73e8;
+}
+
+/* Collapsed header (always visible) */
+.creature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.creature-header:hover {
+  background: #f7faff;
+}
+
+.creature-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.creature-name {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #1a73e8;
+}
+
+.creature-info {
+  font-size: 0.9em;
+  color: #5f6368;
+}
+
+.creature-header .expand-toggle {
+  color: #1a73e8;
+  font-size: 0.8em;
+  transition: transform 0.3s;
+  margin-left: 8px;
+}
+
+.creature-card.expanded .creature-header .expand-toggle {
+  transform: rotate(180deg);
+}
+
+/* Full stat block content (hidden by default) */
+.creature-statblock-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-out;
+  padding: 0 16px;
+}
+
+.creature-card.expanded .creature-statblock-content {
+  max-height: 5000px;
+  transition: max-height 0.6s ease-in;
+  padding: 0 16px 16px 16px;
+}
+
+.creature-statblock {
+  background: #ffffff;
+  border: 2px solid #1a73e8;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Nunito', sans-serif;
+  color: #333;
+  page-break-inside: avoid;
+}
+
+.statblock-header {
+  margin-bottom: 8px;
+}
+
+.statblock-title h2 {
+  color: #1a73e8;
+  font-size: 1.6em;
+  margin: 0 0 4px 0;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+}
+
+.statblock-subtitle {
+  color: #5f6368;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.statblock-separator {
+  height: 2px;
+  background: linear-gradient(to right, #1a73e8, #4a90e2, #1a73e8);
+  margin: 10px 0;
+}
+
+.statblock-section {
+  margin: 8px 0;
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.statblock-attribute {
+  display: inline-block;
+  margin-right: 20px;
+  margin-bottom: 4px;
+}
+
+.attr-label {
+  font-weight: 600;
+  color: #1a73e8;
+}
+
+.attr-value {
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+.statblock-abilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-around;
+}
+
+.ability-score {
+  text-align: center;
+  min-width: 50px;
+  padding: 4px 8px;
+  background: #f7f7f7;
+  border-radius: 5px;
+}
+
+.ability-score strong {
+  display: block;
+  color: #1a73e8;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.statblock-defenses {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  font-size: 0.85em;
+}
+
+.statblock-defenses div {
+  text-align: center;
+  padding: 4px;
+  background: #f7faff;
+  border-radius: 4px;
+}
+
+.statblock-trait {
+  margin: 6px 0;
+  text-indent: -1em;
+  padding-left: 1em;
+}
+
+.statblock-trait strong {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+/* Expandable sections for features */
+.statblock-expandable-section {
+  margin: 8px 0;
+  border-left: 3px solid #4a90e2;
+  padding-left: 10px;
+  background: #f7faff;
+  border-radius: 4px;
+}
+
+.statblock-expandable-header {
+  cursor: pointer;
+  padding: 8px 4px;
+  color: #1a73e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: background 0.2s;
+  font-weight: 600;
+}
+
+.statblock-expandable-header:hover {
+  background: rgba(26, 115, 232, 0.08);
+}
+
+.expand-count {
+  font-size: 0.85em;
+  color: #5f6368;
+  font-weight: normal;
+}
+
+.expand-toggle {
+  font-size: 0.8em;
+  transition: transform 0.3s;
+  color: #1a73e8;
+}
+
+.statblock-expandable-section.expanded .expand-toggle {
+  transform: rotate(180deg);
+}
+
+.statblock-expandable-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  margin-top: 4px;
+}
+
+.statblock-expandable-section.expanded .statblock-expandable-body {
+  max-height: 2000px;
+  transition: max-height 0.5s ease-in;
+}
+
+.statblock-feature-item {
+  padding: 6px 8px;
+  font-size: 0.9em;
+  line-height: 1.5;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.statblock-feature-item:last-child {
+  border-bottom: none;
+}
+
+.statblock-feature-item strong {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+.statblock-feature-name {
+  color: #1a73e8;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.statblock-feature-name:hover {
+  text-decoration: underline;
+}
+
+.statblock-feature-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  padding-left: 12px;
+  color: #5f6368;
+  font-size: 0.85em;
+}
+
+.statblock-feature-item.expanded .statblock-feature-details {
+  max-height: 500px;
+  transition: max-height 0.4s ease-in;
+  margin-top: 4px;
+}
+
+.statblock-feature-detail-line {
+  margin: 2px 0;
+}
+
+.statblock-description {
+  font-style: italic;
+  color: #5f6368;
+  padding: 8px;
+  background: #f7f7f7;
+  border-radius: 5px;
+  border-left: 3px solid #4a90e2;
+}
+
+/* Legacy creature styles (keep for backward compatibility) */
 .creature-headers {
   grid-template-columns: 1.5fr 0.8fr 1fr 1fr;
 }
@@ -264,6 +564,18 @@
   color: var(--primary);
   margin-bottom: 8px;
   font-size: 1rem;
+}
+
+.creature-section p {
+  margin: 4px 0;
+  font-size: 0.9em;
+}
+
+.creature-section .library-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .creature-abilities-box, .creature-defenses-box {
@@ -294,7 +606,25 @@
   border: none;
 }
 
+/* Weakness chip styling */
+.weakness-chip {
+  background: #ffe0e0 !important;
+  border-color: #c44 !important;
+  color: #a33 !important;
+}
+
+/* No data placeholder */
+.no-data {
+  color: var(--gray);
+  font-style: italic;
+  font-size: 0.85em;
+}
+
 @media (max-width: 768px) {
+  .creatures-grid {
+    grid-template-columns: 1fr;
+  }
+  
   .library-headers, .library-header {
     grid-template-columns: 1.5fr 0.8fr 1fr;
   }
@@ -309,5 +639,9 @@
   
   .creature-expanded-content {
     flex-direction: column;
+  }
+  
+  .statblock-defenses {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

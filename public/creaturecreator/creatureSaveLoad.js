@@ -1,8 +1,10 @@
 import { 
-    resistances, weaknesses, immunities, senses, movement, feats, creatureSkills, creatureSkillValues, 
+    resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, 
     creatureLanguages, conditionImmunities, defenseSkillState 
 } from './creatureState.js';
-import { getAbilityValue, getSkillBonus } from './creatureUtils.js';
+import { getAbilityValue, getSkillBonus, getBaseDefenseValue } from './creatureUtils.js';
+import { authReadyPromise, currentUser, firebaseDb } from './creatureCreator.js';
+import { collection, doc, setDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 // Utility: Get IDs from array of objects
 function extractIds(arr) {
@@ -16,7 +18,23 @@ export function setSkills(skillsArr) {
 }
 
 // Gather all creature data for saving
+// Streamlined format: stores names/references only for feats, powers, techniques, armaments
 export async function getCreatureSaveData() {
+    // Basic info
+    const creatureName = document.getElementById("creatureName")?.value || "";
+    const level = parseFloat(document.getElementById("creatureLevel")?.value) || 1;
+    const type = document.getElementById("creatureType")?.value || "";
+    const description = document.getElementById("creatureDescription")?.value || "";
+    
+    // Proficiencies
+    const powerProficiency = parseInt(document.getElementById("powerProficiencyInput")?.value) || 0;
+    const martialProficiency = parseInt(document.getElementById("martialProficiencyInput")?.value) || 0;
+    
+    // Hit Points and Energy
+    const hitPoints = parseInt(document.getElementById('hitPointsInput')?.value) || 0;
+    const energy = parseInt(document.getElementById('energyInput')?.value) || 0;
+    
+    // Abilities (values only)
     const abilities = {
         strength: getAbilityValue('creatureAbilityStrength'),
         vitality: getAbilityValue('creatureAbilityVitality'),
@@ -25,6 +43,8 @@ export async function getCreatureSaveData() {
         intelligence: getAbilityValue('creatureAbilityIntelligence'),
         charisma: getAbilityValue('creatureAbilityCharisma')
     };
+    
+    // Defenses (calculated values)
     const defenses = {
         might: getBaseDefenseValue("Might") + (defenseSkillState["Might"] || 0),
         fortitude: getBaseDefenseValue("Fortitude") + (defenseSkillState["Fortitude"] || 0),
@@ -33,53 +53,71 @@ export async function getCreatureSaveData() {
         mentalFortitude: getBaseDefenseValue("Mental Fortitude") + (defenseSkillState["Mental Fortitude"] || 0),
         resolve: getBaseDefenseValue("Resolve") + (defenseSkillState["Resolve"] || 0)
     };
+    
+    // Skills (name and bonus value)
     const skillsArr = creatureSkills.slice().map(skillName => {
         const skillObj = skills.find(s => s.name === skillName);
         const bonus = getSkillBonus(skillObj);
-        return { name: skillName, bonus };
+        const value = typeof creatureSkillValues[skillName] === "number" ? creatureSkillValues[skillName] : 0;
+        return { name: skillName, bonus, value };
     });
-    const featsArr = feats.map(f => {
-        const featObj = typeof f === "string" ? { name: f } : f;
-        return {
-            name: featObj.name,
-            description: featObj.description || "",
-            feat_points: featObj.points || 0
-        };
-    });
-    const allImmunities = [...immunities, ...conditionImmunities];
-    const movementArr = movement.map(m => m.type || m);
+    
+    // Feats (names only in array)
+    const featsArr = feats.map(f => typeof f === "string" ? f : (f.name || "")).filter(Boolean);
+    
+    // Resistances, Weaknesses, Immunities (names only)
+    const resistancesArr = resistances.slice();
+    const weaknessesArr = weaknesses.slice();
+    const immunitiesArr = immunities.slice();
+    const conditionImmunitiesArr = conditionImmunities.slice();
+    
+    // Senses and Movement (names only)
     const sensesArr = senses.slice();
-    // const powerIds = extractIds(powersTechniques.filter(x => x.type === "power"));
-    // const techniqueIds = extractIds(powersTechniques.filter(x => x.type === "technique"));
-    // const armamentIds = extractIds(armaments);
-    const hitPoints = parseInt(document.getElementById('hitPointsInput')?.value) || 0;
-    const energy = parseInt(document.getElementById('energyInput')?.value) || 0;
-    const creatureName = document.getElementById("creatureName")?.value || "";
-    const level = parseFloat(document.getElementById("creatureLevel")?.value) || 1;
-    const type = document.getElementById("creatureType")?.value || "";
+    const movementArr = movement.map(m => m.type || m);
+    
+    // Languages
     const languagesArr = creatureLanguages.slice();
-    const description = document.getElementById("creatureDescription")?.value || "";
-    const powerProficiency = parseInt(document.getElementById("powerProficiencyInput")?.value) || 0;
-    const martialProficiency = parseInt(document.getElementById("martialProficiencyInput")?.value) || 0;
+    
+    // Powers (names only)
+    const powersArr = powersTechniques
+        .filter(x => x.type === "power")
+        .map(p => p.name || "")
+        .filter(Boolean);
+    
+    // Techniques (names only)
+    const techniquesArr = powersTechniques
+        .filter(x => x.type === "technique")
+        .map(t => t.name || "")
+        .filter(Boolean);
+    
+    // Armaments (names only)
+    const armamentsArr = armaments
+        .map(a => a.name || "")
+        .filter(Boolean);
+    
     return {
         name: creatureName,
         level,
         type,
+        description,
         powerProficiency,
         martialProficiency,
-        resistances: resistances.slice(),
-        weaknesses: weaknesses.slice(),
-        immunities: allImmunities.slice(),
-        senses: sensesArr,
-        movement: movementArr,
         hitPoints,
         energy,
-        languages: languagesArr,
-        skills: skillsArr,
         abilities,
         defenses,
+        skills: skillsArr,
         feats: featsArr,
-        description
+        resistances: resistancesArr,
+        weaknesses: weaknessesArr,
+        immunities: immunitiesArr,
+        conditionImmunities: conditionImmunitiesArr,
+        senses: sensesArr,
+        movement: movementArr,
+        languages: languagesArr,
+        powers: powersArr,
+        techniques: techniquesArr,
+        armaments: armamentsArr
     };
 }
 

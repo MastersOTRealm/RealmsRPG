@@ -1,0 +1,9 @@
+This file contains the new createCreatureCard function to replace in library.js.
+
+Find the function starting with:
+async function createCreatureCard(creature, database, db, userId) {
+
+Replace everything from that line until the closing brace before:
+// Sorting function
+
+With the new version below (continues in next message due to size)
