@@ -245,52 +245,6 @@ export function calculateCreatureTPSpent(creatureData, itemPropertiesDb, powerPa
     }
   });
 
-  // --- Console logs for debugging ---
-  // Armament properties
-  if (armamentLogs.length) {
-    console.log('--- Armament Properties TP Breakdown ---');
-    armamentLogs.forEach(log =>
-      console.log(
-        `[${log.armamentName}] ${log.name}${log.damageType ? ` (${log.damageType})` : ''}: baseTP=${log.baseTP}, optionTP=${log.optionTP} x${log.optionLevel} = ${log.optionTP * log.optionLevel}, total=${log.finalTP}`
-      )
-    );
-  }
-  // Power parts
-  if (powerLogs.length) {
-    console.log('--- Power Parts TP Breakdown ---');
-    powerLogs.forEach(log =>
-      console.log(
-        `[${log.powerName}] ${log.name}${log.damageType ? ` (${log.damageType})` : ''}: baseTP=${log.baseTP}, op1TP=${log.op1TP} x${log.l1}, op2TP=${log.op2TP} x${log.l2}, op3TP=${log.op3TP} x${log.l3}, total=${log.finalTP}`
-      )
-    );
-  }
-  // Technique parts
-  if (techniqueLogs.length) {
-    console.log('--- Technique Parts TP Breakdown ---');
-    techniqueLogs.forEach(log =>
-      console.log(
-        `[${log.techniqueName}] ${log.name}${log.damageType ? ` (${log.damageType})` : ''}: baseTP=${log.baseTP}, op1TP=${log.op1TP} x${log.l1}, op2TP=${log.op2TP} x${log.l2}, op3TP=${log.op3TP} x${log.l3}, total=${log.finalTP}`
-      )
-    );
-  }
-  // Merged/unique proficiencies
-  if (mergedLogs.length) {
-    console.log('--- Unique Parts/Properties (Merged) TP Breakdown ---');
-    mergedLogs.forEach(log => {
-      if ('l1' in log) {
-        console.log(
-          `${log.name}${log.damageType ? ` (${log.damageType})` : ''}: baseTP=${log.baseTP}, op1TP=${log.op1TP} x${log.l1}, op2TP=${log.op2TP} x${log.l2}, op3TP=${log.op3TP} x${log.l3}, total=${log.finalTP}`
-        );
-      } else {
-        console.log(
-          `${log.name}${log.damageType ? ` (${log.damageType})` : ''}: baseTP=${log.baseTP}, optionTP=${log.optionTP} x${log.optionLevel}, total=${log.finalTP}`
-        );
-      }
-    });
-    const mergedTotal = mergedLogs.reduce((sum, l) => sum + (l.finalTP || 0), 0);
-    console.log(`Total TP from all unique parts/properties: ${mergedTotal}`);
-  }
-
   // --- Adjust totalTP to only count unique part/property TP contributions ---
   // 1. Calculate the sum of all individual (non-unique) TP contributions
   let allIndividualTP = 0;
@@ -303,11 +257,6 @@ export function calculateCreatureTPSpent(creatureData, itemPropertiesDb, powerPa
 
   // 3. Adjust: Remove all individual TP, add back only unique TP
   const adjustedTP = uniqueTP;
-
-  // Log the adjustment for clarity
-  console.log(`All individual TP (raw sum): ${allIndividualTP}`);
-  console.log(`Unique TP (merged sum): ${uniqueTP}`);
-  console.log(`Adjusted TP spent (used for creature): ${adjustedTP}`);
 
   return adjustedTP;
 }
