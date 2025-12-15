@@ -1,5 +1,7 @@
 import { resistances, weaknesses, immunities, senses, movement, feats, powersTechniques, armaments, creatureSkills, creatureSkillValues, creatureLanguages, conditionImmunities, defenseSkillState } from './creatureState.js';
 import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityValue, getSkillBonus, getBaseDefenseValue, getSkillPointsRemaining, getRemainingFeatPoints, getAbilityPointCost, getAbilityPointTotal, getLevelValue, getVitalityValue, getBaseHitPoints, getBaseEnergy, getHitEnergyTotal, getMaxArchetypeProficiency, getPowerProficiency, getMartialProficiency, validateArchetypeProficiency, getInnatePowers, getInnateEnergy, getHighestNonVitalityAbility, getBaseFeatPoints, getSpentFeatPoints, getSkillPointTotal, getSkillPointsSpent, addFeatFromDatabase, removeFeat } from './creatureUtils.js';
+import { calculateCreatureTPSpent, getAdjustedCreatureTP } from './creatureTPcalc.js';
+
 // REMOVE: import creatureFeatsData from './creatureFeatsData.js';
 
 // Add Firebase import for Realtime Database
@@ -416,7 +418,25 @@ export function updateSummary() {
         if (profValueElem.nextSibling) profValueElem.nextSibling.remove();
         profValueElem.insertAdjacentHTML('afterend', `<span style="margin-left:10px;"><strong>Martial Proficiency:</strong> ${getMartialProficiency()}</span>`);
     }
-    // ...existing code for armament attacks, techniques, powers summaries...
+    // NEW: Calculate spent TP and adjust total TP
+    const level = getLevelValue();
+    const highestAbility = getHighestAbility();
+    const baseTP = 22 + highestAbility + ((highestAbility + 2) * (level - 1));
+    
+    // NEW: Calculate spent TP and adjust total TP
+    const creatureData = {
+        armaments,
+        powersTechniques,
+        // Add other relevant data if needed (e.g., resistances, etc.)
+    };
+    const spentTP = calculateCreatureTPSpent(creatureData, itemPropertiesData, powerPartsData, techniquePartsData);
+    const adjustedTP = getAdjustedCreatureTP(creatureData, baseTP, itemPropertiesData, powerPartsData, techniquePartsData);
+    
+    // Update summary with adjusted TP (assuming there's a summary element for TP; add if missing)
+    const summaryTPElem = document.getElementById('summaryTP');
+    if (summaryTPElem) {
+        summaryTPElem.textContent = adjustedTP;
+    }
     updateCreatureDetailsBox();
 }
 
