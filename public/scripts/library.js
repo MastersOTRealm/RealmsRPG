@@ -720,15 +720,27 @@ async function createCreatureCard(creature, database, db, userId) {
     `;
 
     // Core stats section (always visible)
+    const agility = ab.agility || 0;
+    const speed = 6 + Math.ceil(agility / 2);
+    const evasion = 10 + agility;
+    
     const coreStats = `
         <div class="statblock-section">
             <div class="statblock-attribute">
-                <span class="attr-label">Hit Points</span>
+                <span class="attr-label">Health</span>
                 <span class="attr-value">${creature.hitPoints || 0}</span>
             </div>
             <div class="statblock-attribute">
                 <span class="attr-label">Energy</span>
                 <span class="attr-value">${creature.energy || 0}</span>
+            </div>
+            <div class="statblock-attribute">
+                <span class="attr-label">Speed</span>
+                <span class="attr-value">${speed}</span>
+            </div>
+            <div class="statblock-attribute">
+                <span class="attr-label">Evasion</span>
+                <span class="attr-value">${evasion}</span>
             </div>
         </div>
         <div class="statblock-separator"></div>
@@ -764,47 +776,153 @@ async function createCreatureCard(creature, database, db, userId) {
         <div class="statblock-separator"></div>
     `;
 
-    // Compact features section
-    let features = '<div class="statblock-section">';
-    
-    if (creature.senses && creature.senses.length > 0) {
-        features += `<div class="statblock-trait"><strong>Senses</strong> ${renderInline(creature.senses)}</div>`;
+    // Helper function to calculate attack bonus for weapons
+    function calculateAttackBonus(weapon, abilities, martialProf) {
+        const properties = weapon.properties || [];
+        const propNames = properties.map(p => typeof p === 'string' ? p : (p.name || ''));
+        
+        let attackBonus = (abilities.strength || 0) + (martialProf || 0);
+        if (propNames.includes("Finesse")) {
+            attackBonus = (abilities.agility || 0) + (martialProf || 0);
+        } else if (propNames.includes("Range")) {
+            attackBonus = (abilities.acuity || 0) + (martialProf || 0);
+        }
+        
+        return attackBonus;
     }
-    if (creature.movement && creature.movement.length > 0) {
-        features += `<div class="statblock-trait"><strong>Movement</strong> ${renderInline(creature.movement)}</div>`;
+
+    // Helper function to format damage with bonus
+    function formatWeaponDamage(weapon, attackBonus) {
+        if (!weapon.damage || !Array.isArray(weapon.damage)) return '—';
+        const usable = weapon.damage.filter(d => d && d.amount && d.size && d.type && d.type !== 'none');
+        if (!usable.length) return '—';
+        
+        return usable.map(d => {
+            const bonus = attackBonus >= 0 ? `+${attackBonus}` : attackBonus;
+            return `${d.amount}d${d.size} ${bonus} ${d.type}`;
+        }).join(', ');
     }
-    if (creature.languages && creature.languages.length > 0) {
-        features += `<div class="statblock-trait"><strong>Languages</strong> ${renderInline(creature.languages)}</div>`;
+
+    // Helper function to format properties with tooltips
+    function formatPropertiesWithTooltips(properties, itemPropertiesDb) {
+        if (!properties || !properties.length) return '';
+        
+        return properties.map(prop => {
+            const propName = typeof prop === 'string' ? prop : (prop.name || '');
+            const propLevel = typeof prop === 'object' ? (prop.op_1_lvl || 0) : 0;
+            
+            // Find property definition in database
+            const propDef = itemPropertiesDb.find(p => p.name === propName);
+            if (!propDef) {
+                return `<span class="property-chip">${propName}</span>`;
+            }
+            
+            const description = propDef.description || 'No description available.';
+            const levelText = propLevel > 0 ? ` (Level ${propLevel})` : '';
+            const tooltipText = `${description}${levelText}`;
+            
+            return `<span class="property-chip" title="${tooltipText}">${propName}${levelText}</span>`;
+        }).join(' ');
     }
-    if (creature.skills && creature.skills.length > 0) {
-        features += `<div class="statblock-trait"><strong>Skills</strong> ${renderSkillsInline(creature.skills)}</div>`;
-    }
-    
+
+    // Compact features section - TWO COLUMN LAYOUT
+    const hasTraits = (creature.senses && creature.senses.length) || 
+                      (creature.movement && creature.movement.length) || 
+                      (creature.languages && creature.languages.length) || 
+                      (creature.skills && creature.skills.length);
     const hasRes = creature.resistances && creature.resistances.length > 0;
     const hasImm = creature.immunities && creature.immunities.length > 0;
     const hasWeak = creature.weaknesses && creature.weaknesses.length > 0;
     const hasCondImm = creature.conditionImmunities && creature.conditionImmunities.length > 0;
     
+    let leftColumn = '<div class="statblock-column-left">';
+    
+    if (creature.senses && creature.senses.length > 0) {
+        leftColumn += `<div class="statblock-trait"><strong>Senses</strong> ${renderInline(creature.senses)}</div>`;
+    }
+    if (creature.movement && creature.movement.length > 0) {
+        leftColumn += `<div class="statblock-trait"><strong>Movement</strong> ${renderInline(creature.movement)}</div>`;
+    }
+    if (creature.languages && creature.languages.length > 0) {
+        leftColumn += `<div class="statblock-trait"><strong>Languages</strong> ${renderInline(creature.languages)}</div>`;
+    }
+    if (creature.skills && creature.skills.length > 0) {
+        leftColumn += `<div class="statblock-trait"><strong>Skills</strong> ${renderSkillsInline(creature.skills)}</div>`;
+    }
+    
     if (hasRes) {
-        features += `<div class="statblock-trait"><strong>Damage Resistances</strong> ${renderInline(creature.resistances)}</div>`;
+        leftColumn += `<div class="statblock-trait"><strong>Damage Resistances</strong> ${renderInline(creature.resistances)}</div>`;
     }
     if (hasImm) {
-        features += `<div class="statblock-trait"><strong>Damage Immunities</strong> ${renderInline(creature.immunities)}</div>`;
+        leftColumn += `<div class="statblock-trait"><strong>Damage Immunities</strong> ${renderInline(creature.immunities)}</div>`;
     }
     if (hasWeak) {
-        features += `<div class="statblock-trait"><strong>Weaknesses</strong> ${renderInline(creature.weaknesses)}</div>`;
+        leftColumn += `<div class="statblock-trait"><strong>Weaknesses</strong> ${renderInline(creature.weaknesses)}</div>`;
     }
     if (hasCondImm) {
-        features += `<div class="statblock-trait"><strong>Condition Immunities</strong> ${renderInline(creature.conditionImmunities)}</div>`;
+        leftColumn += `<div class="statblock-trait"><strong>Condition Immunities</strong> ${renderInline(creature.conditionImmunities)}</div>`;
     }
     
-    features += '</div>';
+    leftColumn += '</div>';
     
-    if (hasRes || hasImm || hasWeak || hasCondImm || (creature.senses && creature.senses.length) || (creature.movement && creature.movement.length) || (creature.languages && creature.languages.length) || (creature.skills && creature.skills.length)) {
+    // Right column - Armor and Weapon Attacks
+    let rightColumn = '<div class="statblock-column-right">';
+    
+    // Display armor
+    if (armor.length > 0) {
+        rightColumn += '<div class="statblock-equipment-section">';
+        armor.forEach(armorItem => {
+            const damageReduction = deriveDamageReductionFromProperties(armorItem.properties || []);
+            const propertiesHtml = formatPropertiesWithTooltips(armorItem.properties || [], itemPropertiesDb);
+            rightColumn += `<div class="statblock-armor">
+                <div><strong>${armorItem.name}.</strong> Damage Reduction ${damageReduction}</div>
+                ${propertiesHtml ? `<div class="properties-list">${propertiesHtml}</div>` : ''}
+            </div>`;
+        });
+        rightColumn += '</div>';
+    }
+    
+    // Display weapon attacks
+    if (weapons.length > 0) {
+        rightColumn += '<div class="statblock-equipment-section">';
+        const martialProf = creature.martialProficiency || 0;
+        
+        weapons.forEach(weapon => {
+            const attackBonus = calculateAttackBonus(weapon, ab, martialProf);
+            const attackBonusStr = attackBonus >= 0 ? `+${attackBonus}` : attackBonus;
+            const damageStr = formatWeaponDamage(weapon, attackBonus);
+            
+            // Determine if ranged or melee
+            const properties = weapon.properties || [];
+            const propNames = properties.map(p => typeof p === 'string' ? p : (p.name || ''));
+            const isRanged = propNames.includes("Range");
+            const rangeStr = isRanged ? formatRange(weapon.properties) : 'Melee';
+            
+            const propertiesHtml = formatPropertiesWithTooltips(weapon.properties || [], itemPropertiesDb);
+            
+            rightColumn += `<div class="statblock-weapon">
+                <div><strong>${weapon.name}.</strong> ${rangeStr} Weapon Attack: ${attackBonusStr}, Damage: ${damageStr}</div>
+                ${propertiesHtml ? `<div class="properties-list">${propertiesHtml}</div>` : ''}
+            </div>`;
+        });
+        rightColumn += '</div>';
+    }
+    
+    rightColumn += '</div>';
+    
+    // Combine columns
+    let features = '';
+    if (hasTraits || hasRes || hasImm || hasWeak || hasCondImm || armor.length > 0 || weapons.length > 0) {
+        features = `
+            <div class="statblock-two-column">
+                ${leftColumn}
+                ${rightColumn}
+            </div>
+        `;
         features += '<div class="statblock-separator"></div>';
     }
 
-    // Expandable sections for feats, powers, techniques, weapons, armor
+    // Expandable sections for feats, powers, techniques
     let expandableSections = '';
     
     // FEATS - expandable with descriptions from database
@@ -906,70 +1024,6 @@ async function createCreatureCard(creature, database, db, userId) {
                 </div>
                 <div class="statblock-expandable-body">
                     ${techniqueItems}
-                </div>
-            </div>
-        `;
-    }
-    
-    // WEAPONS - expandable with range, damage, properties
-    if (weapons.length > 0) {
-        const weaponItems = weapons.map(weapon => {
-            const rangeDisplay = formatRange(weapon.properties) || '—';
-            const damageDisplay = formatItemDamage(weapon.damage);
-            const propertiesList = weapon.properties ? weapon.properties.map(p => p.name || p).join(', ') : 'None';
-            const description = weapon.description || '';
-            
-            return `
-                <div class="statblock-feature-item" onclick="this.classList.toggle('expanded')">
-                    <span class="statblock-feature-name">${weapon.name}</span>
-                    <div class="statblock-feature-details">
-                        <div class="statblock-feature-detail-line"><strong>Range:</strong> ${rangeDisplay}</div>
-                        ${damageDisplay ? `<div class="statblock-feature-detail-line"><strong>Damage:</strong> ${damageDisplay}</div>` : ''}
-                        <div class="statblock-feature-detail-line"><strong>Properties:</strong> ${propertiesList}</div>
-                        ${description ? `<div class="statblock-feature-detail-line" style="margin-top: 4px;">${description}</div>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        expandableSections += `
-            <div class="statblock-expandable-section">
-                <div class="statblock-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
-                    <strong>Weapons</strong> <span class="expand-count">(${weapons.length})</span>
-                    <span class="expand-toggle">▼</span>
-                </div>
-                <div class="statblock-expandable-body">
-                    ${weaponItems}
-                </div>
-            </div>
-        `;
-    }
-    
-    // ARMOR - expandable with damage reduction, description
-    if (armor.length > 0) {
-        const armorItems = armor.map(armorItem => {
-            const damageReduction = deriveDamageReductionFromProperties(armorItem.properties || []);
-            const description = armorItem.description || '';
-            
-            return `
-                <div class="statblock-feature-item" onclick="this.classList.toggle('expanded')">
-                    <span class="statblock-feature-name">${armorItem.name}</span>
-                    <div class="statblock-feature-details">
-                        <div class="statblock-feature-detail-line"><strong>Damage Reduction:</strong> ${damageReduction}</div>
-                        ${description ? `<div class="statblock-feature-detail-line" style="margin-top: 4px;">${description}</div>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        expandableSections += `
-            <div class="statblock-expandable-section">
-                <div class="statblock-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
-                    <strong>Armor</strong> <span class="expand-count">(${armor.length})</span>
-                    <span class="expand-toggle">▼</span>
-                </div>
-                <div class="statblock-expandable-body">
-                    ${armorItems}
                 </div>
             </div>
         `;

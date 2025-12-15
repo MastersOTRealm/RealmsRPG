@@ -427,6 +427,62 @@
   font-weight: 600;
 }
 
+/* Two-column layout for traits and equipment */
+.statblock-two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 8px 0;
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.statblock-column-left,
+.statblock-column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statblock-equipment-section {
+  margin-bottom: 12px;
+}
+
+.statblock-armor,
+.statblock-weapon {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.statblock-armor strong,
+.statblock-weapon strong {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+.properties-list {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.property-chip {
+  display: inline-block;
+  background: #e8f0fe;
+  color: #1a73e8;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 500;
+  cursor: help;
+  transition: background 0.2s;
+}
+
+.property-chip:hover {
+  background: #d2e3fc;
+}
+
 /* Expandable sections for features */
 .statblock-expandable-section {
   margin: 8px 0;
