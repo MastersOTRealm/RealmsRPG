@@ -4,8 +4,25 @@ export function createTechniquesContent(techniques) {
     const content = document.createElement('div');
     content.id = 'techniques-content';
     content.className = 'tab-content';
+    
+    const isEditMode = document.body.classList.contains('edit-mode');
+    
+    // Add header with "Add Technique" button in edit mode
+    const editHeader = document.createElement('div');
+    editHeader.className = 'library-section-header';
+    editHeader.innerHTML = `
+        <h3>TECHNIQUES</h3>
+        <button class="resource-add-btn" onclick="window.showTechniqueModal()">
+            + Add Technique
+        </button>
+    `;
+    content.appendChild(editHeader);
+    
     if (!techniques.length) {
-        content.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">No techniques selected</p>';
+        const emptyMsg = document.createElement('p');
+        emptyMsg.style.cssText = 'text-align:center;color:var(--text-secondary);padding:20px;';
+        emptyMsg.textContent = 'No techniques selected';
+        content.appendChild(emptyMsg);
         return content;
     }
     const header = document.createElement('div');
@@ -46,6 +63,26 @@ export function createTechniquesContent(techniques) {
             },
             expandedContent: expandedContent
         });
+
+        // Add remove button in edit mode
+        if (isEditMode) {
+            const collapsedRow = row.element.querySelector('.collapsed-row');
+            if (collapsedRow) {
+                collapsedRow.style.position = 'relative';
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'resource-remove-btn';
+                removeBtn.innerHTML = '✕';
+                removeBtn.title = 'Remove technique';
+                removeBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 8px;font-size:0.9em;background:var(--error-color, #dc3545);color:white;border:none;border-radius:4px;cursor:pointer;z-index:10;';
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Remove "${t.name}" technique?`)) {
+                        window.removeTechniqueFromCharacter(encodeURIComponent(t.name));
+                    }
+                };
+                collapsedRow.appendChild(removeBtn);
+            }
+        }
 
         content.appendChild(row.element);
     });

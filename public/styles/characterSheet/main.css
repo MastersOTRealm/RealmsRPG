@@ -257,3 +257,547 @@ tr:hover td {
         justify-content: center;
     }
 }
+
+/* =====================================================
+   EDIT MODE STYLES
+   ===================================================== */
+
+body.edit-mode .action-button#toggle-edit-mode {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.4);
+}
+
+body.edit-mode .action-button#toggle-edit-mode:hover {
+    box-shadow: 0 4px 16px rgba(243, 156, 18, 0.5);
+}
+
+/* Resource Tracker */
+.resource-tracker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.resource-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.resource-value {
+    font-weight: 700;
+    color: var(--primary-blue);
+    font-size: 14px;
+}
+
+.resource-value.over-budget {
+    color: var(--danger-red);
+}
+
+.resource-constraint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Health-Energy Editor */
+.health-energy-editor {
+    display: none;
+    width: 100%;
+    max-width: 380px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border: 2px solid #81c784;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+    align-self: flex-end;
+}
+
+.health-energy-editor.expanded {
+    display: block;
+}
+
+.he-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.he-title {
+    font-weight: 700;
+    font-size: 11px;
+    color: #2e7d32;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.he-remaining {
+    font-weight: 600;
+    font-size: 11px;
+    color: #388e3c;
+    background: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+.he-remaining.over-budget {
+    background: var(--danger-red);
+    color: white;
+}
+
+.he-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.he-control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.he-label {
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text-primary);
+    min-width: 70px;
+}
+
+.he-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.he-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-blue);
+    background: white;
+    color: var(--primary-blue);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.he-btn:hover:not(:disabled) {
+    background: var(--primary-blue);
+    color: white;
+    transform: scale(1.1);
+}
+
+.he-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.he-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 30px;
+    text-align: center;
+}
+
+.he-max {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Edit Section Toggle Icons */
+.edit-section-toggle {
+    cursor: pointer;
+    font-size: 24px;
+    margin-left: 8px;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.edit-section-toggle:hover {
+    transform: scale(1.2);
+}
+
+.edit-section-toggle.has-points {
+    color: #4caf50;
+    filter: drop-shadow(0 0 2px #4caf50);
+}
+
+.edit-section-toggle.no-points {
+    color: var(--primary-blue);
+}
+
+/* Editable Ability Styles */
+.edit-mode-ability {
+    border: none;
+}
+
+.edit-mode-ability .ability-edit-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ability-dec,
+.ability-inc {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-blue);
+    background: white;
+    color: var(--primary-blue);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ability-dec:hover:not(:disabled),
+.ability-inc:hover:not(:disabled) {
+    background: var(--primary-blue);
+    color: white;
+    transform: scale(1.1);
+}
+
+.ability-dec:disabled,
+.ability-inc:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}
+
+.ability-mod-display {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 24px;
+    font-weight: 700;
+    min-width: 60px;
+    text-align: center;
+}
+
+.ability-cost-hint {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-top: -8px;
+    margin-bottom: 8px;
+}
+
+.sub-ability-bonus-display {
+    font-size: 13px;
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: inline-block;
+    font-weight: 700;
+}
+
+/* Edit mode visual indicator */
+body.edit-mode #abilities-section {
+    border: 2px solid #f39c12;
+    border-radius: 14px;
+}
+
+body.edit-mode .ability {
+    border: 1px dashed #f39c12;
+}
+
+@media (max-width: 600px) {
+    .resource-tracker {
+        flex-direction: column;
+    }
+    
+    .he-controls {
+        flex-direction: column;
+    }
+    
+    .he-control-group {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* ============================================
+   PROFICIENCY EDITOR STYLES
+   ============================================ */
+
+.prof-edit-toggle {
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 8px;
+    transition: all 0.2s;
+}
+
+.prof-edit-toggle:hover {
+    filter: brightness(1.2);
+    transform: scale(1.1);
+}
+
+.prof-edit-toggle.has-points {
+    color: #4caf50;
+    filter: drop-shadow(0 0 2px #4caf50);
+}
+
+.prof-edit-toggle.no-points {
+    color: var(--primary-blue);
+}
+
+.prof-edit-panel {
+    background: var(--bg-secondary);
+    padding: 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    border: 1px solid var(--border-color);
+}
+
+.prof-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.prof-edit-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.prof-points-remaining {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.prof-points-remaining.has-points {
+    color: #4caf50;
+}
+
+.prof-points-remaining.no-points {
+    color: var(--primary-blue);
+}
+
+.prof-edit-groups {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.prof-edit-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.prof-label {
+    font-weight: 500;
+    font-size: 14px;
+    min-width: 80px;
+}
+
+.prof-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prof-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-blue);
+    background: white;
+    color: var(--primary-blue);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.prof-btn:hover:not(:disabled) {
+    background: var(--primary-blue);
+    color: white;
+    transform: scale(1.1);
+}
+
+.prof-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}
+
+.prof-value {
+    font-size: 18px;
+    font-weight: 700;
+    min-width: 30px;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+/* ============================================
+   FEAT EDITING STYLES
+   ============================================ */
+
+.points-available {
+    color: #4caf50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.points-complete {
+    color: var(--primary-blue);
+    background: rgba(74, 144, 226, 0.1);
+}
+
+.feat-edit-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feat-slots-indicator {
+    font-size: 0.85em;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.feat-add-btn {
+    padding: 4px 10px;
+    font-size: 0.85em;
+    cursor: pointer;
+    background: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.feat-add-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+}
+
+.feat-add-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.feat-add-btn.green-button {
+    background: #4caf50;
+}
+
+.feat-remove-btn {
+    background: var(--error-color, #dc3545);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.feat-remove-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.1);
+}
+
+/* Feat Modal Table Styles */
+.feat-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.feat-table th,
+.feat-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.feat-table th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.feat-table tr:hover {
+    background: rgba(74, 144, 226, 0.05);
+}
+
+.feat-table tr.unmet-requirements {
+    opacity: 0.6;
+}
+
+/* Modal header for feat count */
+.feat-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.feat-slots-info {
+    font-weight: bold;
+}
+
+/* Edit mode visibility for feat controls */
+body:not(.edit-mode) .feat-edit-controls {
+    display: none;
+}
+
+body:not(.edit-mode) .feat-remove-btn {
+    display: none;
+}
+
+body:not(.edit-mode) .prof-edit-toggle {
+    display: none;
+}
+
+body:not(.edit-mode) .prof-edit-panel {
+    display: none;
+}

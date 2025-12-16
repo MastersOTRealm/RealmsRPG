@@ -1,5 +1,6 @@
 import { sanitizeId } from '../../utils.js';
 import { CollapsibleRow, createCollapsibleSection } from '../shared/collapsible-row.js';
+import { getCharacterResourceTracking } from '../../validation.js';
 
 /**
  * Creates a collapsible row for a trait.
@@ -57,9 +58,12 @@ function createTraitRow(trait, type, allTraits, charData) {
 /**
  * Creates a collapsible row for a feat.
  * @param {object} f - Feat data object
+ * @param {string} featType - 'archetype' or 'character' for remove functionality
  * @returns {HTMLElement} The feat row element
  */
-function createFeatRow(f) {
+function createFeatRow(f, featType = 'archetype') {
+    const isEditMode = document.body.classList.contains('edit-mode');
+    
     const row = new CollapsibleRow({
         title: f.name,
         description: f.description || 'No description available.',
@@ -68,7 +72,76 @@ function createFeatRow(f) {
         onUse: f.uses ? (delta) => window.changeFeatUses(f.name, delta) : null
     });
 
+    // Add remove button in edit mode
+    if (isEditMode) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'feat-remove-btn small-button';
+        removeBtn.innerHTML = '✕';
+        removeBtn.title = 'Remove feat';
+        removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm(`Remove "${f.name}" feat?`)) {
+                window.removeFeatFromCharacter(encodeURIComponent(f.name), featType);
+            }
+        };
+        
+        // Insert remove button into the row header (collapsed-row is the actual header element)
+        const header = row.element.querySelector('.collapsed-row');
+        if (header) {
+            header.style.position = 'relative';
+            removeBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 8px;font-size:0.9em;background:var(--error-color, #dc3545);color:white;border:none;border-radius:4px;cursor:pointer;z-index:10;';
+            header.appendChild(removeBtn);
+        }
+    }
+
     return row.element;
+}
+
+/**
+ * Adds edit controls (pencil icon and add button) to a feat section header.
+ * @param {HTMLElement} section - The section element
+ * @param {string} featType - 'archetype' or 'character'
+ * @param {object} tracking - { max, current, remaining } from resource tracking
+ */
+function addFeatEditControls(section, featType, tracking) {
+    const header = section.querySelector('.section-header');
+    if (!header) return;
+    
+    // Create edit controls container
+    const editControls = document.createElement('div');
+    editControls.className = 'feat-edit-controls';
+    editControls.style.cssText = 'display:flex;align-items:center;gap:8px;margin-left:auto;';
+    
+    // Slots remaining indicator
+    const hasRemaining = tracking.remaining > 0;
+    const slotsIndicator = document.createElement('span');
+    slotsIndicator.className = `feat-slots-indicator ${hasRemaining ? 'points-available' : 'points-complete'}`;
+    slotsIndicator.textContent = `${tracking.current}/${tracking.max}`;
+    slotsIndicator.title = `${tracking.remaining} slots remaining`;
+    
+    // Add Feat button
+    const addBtn = document.createElement('button');
+    addBtn.className = `resource-add-btn ${!hasRemaining ? 'disabled' : ''}`;
+    addBtn.innerHTML = '+ Add';
+    addBtn.title = hasRemaining ? `Add ${featType} feat (${tracking.remaining} slots available)` : 'No slots remaining';
+    addBtn.disabled = !hasRemaining;
+    addBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (window.showFeatModal) {
+            window.showFeatModal(featType);
+        }
+    };
+    
+    editControls.appendChild(slotsIndicator);
+    editControls.appendChild(addBtn);
+    
+    // Insert before the count span
+    const countSpan = header.querySelector('.section-count');
+    if (countSpan) {
+        header.insertBefore(editControls, countSpan);
+    } else {
+        header.appendChild(editControls);
+    }
 }
 
 /**
@@ -135,20 +208,36 @@ export function createFeatsContent(feats, charData = {}) {
         }
     });
 
+    // Check edit mode and get resource tracking
+    const isEditMode = document.body.classList.contains('edit-mode');
+    const tracking = getCharacterResourceTracking(charData);
+
     // --- Build sections ---
     const sections = [];
 
     // Traits section (always open)
     sections.push(createCollapsibleSection('Traits', traitRows.length, traitRows, true));
 
-    // Archetype feats
-    sections.push(createCollapsibleSection('Archetype Feats', archetypeFeats.length, archetypeFeats.map(createFeatRow), true));
+    // Archetype feats section with edit controls
+    const archetypeFeatRows = archetypeFeats.map(f => createFeatRow(f, 'archetype'));
+    const archetypeSection = createCollapsibleSection('Archetype Feats', archetypeFeats.length, archetypeFeatRows, true);
+    
+    if (isEditMode) {
+        addFeatEditControls(archetypeSection, 'archetype', tracking.feats.archetype);
+    }
+    sections.push(archetypeSection);
 
-    // Character feats
-    sections.push(createCollapsibleSection('Character Feats', characterFeats.length, characterFeats.map(createFeatRow), true));
+    // Character feats section with edit controls
+    const characterFeatRows = characterFeats.map(f => createFeatRow(f, 'character'));
+    const characterSection = createCollapsibleSection('Character Feats', characterFeats.length, characterFeatRows, true);
+    
+    if (isEditMode) {
+        addFeatEditControls(characterSection, 'character', tracking.feats.character);
+    }
+    sections.push(characterSection);
 
     // State feats
-    sections.push(createCollapsibleSection('State Feats', stateFeats.length, stateFeats.map(createFeatRow), true));
+    sections.push(createCollapsibleSection('State Feats', stateFeats.length, stateFeats.map(f => createFeatRow(f, 'state')), true));
 
     // --- Compose content ---
     const content = document.createElement('div');

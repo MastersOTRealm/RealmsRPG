@@ -6,8 +6,25 @@ export function createPowersContent(powers) {
     const content = document.createElement('div');
     content.id = 'powers-content';
     content.className = 'tab-content';
+    
+    const isEditMode = document.body.classList.contains('edit-mode');
+    
+    // Add header with "Add Power" button in edit mode
+    const editHeader = document.createElement('div');
+    editHeader.className = 'library-section-header';
+    editHeader.innerHTML = `
+        <h3>POWERS</h3>
+        <button class="resource-add-btn" onclick="window.showPowerModal()">
+            + Add Power
+        </button>
+    `;
+    content.appendChild(editHeader);
+    
     if (!powers.length) {
-        content.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">No powers selected</p>';
+        const emptyMsg = document.createElement('p');
+        emptyMsg.style.cssText = 'text-align:center;color:var(--text-secondary);padding:20px;';
+        emptyMsg.textContent = 'No powers selected';
+        content.appendChild(emptyMsg);
         return content;
     }
     const header = document.createElement('div');
@@ -60,6 +77,23 @@ export function createPowersContent(powers) {
         durationDiv.textContent = power.duration || '-';
         collapsedRow.appendChild(areaDiv);
         collapsedRow.appendChild(durationDiv);
+
+        // Add remove button in edit mode
+        if (isEditMode) {
+            collapsedRow.style.position = 'relative';
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'resource-remove-btn';
+            removeBtn.innerHTML = '✕';
+            removeBtn.title = 'Remove power';
+            removeBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 8px;font-size:0.9em;background:var(--error-color, #dc3545);color:white;border:none;border-radius:4px;cursor:pointer;z-index:10;';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (confirm(`Remove "${power.name}" power?`)) {
+                    window.removePowerFromCharacter(encodeURIComponent(power.name));
+                }
+            };
+            collapsedRow.appendChild(removeBtn);
+        }
 
         row.element.style.marginBottom = '10px';
         content.appendChild(row.element);

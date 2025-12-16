@@ -1,8 +1,67 @@
 import { formatBonus } from '../utils.js';
+import { getCharacterResourceTracking } from '../validation.js';
+
+/**
+ * Renders the health-energy allocation controls for edit mode
+ * @param {object} charData - Character data
+ * @param {object} calculatedData - Calculated data including max health/energy
+ * @returns {string} HTML string for health-energy editor
+ */
+function renderHealthEnergyEditor(charData, calculatedData) {
+    try {
+        const resources = getCharacterResourceTracking(charData);
+        
+        if (!resources || !resources.healthEnergyPoints) {
+            console.error('[Health-Energy Editor] Missing resource tracking data:', resources);
+            return '';
+        }
+        
+        const healthAlloc = resources.healthEnergyPoints.health || 0;
+        const energyAlloc = resources.healthEnergyPoints.energy || 0;
+        const remaining = resources.healthEnergyPoints.remaining || 0;
+        
+        const isExpanded = window.isEditingHealthEnergy || false;
+        const expandedClass = isExpanded ? ' expanded' : '';
+
+        return `
+            <div id="health-energy-editor" class="health-energy-editor${expandedClass}">
+                <div class="he-header">
+                    <span class="he-title">Health-Energy Points</span>
+                    <span class="he-remaining ${remaining < 0 ? 'over-budget' : ''}">${remaining} remaining</span>
+                </div>
+                <div class="he-controls">
+                    <div class="he-control-group">
+                        <span class="he-label">Health (+${healthAlloc})</span>
+                        <div class="he-buttons">
+                            <button class="he-btn dec" onclick="window.decreaseHealthAllocation()" ${healthAlloc <= 0 ? 'disabled' : ''}>−</button>
+                            <span class="he-value">${healthAlloc}</span>
+                            <button class="he-btn inc" onclick="window.increaseHealthAllocation()" ${remaining <= 0 ? 'disabled' : ''}>+</button>
+                        </div>
+                        <span class="he-max">Max HP: ${calculatedData.healthEnergy.maxHealth}</span>
+                    </div>
+                    <div class="he-control-group">
+                        <span class="he-label">Energy (+${energyAlloc})</span>
+                        <div class="he-buttons">
+                            <button class="he-btn dec" onclick="window.decreaseEnergyAllocation()" ${energyAlloc <= 0 ? 'disabled' : ''}>−</button>
+                            <span class="he-value">${energyAlloc}</span>
+                            <button class="he-btn inc" onclick="window.increaseEnergyAllocation()" ${remaining <= 0 ? 'disabled' : ''}>+</button>
+                        </div>
+                        <span class="he-max">Max EP: ${calculatedData.healthEnergy.maxEnergy}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('[Health-Energy Editor] Error rendering:', error);
+        return '';
+    }
+}
 
 export function renderHeader(charData, calculatedData) {
     const container = document.getElementById('header-section');
     container.innerHTML = '';
+    
+    const isEditMode = window.isEditMode || false;
     
     const currentHealth = charData.currentHealth ?? calculatedData.healthEnergy.maxHealth;
     const currentEnergy = charData.currentEnergy ?? calculatedData.healthEnergy.maxEnergy;
@@ -12,12 +71,21 @@ export function renderHeader(charData, calculatedData) {
     const genderSymbol = charData.gender === 'female' ? '♀' : 
                         charData.gender === 'male' ? '♂' : '';
     
+    // Build health-energy editor HTML if in edit mode
+    const healthEnergyEditorHtml = isEditMode ? renderHealthEnergyEditor(charData, calculatedData) : '';
+    
+    // Determine pencil icon color based on remaining points
+    const resources = isEditMode ? getCharacterResourceTracking(charData) : null;
+    const hasPoints = resources && resources.healthEnergyPoints && resources.healthEnergyPoints.remaining > 0;
+    const penClass = hasPoints ? 'has-points' : 'no-points';
+    const healthEnergyToggle = isEditMode ? `<span class="edit-section-toggle resources-edit-toggle ${penClass}" onclick="window.toggleHealthEnergyEditor()" title="Edit Health/Energy allocation">🖉</span>` : '';
+    
     const header = document.createElement('div');
     header.className = 'header';
     header.innerHTML = `
         <div class="header-left">
             <div class="portrait" style="background-image: url('${charData.portrait || '/assets/placeholder-portrait.jpg'}');">
-                ${!charData.portrait ? '<div class="portrait-placeholder">�</div>' : ''}
+                ${!charData.portrait ? '<div class="portrait-placeholder">📷</div>' : ''}
             </div>
             <div class="character-details">
                 <h1 class="name">${genderSymbol ? genderSymbol + ' ' : ''}${charData.name || 'Unnamed Character'}</h1>
@@ -37,7 +105,9 @@ export function renderHeader(charData, calculatedData) {
             </div>
         </div>
         <div class="header-right">
+            ${healthEnergyEditorHtml}
             <div class="resources-grid">
+                ${healthEnergyToggle}
                 <div class="resource-section health-section">
                     <div class="bar health-bar">
                         <span class="bar-label">HEALTH</span>
@@ -171,7 +241,9 @@ export function renderHeader(charData, calculatedData) {
             </div>
         </div>
         <div class="header-right">
+            ${healthEnergyEditorHtml}
             <div class="resources-grid">
+                ${healthEnergyToggle}
                 <div class="resource-section health-section">
                     <div class="bar health-bar">
                         <span class="bar-label">HEALTH</span>

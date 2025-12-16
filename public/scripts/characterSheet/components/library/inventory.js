@@ -172,30 +172,38 @@ export function createInventoryContent(inventoryObj) {
     // Don't append currencyBox here; it will be inserted on tab activation
 
     // Accept inventoryObj: { weapons, armor, equipment }
-    // --- FILTER OUT Unarmed Prowess from weapons ---
+    // --- FILTER OUT Unarmed Prowess from weapons and remove string entries ---
     const weapons = (Array.isArray(inventoryObj.weapons) ? inventoryObj.weapons : []).filter(w => {
         if (typeof w === 'string') return w !== 'Unarmed Prowess';
         return w.name !== 'Unarmed Prowess';
     });
-    const armor = Array.isArray(inventoryObj.armor) ? inventoryObj.armor : [];
+    // --- FILTER OUT string entries from armor (legacy data) ---
+    const armor = (Array.isArray(inventoryObj.armor) ? inventoryObj.armor : []).filter(a => {
+        return typeof a === 'object' && a !== null;
+    });
     const equipment = Array.isArray(inventoryObj.equipment) ? inventoryObj.equipment : [];
+    
+    const isEditMode = document.body.classList.contains('edit-mode');
 
-    if (!weapons.length && !armor.length && !equipment.length) {
+    if (!weapons.length && !armor.length && !equipment.length && !isEditMode) {
         content.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">No items in inventory</p>';
         return content;
     }
 
-    // Weapons
-    if (weapons.length) {
-        const title = document.createElement('h3');
-        title.textContent = 'WEAPONS';
-        title.style.cssText = 'margin:0 0 12px;padding:12px;background:var(--bg-medium);border-radius:8px;font-size:14px;font-weight:700;';
-        content.appendChild(title);
+    // Weapons Section
+    const weaponsTitle = document.createElement('div');
+    weaponsTitle.className = 'library-section-header';
+    weaponsTitle.innerHTML = `
+        <h3>WEAPONS</h3>
+        <button class="resource-add-btn" onclick="window.showWeaponModal()">+ Add Weapon</button>
+    `;
+    content.appendChild(weaponsTitle);
 
+    if (weapons.length) {
         const header = document.createElement('div');
         header.className = 'library-table-header';
-        header.style.gridTemplateColumns = '1.8fr 1fr 1fr 0.6fr 0.9fr 0.9fr 0.7fr';
-        header.innerHTML = '<div>NAME</div><div>DAMAGE</div><div>RANGE</div><div>TP</div><div>CURRENCY</div><div>RARITY</div><div>EQUIPPED</div>';
+        header.style.gridTemplateColumns = '1.8fr 1fr 1fr 0.6fr 0.9fr 0.9fr 0.7fr 40px';
+        header.innerHTML = '<div>NAME</div><div>DAMAGE</div><div>RANGE</div><div>TP</div><div>CURRENCY</div><div>RARITY</div><div>EQUIPPED</div><div class="edit-mode-only"></div>';
         content.appendChild(header);
 
         weapons.forEach((w, idx) => {
@@ -203,7 +211,7 @@ export function createInventoryContent(inventoryObj) {
             wrapper.className = 'collapsible-tech';
             wrapper.style.marginBottom = '8px';
             wrapper.innerHTML = `
-              <div class="collapsed-row" style="grid-template-columns:1.8fr 1fr 1fr 0.6fr 0.9fr 0.9fr 0.7fr;">
+              <div class="collapsed-row" style="grid-template-columns:1.8fr 1fr 1fr 0.6fr 0.9fr 0.9fr 0.7fr 40px;">
                 <div><strong>${w.name || 'Unnamed'}</strong> <span class="expand-indicator">▼</span></div>
                 <div>${w.damage || '-'}</div>
                 <div>${w.range || 'Melee'}</div>
@@ -211,6 +219,7 @@ export function createInventoryContent(inventoryObj) {
                 <div>${Math.ceil(w.currencyCost || 0)}</div>
                 <div>${w.rarity || 'Common'}</div>
                 <div style="text-align:center;"><input type="checkbox" class="equipped-checkbox" data-type="weapon" data-index="${idx}" ${w.equipped ? 'checked' : ''}></div>
+                <div style="text-align:center;"><button class="resource-remove-btn" onclick="event.stopPropagation(); if(confirm('Remove ${w.name}?')) window.removeWeaponFromCharacter('${encodeURIComponent(w.name)}')">✕</button></div>
               </div>
               <div class="expanded-body">
                 ${w.description ? `<p style="margin:0 0 10px;">${w.description}</p>` : ''}
@@ -244,17 +253,21 @@ export function createInventoryContent(inventoryObj) {
         });
     }
 
-    // Armor
-    if (armor.length) {
-        const title = document.createElement('h3');
-        title.textContent = 'ARMOR';
-        title.style.cssText = 'margin:24px 0 12px;padding:12px;background:var(--bg-medium);border-radius:8px;font-size:14px;font-weight:700;';
-        content.appendChild(title);
+    // Armor Section
+    const armorTitle = document.createElement('div');
+    armorTitle.className = 'library-section-header';
+    armorTitle.style.marginTop = '24px';
+    armorTitle.innerHTML = `
+        <h3>ARMOR</h3>
+        <button class="resource-add-btn" onclick="window.showArmorModal()">+ Add Armor</button>
+    `;
+    content.appendChild(armorTitle);
 
+    if (armor.length) {
         const header = document.createElement('div');
         header.className = 'library-table-header';
-        header.style.gridTemplateColumns = '2fr 0.9fr 0.6fr 0.9fr 0.9fr 0.7fr';
-        header.innerHTML = '<div>NAME</div><div>DMG RED.</div><div>TP</div><div>CURRENCY</div><div>RARITY</div><div>EQUIPPED</div>';
+        header.style.gridTemplateColumns = '2fr 0.9fr 0.6fr 0.9fr 0.9fr 0.7fr 40px';
+        header.innerHTML = '<div>NAME</div><div>DMG RED.</div><div>TP</div><div>CURRENCY</div><div>RARITY</div><div>EQUIPPED</div><div class="edit-mode-only"></div>';
         content.appendChild(header);
 
         armor.forEach((a, idx) => {
@@ -262,13 +275,14 @@ export function createInventoryContent(inventoryObj) {
             wrapper.className = 'collapsible-tech';
             wrapper.style.marginBottom = '8px';
             wrapper.innerHTML = `
-              <div class="collapsed-row" style="grid-template-columns:2fr 0.9fr 0.6fr 0.9fr 0.9fr 0.7fr;">
+              <div class="collapsed-row" style="grid-template-columns:2fr 0.9fr 0.6fr 0.9fr 0.9fr 0.7fr 40px;">
                 <div><strong>${a.name || 'Unnamed'}</strong> <span class="expand-indicator">▼</span></div>
                 <div>${a.damageReduction ?? 0}</div>
                 <div>${a.totalTP || 0}</div>
                 <div>${Math.ceil(a.currencyCost || 0)}</div>
                 <div>${a.rarity || 'Common'}</div>
                 <div style="text-align:center;"><input type="checkbox" class="equipped-checkbox" data-type="armor" data-index="${idx}" ${a.equipped ? 'checked' : ''}></div>
+                <div style="text-align:center;"><button class="resource-remove-btn" onclick="event.stopPropagation(); if(confirm('Remove ${a.name}?')) window.removeArmorFromCharacter('${encodeURIComponent(a.name)}')">✕</button></div>
               </div>
               <div class="expanded-body">
                 ${a.description ? `<p style="margin:0 0 10px;">${a.description}</p>` : ''}

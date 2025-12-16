@@ -41,8 +41,16 @@
     grid-template-rows: auto auto;
     background: white;
     border-radius: 12px;
-    overflow: hidden;
     box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    position: relative;
+}
+
+.resources-edit-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 20;
+    margin: 0;
 }
 
 .resource-section {

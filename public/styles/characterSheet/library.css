@@ -233,7 +233,12 @@
     background:#fff;
     border-radius:8px;
     margin-bottom:10px;
-    overflow:hidden;
+    overflow:visible;
+    position: relative;
+}
+.collapsible-tech .expanded-body,
+.collapsible-feat .expanded-body {
+    overflow: hidden;
 }
 .collapsed-row {
     display:grid;
@@ -345,17 +350,223 @@
 }
 .part-chip,
 .proficiency-chip {
-    display: inline-block;
-    padding: 4px 10px;
-    font-size: 11px;
-    border-radius: 14px;
-    background: var(--bg-medium);
-    border: 1px solid var(--border-color);
-    line-height: 1.2;
-    white-space: nowrap;
-    color: var(--text-primary);
-    font-weight: 500;
-    margin: 0;
-    max-width: 100%;
-    box-sizing: border-box;
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 14px;
+  background: var(--bg-medium);
+  border: 1px solid var(--border-color);
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   LIBRARY - Section Headers with Add Buttons
+   ============================================ */
+
+.library-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  background: var(--bg-medium);
+  border-radius: 8px;
+}
+
+.library-section-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+   LIBRARY - Add Resource Buttons (green)
+   ============================================ */
+
+.resource-add-btn {
+  background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.resource-add-btn:hover {
+  background: linear-gradient(135deg, #66bb6a 0%, #388e3c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.resource-add-btn:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   LIBRARY - Remove Resource Buttons (red)
+   ============================================ */
+
+.resource-remove-btn {
+  background: var(--error-color, #dc3545);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.resource-remove-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+/* ============================================
+   LIBRARY - Use Buttons (techniques/powers)
+   ============================================ */
+
+.resource-use-btn {
+  background: linear-gradient(135deg, var(--primary-blue, #1a73e8) 0%, var(--primary-dark, #053357) 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.resource-use-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #388ee7 0%, var(--primary-dark, #053357) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
+
+.resource-use-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Action button style (for CollapsibleRow use buttons) */
+.action-btn {
+  background: linear-gradient(135deg, var(--primary-blue, #1a73e8) 0%, var(--primary-dark, #053357) 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #388ee7 0%, var(--primary-dark, #053357) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
+
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Action type badges */
+.action-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.action-badge.basic {
+  background: rgba(74, 144, 226, 0.15);
+  color: var(--primary-blue);
+}
+
+.action-badge.bonus {
+  background: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+}
+
+.action-badge.reaction {
+  background: rgba(255, 152, 0, 0.15);
+  color: #e65100;
+}
+
+.action-badge.free {
+  background: rgba(156, 39, 176, 0.15);
+  color: #7b1fa2;
+}
+
+/* Edit mode visibility for resource controls */
+body:not(.edit-mode) .resource-add-btn {
+  display: none;
+}
+
+body:not(.edit-mode) .resource-remove-btn {
+  display: none;
+}
+
+/* ============================================
+   LIBRARY - Notes Tab
+   ============================================ */
+
+.notes-section {
+  margin-bottom: 20px;
+}
+
+.notes-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.notes-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notes-textarea:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+.notes-textarea.notes-main {
+  min-height: 150px;
 }

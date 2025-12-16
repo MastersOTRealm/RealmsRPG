@@ -37,7 +37,8 @@ export async function renderLibrary(charData) {
     // Pass enriched inventory object with weapons, armor, equipment arrays
     const inventoryContent = createInventoryContent(enriched._inventory || {});
     const proficienciesContent = await createProficienciesContent(enriched);
-    const notesContent = createNotesContent(enriched.notes || '');
+    // Pass full enriched data for notes (includes appearance, archetypeDesc, notes)
+    const notesContent = createNotesContent(enriched);
 
     container.appendChild(featsContent);
     container.appendChild(techniquesContent);

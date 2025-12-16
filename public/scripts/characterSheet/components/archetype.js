@@ -1,18 +1,77 @@
 import { formatBonus } from '../utils.js';
+import { getCharacterResourceTracking } from '../validation.js';
+
+/**
+ * Renders the proficiency editing controls
+ * @param {object} charData - Character data
+ * @returns {string} HTML string for proficiency editor
+ */
+function renderProficiencyEditor(charData) {
+    const resources = getCharacterResourceTracking(charData);
+    const profPoints = resources.proficiencyPoints;
+    const hasPoints = profPoints.remaining > 0;
+    
+    return `
+        <div class="proficiency-editor">
+            <div class="prof-header">
+                <span class="prof-title">Proficiency Points</span>
+                <span class="prof-remaining ${profPoints.remaining < 0 ? 'over-budget' : ''}">${profPoints.remaining} / ${profPoints.total}</span>
+            </div>
+            <div class="prof-controls">
+                <div class="prof-control-group">
+                    <span class="prof-label">Martial</span>
+                    <div class="prof-buttons">
+                        <button class="prof-btn dec" onclick="window.decreaseMartialProf()" ${profPoints.martial <= 0 ? 'disabled' : ''}>−</button>
+                        <span class="prof-value">${profPoints.martial}</span>
+                        <button class="prof-btn inc" onclick="window.increaseMartialProf()" ${profPoints.remaining <= 0 ? 'disabled' : ''}>+</button>
+                    </div>
+                </div>
+                <div class="prof-control-group">
+                    <span class="prof-label">Power</span>
+                    <div class="prof-buttons">
+                        <button class="prof-btn dec" onclick="window.decreasePowerProf()" ${profPoints.power <= 0 ? 'disabled' : ''}>−</button>
+                        <span class="prof-value">${profPoints.power}</span>
+                        <button class="prof-btn inc" onclick="window.increasePowerProf()" ${profPoints.remaining <= 0 ? 'disabled' : ''}>+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 export function renderArchetype(charData, calculatedData) {
     const container = document.getElementById('archetype-column');
     container.innerHTML = '';
     
+    const isEditMode = window.isEditMode || false;
+    const isEditingProficiency = window.isEditingProficiency || false;
+    
     // Archetype Proficiency
     const archetypeSection = document.createElement('div');
     archetypeSection.className = 'archetype-section';
+    
+    // Determine pencil icon color
+    const resources = isEditMode ? getCharacterResourceTracking(charData) : null;
+    const hasPoints = resources && resources.proficiencyPoints.remaining > 0;
+    const penClass = hasPoints ? 'has-points' : 'no-points';
+    const proficiencyToggle = isEditMode ? `<span class="edit-section-toggle proficiency-edit-toggle ${penClass}" onclick="window.toggleProficiencyEditor()" title="Edit proficiency allocation">🖉</span>` : '';
+    
+    // Show editor if editing, otherwise show normal view
+    let proficiencyContent = '';
+    if (isEditMode && isEditingProficiency) {
+        proficiencyContent = renderProficiencyEditor(charData);
+    } else {
+        proficiencyContent = `
+            <div class="archetype-prof">
+                <div class="archetype-box">MARTIAL ${charData.mart_prof || 0}</div>
+                <div class="archetype-box">POWER ${charData.pow_prof || 0}</div>
+            </div>
+        `;
+    }
+    
     archetypeSection.innerHTML = `
-        <div class="section-title">ARCHETYPE PROFICIENCY</div>
-        <div class="archetype-prof">
-            <div class="archetype-box">MARTIAL ${charData.mart_prof || 0}</div>
-            <div class="archetype-box">POWER ${charData.pow_prof || 0}</div>
-        </div>
+        <div class="section-title">ARCHETYPE PROFICIENCY${proficiencyToggle}</div>
+        ${proficiencyContent}
     `;
     container.appendChild(archetypeSection);
     
