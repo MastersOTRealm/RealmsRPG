@@ -1,4 +1,4 @@
-import { initializeFirebase, waitForAuth, loadFeatsFromDatabase, loadTechniquePartsFromDatabase, loadPowerPartsFromDatabase, loadEquipmentFromDatabase } from './firebase-config.js';
+import { initializeFirebase, waitForAuth } from './firebase-config.js';
 import { getCharacterData, saveCharacterData } from './data.js';
 import { calculateDefenses, calculateSpeed, calculateEvasion, calculateMaxHealth, calculateMaxEnergy, calculateBonuses } from './calculations.js';
 import { renderHeader } from './components/header.js';
@@ -8,31 +8,100 @@ import { renderArchetype } from './components/archetype.js';
 import { renderLibrary } from './components/library.js';
 import './interactions.js';
 import { showEquipmentModal } from './components/modal.js';
+import { enrichCharacterData, normalizeCharacter } from './utils/data-enrichment.js';
 
+// Promise-based initialization guard for async data loading
+let _userItemLibraryPromise = null;
 window.userItemLibrary = []; // Array of all user's items (full objects)
+
+// Safe getter that returns item from library (synchronous)
+// Library should be loaded during enrichCharacterData before any rendering
 window.getItemFromLibraryByName = function(name) {
-    if (!window.userItemLibrary) return null;
+    if (!window.userItemLibrary || !Array.isArray(window.userItemLibrary)) {
+        console.warn('[Library] userItemLibrary not yet loaded, returning null for:', name);
+        return null;
+    }
     return window.userItemLibrary.find(item => item.name === name) || null;
+};
+
+// Async version that waits for library to be loaded if necessary
+window.waitForItemLibrary = async function() {
+    if (_userItemLibraryPromise) {
+        try {
+            await _userItemLibraryPromise;
+        } catch (e) {
+            console.warn('[Library] Failed to wait for library init:', e);
+        }
+    }
+    return window.userItemLibrary;
+};
+
+// Set the promise when library starts loading
+window._setUserItemLibraryPromise = function(promise) {
+    _userItemLibraryPromise = promise;
 };
 
 let currentCharacterId = null;
 let currentCharacterData = null;
 let autoSaveTimeout = null;
 
+/**
+ * Schedules an auto-save operation after a debounce delay.
+ * Includes error handling and user notifications.
+ */
 function scheduleAutoSave() {
     if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
     if (currentCharacterId === 'placeholder') return;
+    
     autoSaveTimeout = setTimeout(async () => {
-        if (currentCharacterId && currentCharacterData) {
-            // --- STRIP Unarmed Prowess before saving ---
-            const dataToSave = { ...currentCharacterData };
-            if (Array.isArray(dataToSave.weapons)) {
-                dataToSave.weapons = stripUnarmedProwessFromWeapons(dataToSave.weapons);
-            }
+        if (!currentCharacterId || !currentCharacterData) return;
+        
+        try {
+            // Strip temporary/computed fields before saving
+            const dataToSave = cleanForSave(currentCharacterData);
             await saveCharacterData(currentCharacterId, dataToSave);
             showNotification('Character auto-saved', 'success');
+        } catch (error) {
+            console.error('[Auto-save] Failed:', error);
+            showNotification('Auto-save failed - changes not saved', 'error');
+            // Retry once after 3 seconds
+            setTimeout(async () => {
+                try {
+                    const dataToSave = cleanForSave(currentCharacterData);
+                    await saveCharacterData(currentCharacterId, dataToSave);
+                    showNotification('Auto-save retry successful', 'success');
+                } catch (retryError) {
+                    console.error('[Auto-save] Retry failed:', retryError);
+                    showNotification('Auto-save retry failed - please save manually', 'error');
+                }
+            }, 3000);
         }
     }, 2000); // Auto-save 2 seconds after last change
+}
+
+/**
+ * Removes temporary and computed fields from character data before saving.
+ * @param {object} data - Character data object
+ * @returns {object} Cleaned data safe for persistence
+ */
+function cleanForSave(data) {
+    const cleaned = { ...data };
+    
+    // Remove computed/temporary fields
+    delete cleaned._displayFeats;
+    delete cleaned._displayPowers;
+    delete cleaned._displayTechniques;
+    delete cleaned.allTraits;
+    delete cleaned.allFeats;
+    delete cleaned.allPowers;
+    delete cleaned.allTechniques;
+    
+    // Strip Unarmed Prowess from weapons (it's computed)
+    if (Array.isArray(cleaned.weapons)) {
+        cleaned.weapons = stripUnarmedProwessFromWeapons(cleaned.weapons);
+    }
+    
+    return cleaned;
 }
 
 function showNotification(message, type = 'info') {
@@ -48,22 +117,30 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+/**
+ * Triggers a long rest, restoring health and energy to maximum.
+ */
 function longRest() {
     if (!currentCharacterData) return;
     
     if (confirm('Take a long rest? This will restore all health and energy to maximum.')) {
         const healthInput = document.getElementById('currentHealth');
         const energyInput = document.getElementById('currentEnergy');
-        const maxHealth = parseInt(healthInput?.dataset.max || 0);
-        const maxEnergy = parseInt(energyInput?.dataset.max || 0);
-        if (healthInput) {
-            healthInput.value = maxHealth;
-            currentCharacterData.currentHealth = maxHealth;
+        
+        if (!healthInput || !energyInput) {
+            console.warn('[Long Rest] Could not find health/energy inputs');
+            return;
         }
-        if (energyInput) {
-            energyInput.value = maxEnergy;
-            currentCharacterData.currentEnergy = maxEnergy;
-        }
+        
+        const maxHealth = parseInt(healthInput.dataset.max) || 0;
+        const maxEnergy = parseInt(energyInput.dataset.max) || 0;
+        
+        healthInput.value = maxHealth;
+        currentCharacterData.currentHealth = maxHealth;
+        
+        energyInput.value = maxEnergy;
+        currentCharacterData.currentEnergy = maxEnergy;
+        
         window.updateResourceColors?.();
         scheduleAutoSave();
         showNotification('Long rest completed - all resources restored!', 'success');
@@ -74,25 +151,7 @@ function sanitizeId(str) {
     return str.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
-// NEW: Normalize loaded character (placeholder or Firestore) to expected shape
-function normalizeCharacter(raw) {
-    const c = raw || {};
-    c.feats = Array.isArray(c.feats) ? c.feats : (c.feats || []); // Firestore may store arrays
-    c.techniques = Array.isArray(c.techniques) ? c.techniques : (c.techniques || []);
-    c.powers = Array.isArray(c.powers) ? c.powers : (c.powers || []);
-    c.equipment = Array.isArray(c.equipment) ? c.equipment : (c.equipment || []);
-    c.weapons = Array.isArray(c.weapons) ? c.weapons : (c.weapons || []);
-    c.armor = Array.isArray(c.armor) ? c.armor : (c.armor || []);
-    c.traits = Array.isArray(c.traits) ? c.traits : (c.traits || []);
-    c.skills = Array.isArray(c.skills) ? c.skills : (c.skills || []);
-    c.subSkills = Array.isArray(c.subSkills) ? c.subSkills : (c.subSkills || []);
-    c.defenseVals = c.defenseVals || { might:0, fortitude:0, reflex:0, discernment:0, mentalFortitude:0, resolve:0 };
-    c.abilities = c.abilities || { strength:0, vitality:0, agility:0, acuity:0, intelligence:0, charisma:0 };
-    c.health_energy_points = c.health_energy_points || { health:0, energy:0 };
-    return c;
-}
-
-// NEW: Unified loader
+// Unified character loader using centralized data enrichment
 async function loadCharacterById(id) {
     if (!id) {
         throw new Error('No character id provided.');
@@ -102,70 +161,16 @@ async function loadCharacterById(id) {
     if (!user) throw new Error('Not authenticated – please log in to load your character.');
     currentCharacterId = id.trim();
     console.log('[CharacterSheet] Attempting load: uid=', user.uid, ' docId=', currentCharacterId);
+    
     let attempt = 0;
     while (attempt < 2) {
         try {
-            const data = await getCharacterData(currentCharacterId);
-            console.log('[CharacterSheet] Loaded character document:', data.id);
+            const rawData = await getCharacterData(currentCharacterId);
+            console.log('[CharacterSheet] Loaded character document:', rawData.id);
             
-            // Load feats from database and pair with character's feat names
-            const allFeats = await loadFeatsFromDatabase();
-            const characterFeatNames = Array.isArray(data.feats) ? data.feats : [];
+            // Use centralized data enrichment
+            const data = await enrichCharacterData(rawData, user.uid);
             
-            // Pair feat names with full feat data
-            const pairedFeats = characterFeatNames.map(featEntry => {
-                // Only keep name and currentUses (if present) in the character data
-                const featName = typeof featEntry === 'string' ? featEntry : (featEntry.name || '');
-                const currentUses = typeof featEntry === 'object' && typeof featEntry.currentUses === 'number'
-                    ? featEntry.currentUses
-                    : undefined;
-                if (!featName) {
-                    console.warn('Invalid feat entry:', featEntry);
-                    return null;
-                }
-                const featData = allFeats.find(f => f.name === featName);
-                if (featData) {
-                    // Only pair for display, do not persist full object
-                    return {
-                        name: featName,
-                        description: featData.description || 'No description',
-                        category: featData.char_feat ? 'Character' : 'Archetype',
-                        uses: featData.uses_per_rec || 0,
-                        recovery: featData.rec_period || 'Full Recovery',
-                        currentUses: typeof currentUses === 'number' ? currentUses : featData.uses_per_rec || 0,
-                        // --- FIX: include char_feat and state_feat for correct section sorting ---
-                        char_feat: !!featData.char_feat,
-                        state_feat: !!featData.state_feat
-                    };
-                }
-                // If not found, fallback
-                return {
-                    name: featName,
-                    description: 'No description available',
-                    category: 'Character',
-                    uses: 0,
-                    recovery: 'Full Recovery',
-                    currentUses: typeof currentUses === 'number' ? currentUses : 0,
-                    char_feat: false,
-                    state_feat: false
-                };
-            }).filter(Boolean);
-
-            // Only keep feat names (and currentUses if needed) in the character data for saving
-            data.feats = characterFeatNames.map(featEntry => {
-                if (typeof featEntry === 'string') return featEntry;
-                if (featEntry && typeof featEntry === 'object' && featEntry.name) {
-                    const obj = { name: featEntry.name };
-                    if (typeof featEntry.currentUses === 'number') obj.currentUses = featEntry.currentUses;
-                    return obj;
-                }
-                return null;
-            }).filter(Boolean);
-
-            // For display, attach the paired feats as a non-persistent property
-            // _displayFeats should ONLY contain feats for display, never traits!
-            data._displayFeats = pairedFeats;
-
             // DEV SAFEGUARD: Warn if _displayFeats contains traits (should never happen)
             if (Array.isArray(data._displayFeats)) {
                 const traitLike = data._displayFeats.find(f => f && (f.flaw || f.characteristic || f.traitType || f.trait_category));
@@ -173,263 +178,6 @@ async function loadCharacterById(id) {
                     console.warn('[BUG] _displayFeats contains trait-like object:', traitLike);
                 }
             }
-            
-            // NEW: Load techniques from user's library and pair with character's technique names
-            const techniquePartsDb = await loadTechniquePartsFromDatabase();
-            const characterTechniqueNames = Array.isArray(data.techniques) ? data.techniques : [];
-            
-            // Fetch user's technique library from Firestore
-            const db = window.firebase.firestore();
-            const techniquesRef = db.collection('users').doc(user.uid).collection('techniqueLibrary');
-            const techniquesSnapshot = await techniquesRef.get();
-            
-            const allTechniques = [];
-            techniquesSnapshot.forEach(docSnap => {
-                const techData = docSnap.data();
-                allTechniques.push({
-                    id: docSnap.id,
-                    name: techData.name,
-                    description: techData.description || '',
-                    parts: techData.parts || [],
-                    weapon: techData.weapon,
-                    damage: techData.damage
-                });
-            });
-            
-            // Pair technique names with full technique data for display only
-            const pairedTechniques = characterTechniqueNames.map(techEntry => {
-                const techName = typeof techEntry === 'string' ? techEntry : (techEntry.name || '');
-                
-                if (!techName) {
-                    console.warn('Invalid technique entry:', techEntry);
-                    return null;
-                }
-                
-                const techData = allTechniques.find(t => t.name === techName);
-                if (techData) {
-                    const partsArr = Array.isArray(techData.parts) ? techData.parts.map(p => ({
-                        name: p.name,
-                        op_1_lvl: p.op_1_lvl || 0,
-                        op_2_lvl: p.op_2_lvl || 0,
-                        op_3_lvl: p.op_3_lvl || 0
-                    })) : [];
-                    return import('../technique_calc.js').then(mod => {
-                        const display = mod.deriveTechniqueDisplay({ ...techData, parts: partsArr }, techniquePartsDb);
-                        return {
-                            name: techName,
-                            description: display.description,
-                            energy: display.energy,
-                            actionType: display.actionType,
-                            weaponName: display.weaponName,
-                            damageStr: display.damageStr,
-                            parts: partsArr,
-                            partChipsHTML: display.partChipsHTML
-                        };
-                    });
-                }
-                
-                return {
-                    name: techName,
-                    description: 'No description available',
-                    energy: 0,
-                    actionType: 'Basic Action',
-                    weaponName: 'Unarmed',
-                    damageStr: '',
-                    parts: [],
-                    partChipsHTML: ''
-                };
-            }).filter(Boolean);
-            data.techniques = await Promise.all(pairedTechniques);
-            // Only keep technique names (and minimal state) in character data
-            data.techniques = characterTechniqueNames.map(t => typeof t === 'string' ? t : (t.name || '')).filter(Boolean);
-
-            // --- POWERS: Pair names with user's power library and DB parts ---
-            const powerPartsDb = await loadPowerPartsFromDatabase();
-            const characterPowerNames = Array.isArray(data.powers) ? data.powers : [];
-            const dbRef = window.firebase.firestore();
-            const userPowersSnap = await dbRef.collection('users').doc(user.uid).collection('library').get();
-            const allPowers = [];
-            userPowersSnap.forEach(docSnap => {
-                const p = docSnap.data();
-                allPowers.push({
-                    id: docSnap.id,
-                    name: p.name,
-                    description: p.description || '',
-                    parts: Array.isArray(p.parts) ? p.parts : [],
-                    damage: p.damage || [],
-                    range: p.range,
-                    area: p.areaEffect || p.area || '',
-                    duration: p.duration || '',
-                    actionType: p.actionType
-                });
-            });
-            const pairedPowersPromises = characterPowerNames.map(entry => {
-                const powerName = typeof entry === 'string' ? entry : (entry.name || '');
-                if (!powerName) return null;
-                const found = allPowers.find(p => p.name === powerName);
-                if (!found) {
-                    return Promise.resolve({
-                        name: powerName,
-                        description: 'No description available',
-                        energy: 0,
-                        actionType: 'Basic Action',
-                        damageStr: '',
-                        area: '',
-                        duration: '',
-                        partChipsHTML: ''
-                    });
-                }
-                return import('../power_calc.js').then(mod => {
-                    const display = mod.derivePowerDisplay(found, powerPartsDb);
-                    return {
-                        name: display.name,
-                        description: display.description,
-                        energy: display.energy,
-                        actionType: display.actionType,
-                        damageStr: display.damage,
-                        area: display.area,
-                        duration: display.duration,
-                        partChipsHTML: display.partChipsHTML
-                    };
-                });
-            }).filter(Boolean);
-            data.powers = await Promise.all(pairedPowersPromises);
-            // Only keep power names (and minimal state) in character data
-            data.powers = characterPowerNames.map(p => typeof p === 'string' ? p : (p.name || '')).filter(Boolean);
-
-            // --- WEAPONS: Pair names with user's item library ---
-            const characterWeaponNames = Array.isArray(data.weapons) ? data.weapons : [];
-            const weaponsSnap = await dbRef.collection('users').doc(user.uid).collection('itemLibrary').get();
-            const allItems = [];
-            weaponsSnap.forEach(docSnap => {
-                const w = docSnap.data();
-                allItems.push({
-                    ...w,
-                    id: docSnap.id
-                });
-            });
-            // Cache all items globally for this session
-            window.userItemLibrary = allItems;
-            const pairedWeapons = characterWeaponNames.map(entry => {
-                const weaponName = typeof entry === 'string' ? entry : (entry.name || '');
-                const equipped = typeof entry === 'object' ? (entry.equipped || false) : false;
-                if (!weaponName) return null;
-                const found = allItems.find(w => w.name === weaponName && (w.armamentType === 'Weapon' || w.armamentType === 'Shield'));
-                if (!found) {
-                    return {
-                        name: weaponName,
-                        damage: '-',
-                        damageType: '',
-                        range: 'Melee',
-                        properties: [],
-                        totalBP: 0,
-                        currencyCost: 0,
-                        rarity: 'Common',
-                        equipped: equipped
-                    };
-                }
-                return {
-                    ...found,
-                    equipped
-                };
-            }).filter(Boolean);
-            data.weapons = pairedWeapons;
-            // Only keep weapon names (and equipped state) in character data
-            data.weapons = characterWeaponNames.map(w => {
-                if (typeof w === 'string') return w;
-                if (w && typeof w === 'object' && w.name) {
-                    return { name: w.name, equipped: !!w.equipped };
-                }
-                return null;
-            }).filter(Boolean);
-
-            // --- ARMOR: Pair names with user's item library ---
-            const characterArmorNames = Array.isArray(data.armor) ? data.armor : [];
-            const allArmor = [];
-            weaponsSnap.forEach(docSnap => {
-                const a = docSnap.data();
-                if (a.armamentType === 'Armor') {
-                    const drProp = (a.properties || []).find(p => p.name === 'Damage Reduction');
-                    const damageReduction = drProp ? (1 + (drProp.op_1_lvl || 0)) : 0;
-                    allArmor.push({
-                        id: docSnap.id,
-                        name: a.name,
-                        damageReduction: damageReduction,
-                        properties: a.properties || [],
-                        totalBP: a.totalBP || a.bp || 0,
-                        currencyCost: a.currencyCost || a.goldCost || a.currency || 0,
-                        rarity: a.rarity || 'Common',
-                        equipped: false
-                    });
-                }
-            });
-            const pairedArmor = characterArmorNames.map(entry => {
-                const armorName = typeof entry === 'string' ? entry : (entry.name || '');
-                const equipped = typeof entry === 'object' ? (entry.equipped || false) : false;
-                if (!armorName) return null;
-                const found = allArmor.find(a => a.name === armorName);
-                if (!found) {
-                    return {
-                        name: armorName,
-                        damageReduction: 0,
-                        properties: [],
-                        totalBP: 0,
-                        currencyCost: 0,
-                        rarity: 'Common',
-                        equipped: equipped
-                    };
-                }
-                return {
-                    ...found,
-                    equipped
-                };
-            }).filter(Boolean);
-            data.armor = pairedArmor;
-            // Only keep armor names (and equipped state) in character data
-            data.armor = characterArmorNames.map(a => {
-                if (typeof a === 'string') return a;
-                if (a && typeof a === 'object' && a.name) {
-                    return { name: a.name, equipped: !!a.equipped };
-                }
-                return null;
-            }).filter(Boolean);
-
-            // --- EQUIPMENT: Pair names with user's equipment library ---
-            const allEquipment = await loadEquipmentFromDatabase();
-            const characterEquipmentNames = Array.isArray(data.equipment) ? data.equipment : [];
-            const pairedEquipment = characterEquipmentNames.map(equipEntry => {
-                const equipName = typeof equipEntry === 'string' ? equipEntry : (equipEntry.name || '');
-                const quantity = typeof equipEntry === 'object' ? (equipEntry.quantity || 1) : 1;
-                if (!equipName) return null;
-                const equipData = allEquipment.find(e => e.name === equipName);
-                if (equipData) {
-                    return {
-                        name: equipName,
-                        description: equipData.description || 'No description',
-                        category: equipData.category || 'General',
-                        currency: equipData.currency || 0,
-                        rarity: equipData.rarity || 'Common',
-                        quantity: quantity
-                    };
-                }
-                return {
-                    name: equipName,
-                    description: 'No description available',
-                    category: 'General',
-                    currency: 0,
-                    rarity: 'Common',
-                    quantity: quantity
-                };
-            }).filter(Boolean);
-            data.equipment = pairedEquipment;
-            // Only keep equipment names (and quantity) in character data
-            data.equipment = characterEquipmentNames.map(e => {
-                if (typeof e === 'string') return e;
-                if (e && typeof e === 'object' && e.name) {
-                    return { name: e.name, quantity: e.quantity || 1 };
-                }
-                return null;
-            }).filter(Boolean);
 
             return normalizeCharacter(data);
         } catch (e) {
@@ -505,9 +253,14 @@ function stripUnarmedProwessFromWeapons(weapons) {
 }
 
 // Helper to re-render archetype column (e.g., after equipping/unequipping weapons)
-window.refreshArchetypeColumn = function() {
+// Optimized to only update changed elements when possible
+window.refreshArchetypeColumn = function(options = {}) {
     if (!currentCharacterData) return;
-    // Recalculate derived data
+    
+    // Note: weaponsOnly optimization removed due to ES module limitations
+    // Always do full render to ensure consistency
+    
+    // Full recalculation for complete refresh
     let archetypeAbility = null;
     if (currentCharacterData.pow_prof > 0) archetypeAbility = currentCharacterData.pow_abil;
     else if (currentCharacterData.mart_prof > 0) archetypeAbility = currentCharacterData.mart_abil;
@@ -635,11 +388,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             try {
-                await saveCharacterData(currentCharacterId, currentCharacterData);
+                const dataToSave = cleanForSave(currentCharacterData);
+                await saveCharacterData(currentCharacterId, dataToSave);
                 showNotification('Character saved successfully!', 'success');
             } catch (error) {
                 showNotification('Error saving character', 'error');
-                console.error(error);
+                console.error('[Manual save] Error:', error);
             }
         });
 
@@ -676,3 +430,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 window.showEquipmentModal = showEquipmentModal;
+window.enrichCharacterData = enrichCharacterData;
+window.renderLibrary = renderLibrary;
+window.currentCharacterData = () => currentCharacterData;

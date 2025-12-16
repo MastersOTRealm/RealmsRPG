@@ -3,117 +3,27 @@ import { updateList, capitalize, SENSES_DISPLAY, MOVEMENT_DISPLAY, getAbilityVal
 import { calculateCreatureTPSpent, getAdjustedCreatureTP } from './creatureTPcalc.js';
 import { getBaseTP } from './creatureUtils.js';
 
-// REMOVE: import creatureFeatsData from './creatureFeatsData.js';
-
-// Add Firebase import for Realtime Database
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
-
 // Add imports for item, power, and technique calculations
 import { calculateItemCosts, calculateCurrencyCostAndRarity, extractProficiencies } from '../scripts/item_calc.js';
 import { derivePowerDisplay } from '../scripts/power_calc.js';
 import { deriveTechniqueDisplay } from '../scripts/technique_calc.js';
+
+// Import shared RTDB cache utility
+import { 
+    fetchCreatureFeats, 
+    fetchItemProperties, 
+    fetchPowerParts, 
+    fetchTechniqueParts 
+} from '../scripts/utils/rtdb-cache.js';
+
+// Firebase database will be auto-detected by rtdb-cache
+import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 let skills = []; // Will be set in initCreatureCreator
 let allCreatureFeats = []; // Will be loaded from Realtime Database
 let itemPropertiesData = []; // Will be loaded from Realtime Database
 let powerPartsData = []; // Will be loaded from Realtime Database
 let techniquePartsData = []; // Will be loaded from Realtime Database
-
-// Helper: Load all feats from Realtime Database
-async function loadCreatureFeatsFromDatabase() {
-    const db = getDatabase();
-    const featsRef = ref(db, 'creature_feats');
-    const snapshot = await get(featsRef);
-    if (snapshot.exists()) {
-        allCreatureFeats = Object.values(snapshot.val());
-    } else {
-        allCreatureFeats = [];
-    }
-}
-
-// Helper: Load item properties from Realtime Database
-async function loadItemPropertiesFromDatabase() {
-    const db = getDatabase();
-    const propsRef = ref(db, 'properties');
-    const snapshot = await get(propsRef);
-    if (snapshot.exists()) {
-        itemPropertiesData = Object.values(snapshot.val());
-    } else {
-        itemPropertiesData = [];
-    }
-}
-
-// Helper: Load power parts from Realtime Database
-async function loadPowerPartsFromDatabase() {
-    const db = getDatabase();
-    const partsRef = ref(db, 'parts');
-    const snapshot = await get(partsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        powerPartsData = Object.entries(data)
-            .filter(([id, part]) => part.type && part.type.toLowerCase() === 'power')
-            .map(([id, part]) => ({
-                id: id,
-                name: part.name || '',
-                description: part.description || '',
-                category: part.category || '',
-                base_en: parseFloat(part.base_en) || 0,
-                base_tp: parseFloat(part.base_tp) || 0,
-                op_1_desc: part.op_1_desc || '',
-                op_1_en: parseFloat(part.op_1_en) || 0,
-                op_1_tp: parseFloat(part.op_1_tp) || 0,
-                op_2_desc: part.op_2_desc || '',
-                op_2_en: parseFloat(part.op_2_en) || 0,
-                op_2_tp: parseFloat(part.op_2_tp) || 0,
-                op_3_desc: part.op_3_desc || '',
-                op_3_en: parseFloat(part.op_3_en) || 0,
-                op_3_tp: parseFloat(part.op_3_tp) || 0,
-                type: part.type || 'power',
-                mechanic: part.mechanic === 'true' || part.mechanic === true,
-                percentage: part.percentage === 'true' || part.percentage === true,
-                duration: part.duration === 'true' || part.duration === true
-            }));
-    } else {
-        powerPartsData = [];
-    }
-}
-
-// Helper: Load technique parts from Realtime Database
-async function loadTechniquePartsFromDatabase() {
-    const db = getDatabase();
-    const partsRef = ref(db, 'parts');
-    const snapshot = await get(partsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        techniquePartsData = Object.entries(data)
-            .filter(([id, part]) => part.type && part.type.toLowerCase() === 'technique')
-            .map(([id, part]) => ({
-                id: id,
-                name: part.name || '',
-                description: part.description || '',
-                category: part.category || '',
-                base_en: parseFloat(part.base_en) || 0,
-                base_tp: parseFloat(part.base_tp) || 0,
-                op_1_desc: part.op_1_desc || '',
-                op_1_en: parseFloat(part.op_1_en) || 0,
-                op_1_tp: parseFloat(part.op_1_tp) || 0,
-                op_2_desc: part.op_2_desc || '',
-                op_2_en: parseFloat(part.op_2_en) || 0,
-                op_2_tp: parseFloat(part.op_2_tp) || 0,
-                op_3_desc: part.op_3_desc || '',
-                op_3_en: parseFloat(part.op_3_en) || 0,
-                op_3_tp: parseFloat(part.op_3_tp) || 0,
-                type: part.type || 'technique',
-                mechanic: part.mechanic === 'true' || part.mechanic === true,
-                percentage: part.percentage === 'true' || part.percentage === true,
-                alt_base_en: parseFloat(part.alt_base_en) || 0,
-                alt_tp: parseFloat(part.alt_tp) || 0,
-                alt_desc: part.alt_desc || ''
-            }));
-    } else {
-        techniquePartsData = [];
-    }
-}
 
 import { getHighestAbility } from './creatureUtils.js';
 // Helper: get background feat points for resistances/weaknesses/immunities/condition immunities/senses/movements
@@ -732,14 +642,12 @@ window.removePower = removePower;
 
 // Main initialization function to be called from creatureCreator.js
 export async function initCreatureCreator(deps = {}) {
-    // Load feats from realtime database before anything else
-    await loadCreatureFeatsFromDatabase();
-    // Load item properties
-    await loadItemPropertiesFromDatabase();
-    // Load power parts
-    await loadPowerPartsFromDatabase();
-    // Load technique parts
-    await loadTechniquePartsFromDatabase();
+    // Load data from shared RTDB cache (uses getDatabase internally)
+    const db = getDatabase();
+    allCreatureFeats = await fetchCreatureFeats(db);
+    itemPropertiesData = await fetchItemProperties(db);
+    powerPartsData = await fetchPowerParts(db);
+    techniquePartsData = await fetchTechniqueParts(db);
 
     // Accept skills from deps
     if (deps.skills && Array.isArray(deps.skills)) {

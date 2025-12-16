@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import {
   calculateItemCosts,
   calculateCurrencyCostAndRarity,
@@ -12,37 +12,34 @@ import {
   formatProficiencyChip,
   deriveDamageReductionFromProperties
 } from './item_calc.js';
+import { 
+  fetchCreatureFeats,
+  fetchPowerParts, 
+  fetchTechniqueParts, 
+  fetchItemProperties 
+} from './utils/rtdb-cache.js';
 import { calculateTechniqueCosts, computeActionType, formatTechniqueDamage, deriveTechniqueDisplay } from './technique_calc.js';
 import {
   calculatePowerCosts, derivePowerDisplay, formatPowerDamage,
   deriveRange, deriveArea, deriveDuration
 } from './power_calc.js';
 
-// Cache for database data
+// Cache for database data (now using rtdb-cache.js)
 let creatureFeatsCache = null;
-let powerPartsCache = null;
-let techniquePartsCache = null;
-let itemPropertiesCache = null;
 
-// Load creature feats from database
+// Load creature feats from shared cache
 async function loadCreatureFeats(database) {
     if (creatureFeatsCache) return creatureFeatsCache;
     try {
-        const featsRef = ref(database, 'creature_feats');
-        const snapshot = await get(featsRef);
-        if (snapshot.exists()) {
-            const featsData = snapshot.val();
-            // Convert to object keyed by feat name for easy lookup
-            creatureFeatsCache = {};
-            Object.values(featsData).forEach(feat => {
-                if (feat.name) {
-                    creatureFeatsCache[feat.name] = feat;
-                }
-            });
-            console.log(`Loaded ${Object.keys(creatureFeatsCache).length} creature feats from database`);
-        } else {
-            creatureFeatsCache = {};
-        }
+        const featsArray = await fetchCreatureFeats(database);
+        // Convert to object keyed by feat name for easy lookup
+        creatureFeatsCache = {};
+        featsArray.forEach(feat => {
+            if (feat.name) {
+                creatureFeatsCache[feat.name] = feat;
+            }
+        });
+        console.log(`Loaded ${Object.keys(creatureFeatsCache).length} creature feats from database`);
     } catch (error) {
         console.error('Error loading creature feats:', error);
         creatureFeatsCache = {};
@@ -50,23 +47,7 @@ async function loadCreatureFeats(database) {
     return creatureFeatsCache;
 }
 
-// Helper: Fetch techniques from Realtime Database
-async function fetchTechniqueParts(database) {
-    if (techniquePartsCache) return techniquePartsCache;
-    try {
-        const partsRef = ref(database, 'technique_parts');
-        const snapshot = await get(partsRef);
-        if (snapshot.exists()) {
-            techniquePartsCache = Object.values(snapshot.val());
-        } else {
-            techniquePartsCache = [];
-        }
-    } catch (error) {
-        console.error('Error loading technique parts:', error);
-        techniquePartsCache = [];
-    }
-    return techniquePartsCache;
-}
+
 
 // Helper: Fetch user powers by names
 async function fetchUserPowersByNames(db, userId, powerNames) {
@@ -153,79 +134,9 @@ function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Load properties from Realtime Database
-async function loadItemProperties(database) {
-    if (itemPropertiesCache) return itemPropertiesCache;
-    
-    try {
-        const propertiesRef = ref(database, 'properties');
-        const snapshot = await get(propertiesRef);
-        
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            itemPropertiesCache = Object.entries(data).map(([id, prop]) => ({
-                id: id,
-                name: prop.name || '',
-                description: prop.description || '',
-                base_ip: parseFloat(prop.base_ip) || 0,
-                base_tp: parseFloat(prop.base_tp) || 0,
-                base_c: parseFloat(prop.base_c) || 0,
-                op_1_desc: prop.op_1_desc || '',
-                op_1_ip: parseFloat(prop.op_1_ip) || 0,
-                op_1_tp: parseFloat(prop.op_1_tp) || 0,
-                op_1_c: parseFloat(prop.op_1_c) || 0,
-                type: prop.type ? prop.type.charAt(0).toUpperCase() + prop.type.slice(1) : 'Weapon'
-            }));
-            console.log(`Loaded ${itemPropertiesCache.length} properties from database`);
-            return itemPropertiesCache;
-        }
-    } catch (error) {
-        console.error('Error loading properties:', error);
-    }
-    return [];
-}
 
-// NEW: Fetch power parts from Realtime Database (similar to technique parts)
-async function fetchPowerParts(database) {
-    if (powerPartsCache) return powerPartsCache;
-    
-    try {
-        const partsRef = ref(database, 'parts');
-        const snapshot = await get(partsRef);
-        
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            powerPartsCache = Object.entries(data)
-                .filter(([id, part]) => part.type && part.type.toLowerCase() === 'power')
-                .map(([id, part]) => ({
-                    id: id,
-                    name: part.name || '',
-                    description: part.description || '',
-                    category: part.category || '',
-                    base_en: parseFloat(part.base_en) || 0,
-                    base_tp: parseFloat(part.base_tp) || 0,
-                    op_1_desc: part.op_1_desc || '',
-                    op_1_en: parseFloat(part.op_1_en) || 0,
-                    op_1_tp: parseFloat(part.op_1_tp) || 0,
-                    op_2_desc: part.op_2_desc || '',
-                    op_2_en: parseFloat(part.op_2_en) || 0,
-                    op_2_tp: parseFloat(part.op_2_tp) || 0,
-                    op_3_desc: part.op_3_desc || '',
-                    op_3_en: parseFloat(part.op_3_en) || 0,
-                    op_3_tp: parseFloat(part.op_3_tp) || 0,
-                    type: part.type || 'power',
-                    mechanic: part.mechanic === 'true' || part.mechanic === true,
-                    percentage: part.percentage === 'true' || part.percentage === true,
-                    duration: part.duration === 'true' || part.duration === true
-                }));
-            console.log(`Loaded ${powerPartsCache.length} power parts from database`);
-            return powerPartsCache;
-        }
-    } catch (error) {
-        console.error('Error loading power parts:', error);
-    }
-    return [];
-}
+
+
 
 async function showSavedPowers(db, userId) {
     const powersList = document.getElementById('powersList');
@@ -342,7 +253,7 @@ async function showSavedItems(db, userId, database) {
     const armamentsList = document.getElementById('armamentsList');
     armamentsList.innerHTML = '<div class="no-results">Loading items...</div>';
 
-    const propertiesData = await loadItemProperties(database);
+    const propertiesData = await fetchItemProperties(database);
     if (!propertiesData || propertiesData.length === 0) {
         armamentsList.innerHTML = '<div class="no-results">Error loading item properties.</div>';
         return;
@@ -514,39 +425,9 @@ async function showSavedTechniques(db, userId) {
         // Sort techniques
         sortItems(techniques, sortState.techniques);
 
-        // Load technique parts from Realtime Database for cost calculation
+        // Load technique parts from shared RTDB cache
         const database = getDatabase();
-        const partsRef = ref(database, 'parts');
-        const snapshot = await get(partsRef);
-        let techniquePartsDb = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            techniquePartsDb = Object.entries(data)
-                .filter(([id, part]) => part.type && part.type.toLowerCase() === 'technique')
-                .map(([id, part]) => ({
-                    id: id,
-                    name: part.name || '',
-                    description: part.description || '',
-                    category: part.category || '',
-                    base_en: parseFloat(part.base_en) || 0,
-                    base_tp: parseFloat(part.base_tp) || 0,
-                    op_1_desc: part.op_1_desc || '',
-                    op_1_en: parseFloat(part.op_1_en) || 0,
-                    op_1_tp: parseFloat(part.op_1_tp) || 0,
-                    op_2_desc: part.op_2_desc || '',
-                    op_2_en: parseFloat(part.op_2_en) || 0,
-                    op_2_tp: parseFloat(part.op_2_tp) || 0,
-                    op_3_desc: part.op_3_desc || '',
-                    op_3_en: parseFloat(part.op_3_en) || 0,
-                    op_3_tp: parseFloat(part.op_3_tp) || 0,
-                    type: part.type || 'technique',
-                    mechanic: part.mechanic === 'true' || part.mechanic === true,
-                    percentage: part.percentage === 'true' || part.percentage === true,
-                    alt_base_en: parseFloat(part.alt_base_en) || 0,
-                    alt_tp: parseFloat(part.alt_tp) || 0,
-                    alt_desc: part.alt_desc || ''
-                }));
-        }
+        const techniquePartsDb = await fetchTechniqueParts(database);
 
         techniques.forEach(technique => {
             // Always pass an array for technique.parts
@@ -657,7 +538,7 @@ async function createCreatureCard(creature, database, db, userId) {
     const creatureFeats = await loadCreatureFeats(database);
     const powerPartsDb = await fetchPowerParts(database);
     const techniquePartsDb = await fetchTechniqueParts(database);
-    const itemPropertiesDb = await loadItemProperties(database);
+    const itemPropertiesDb = await fetchItemProperties(database);
     
     // Fetch full details for powers, techniques, and armaments from user library
     const userPowers = creature.powers ? await fetchUserPowersByNames(db, userId, creature.powers) : [];

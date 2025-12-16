@@ -1,5 +1,19 @@
+/**
+ * Global interaction handlers for the character sheet.
+ * This file consolidates all window-level functions used across components
+ * to prevent duplication and ensure consistent behavior.
+ */
+
 import { sanitizeId } from './utils.js';
 
+// ============================================================================
+// RESOURCE MANAGEMENT
+// ============================================================================
+
+/**
+ * Updates the color styling of health and energy inputs based on their values.
+ * Health turns red when <= 0, energy turns red when <= 0.
+ */
 window.updateResourceColors = function() {
     const h = document.getElementById('currentHealth');
     const e = document.getElementById('currentEnergy');
@@ -13,6 +27,11 @@ window.updateResourceColors = function() {
     }
 };
 
+/**
+ * Adjusts the character's current health by a delta value.
+ * Health can go below 0 and exceed maximum.
+ * @param {number} delta - Amount to change health by (positive or negative)
+ */
 window.changeHealth = function(delta) {
     const input = document.getElementById('currentHealth');
     if (!input) return;
@@ -28,6 +47,11 @@ window.changeHealth = function(delta) {
     window.updateResourceColors();
 };
 
+/**
+ * Adjusts the character's current energy by a delta value.
+ * Energy is clamped between 0 and maximum.
+ * @param {number} delta - Amount to change energy by (positive or negative)
+ */
 window.changeEnergy = function(delta) {
     const input = document.getElementById('currentEnergy');
     if (!input) return;
@@ -44,82 +68,90 @@ window.changeEnergy = function(delta) {
     window.updateResourceColors();
 };
 
+// ============================================================================
+// DICE ROLLING FUNCTIONS
+// ============================================================================
+
+/**
+ * Internal helper to create and display a d20 roll popup.
+ * @private
+ * @param {string} title - Title for the roll (e.g., "Strength Check")
+ * @param {number} roll - The d20 roll result (1-20)
+ * @param {number} bonus - The modifier to add to the roll
+ * @param {string} critSuccessMsg - Message to display on a natural 20
+ * @param {string} critFailMsg - Message to display on a natural 1
+ */
+function _createD20RollPopup(title, roll, bonus, critSuccessMsg = 'Critical Success!', critFailMsg = 'Critical Fail!') {
+    const total = roll + bonus;
+    
+    const popup = document.createElement('div');
+    popup.className = 'roll-popup';
+    popup.innerHTML = `
+        <div class="roll-content">
+            <h3>${title}</h3>
+            <div class="roll-details">
+                <div class="die-result ${roll === 20 ? 'crit-success' : roll === 1 ? 'crit-fail' : ''}">
+                    🎲 ${roll}
+                </div>
+                <div class="bonus-result">${bonus >= 0 ? '+' : ''}${bonus}</div>
+                <div class="total-result">= ${total}</div>
+            </div>
+            ${roll === 20 ? `<p class="crit-message">${critSuccessMsg}</p>` : ''}
+            ${roll === 1 ? `<p class="crit-message fail">${critFailMsg}</p>` : ''}
+            <button onclick="this.parentElement.parentElement.remove()">Close</button>
+        </div>
+    `;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.classList.add('show'), 10);
+}
+
+/**
+ * Rolls a skill check and displays the result in a popup.
+ * @param {string} skillName - Name of the skill being rolled
+ * @param {number} bonus - Modifier to add to the roll
+ */
 window.rollSkill = function(skillName, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    const total = roll + bonus;
-    
-    // Create roll result popup
-    const popup = document.createElement('div');
-    popup.className = 'roll-popup';
-    popup.innerHTML = `
-        <div class="roll-content">
-            <h3>${skillName}</h3>
-            <div class="roll-details">
-                <div class="die-result ${roll === 20 ? 'crit-success' : roll === 1 ? 'crit-fail' : ''}">
-                    🎲 ${roll}
-                </div>
-                <div class="bonus-result">${bonus >= 0 ? '+' : ''}${bonus}</div>
-                <div class="total-result">= ${total}</div>
-            </div>
-            ${roll === 20 ? '<p class="crit-message">Critical Success!</p>' : ''}
-            ${roll === 1 ? '<p class="crit-message fail">Critical Fail!</p>' : ''}
-            <button onclick="this.parentElement.parentElement.remove()">Close</button>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.classList.add('show'), 10);
+    _createD20RollPopup(skillName, roll, bonus);
 };
 
+/**
+ * Rolls an attack with a weapon and displays the result in a popup.
+ * @param {string} weaponName - Name of the weapon being used
+ * @param {number} attackBonus - Attack bonus to add to the roll
+ */
 window.rollAttack = function(weaponName, attackBonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    const total = roll + attackBonus;
-    
-    const popup = document.createElement('div');
-    popup.className = 'roll-popup';
-    popup.innerHTML = `
-        <div class="roll-content">
-            <h3>${weaponName} Attack</h3>
-            <div class="roll-details">
-                <div class="die-result ${roll === 20 ? 'crit-success' : roll === 1 ? 'crit-fail' : ''}">
-                    🎲 ${roll}
-                </div>
-                <div class="bonus-result">${attackBonus >= 0 ? '+' : ''}${attackBonus}</div>
-                <div class="total-result">= ${total}</div>
-            </div>
-            ${roll === 20 ? '<p class="crit-message">Critical Hit! Roll damage twice!</p>' : ''}
-            ${roll === 1 ? '<p class="crit-message fail">Critical Miss!</p>' : ''}
-            <button onclick="this.parentElement.parentElement.remove()">Close</button>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.classList.add('show'), 10);
+    _createD20RollPopup(
+        `${weaponName} Attack`,
+        roll,
+        attackBonus,
+        'Critical Hit! Roll damage twice!',
+        'Critical Miss!'
+    );
 };
 
+/**
+ * Rolls a generic attack bonus and displays the result in a popup.
+ * @param {string} name - Name of the attack
+ * @param {number} bonus - Attack bonus to add to the roll
+ */
 window.rollAttackBonus = function(name, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    const total = roll + bonus;
-    
-    const popup = document.createElement('div');
-    popup.className = 'roll-popup';
-    popup.innerHTML = `
-        <div class="roll-content">
-            <h3>${name} Attack Roll</h3>
-            <div class="roll-details">
-                <div class="die-result ${roll === 20 ? 'crit-success' : roll === 1 ? 'crit-fail' : ''}">
-                    🎲 ${roll}
-                </div>
-                <div class="bonus-result">${bonus >= 0 ? '+' : ''}${bonus}</div>
-                <div class="total-result">= ${total}</div>
-            </div>
-            ${roll === 20 ? '<p class="crit-message">Critical Hit! Double damage!</p>' : ''}
-            ${roll === 1 ? '<p class="crit-message fail">Critical Miss!</p>' : ''}
-            <button onclick="this.parentElement.parentElement.remove()">Close</button>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.classList.add('show'), 10);
+    _createD20RollPopup(
+        `${name} Attack Roll`,
+        roll,
+        bonus,
+        'Critical Hit! Double damage!',
+        'Critical Miss!'
+    );
 };
 
+/**
+ * Rolls damage dice and displays the result in a popup.
+ * @param {string} damageStr - Damage string (e.g., "2d6", "1d8+2", "1d6 Slashing")
+ * @param {number} bonus - Optional additional damage bonus
+ */
 window.rollDamage = function(damageStr, bonus = 0) {
     // Parse damage string like "2d6", "1d8+2", "1d6 Slashing", "1d6+3 Slashing"
     // Accepts optional bonus as second argument
@@ -163,56 +195,129 @@ window.rollDamage = function(damageStr, bonus = 0) {
     setTimeout(() => popup.classList.add('show'), 10);
 };
 
+/**
+ * Rolls an ability check and displays the result in a popup.
+ * @param {string} abilityName - Name of the ability (e.g., "strength", "agility")
+ * @param {number} bonus - Ability modifier to add to the roll
+ */
 window.rollAbility = function(abilityName, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    const total = roll + bonus;
-    
-    const popup = document.createElement('div');
-    popup.className = 'roll-popup';
-    popup.innerHTML = `
-        <div class="roll-content">
-            <h3>${abilityName.charAt(0).toUpperCase() + abilityName.slice(1)} Check</h3>
-            <div class="roll-details">
-                <div class="die-result ${roll === 20 ? 'crit-success' : roll === 1 ? 'crit-fail' : ''}">
-                    🎲 ${roll}
-                </div>
-                <div class="bonus-result">${bonus >= 0 ? '+' : ''}${bonus}</div>
-                <div class="total-result">= ${total}</div>
-            </div>
-            ${roll === 20 ? '<p class="crit-message">Critical Success!</p>' : ''}
-            ${roll === 1 ? '<p class="crit-message fail">Critical Fail!</p>' : ''}
-            <button onclick="this.parentElement.parentElement.remove()">Close</button>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.classList.add('show'), 10);
+    const title = abilityName.charAt(0).toUpperCase() + abilityName.slice(1) + ' Check';
+    _createD20RollPopup(title, roll, bonus);
 };
 
+/**
+ * Rolls a defense/saving throw and displays the result in a popup.
+ * @param {string} defenseName - Name of the defense (e.g., "Fortitude", "Reflex")
+ * @param {number} bonus - Defense modifier to add to the roll
+ */
 window.rollDefense = function(defenseName, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    const total = roll + bonus;
-    
-    const popup = document.createElement('div');
-    popup.className = 'roll-popup';
-    popup.innerHTML = `
-        <div class="roll-content">
-            <h3>${defenseName} Save</h3>
-            <div class="roll-details">
-                <div class="die-result ${roll === 20 ? 'crit-success' : roll === 1 ? 'crit-fail' : ''}">
-                    🎲 ${roll}
-                </div>
-                <div class="bonus-result">${bonus >= 0 ? '+' : ''}${bonus}</div>
-                <div class="total-result">= ${total}</div>
-            </div>
-            ${roll === 20 ? '<p class="crit-message">Critical Success!</p>' : ''}
-            ${roll === 1 ? '<p class="crit-message fail">Critical Fail!</p>' : ''}
-            <button onclick="this.parentElement.parentElement.remove()">Close</button>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.classList.add('show'), 10);
+    _createD20RollPopup(`${defenseName} Save`, roll, bonus);
 };
 
+// ============================================================================
+// FEAT AND TRAIT MANAGEMENT
+// ============================================================================
+
+/**
+ * Adjusts the usage counter for a feat.
+ * Converts string-based feats to objects with currentUses tracking.
+ * @param {string} featName - Name of the feat
+ * @param {number} delta - Amount to change uses by (positive or negative)
+ */
+window.changeFeatUses = function(featName, delta) {
+    const id = sanitizeId(featName);
+    const charData = window.currentCharacterData?.();
+    if (!charData || !Array.isArray(charData.feats)) return;
+
+    // Find the feat in the array (string or object)
+    let featIndex = charData.feats.findIndex(f =>
+        (typeof f === 'string' && f === featName) ||
+        (typeof f === 'object' && f.name === featName)
+    );
+    if (featIndex === -1) {
+        console.warn('[changeFeatUses] Feat not found:', featName);
+        return;
+    }
+
+    // Get maxUses from _displayFeats if available, else from feat object
+    let maxUses = 0;
+    if (Array.isArray(charData._displayFeats)) {
+        const found = charData._displayFeats.find(f => f.name === featName);
+        if (found && typeof found.uses === 'number') maxUses = found.uses;
+    }
+    // Fallback: try feat object
+    let featObj = charData.feats[featIndex];
+    if (!maxUses && typeof featObj === 'object' && typeof featObj.uses === 'number') {
+        maxUses = featObj.uses;
+    }
+
+    // If feat is a string, convert to object and persist
+    if (typeof featObj === 'string') {
+        charData.feats[featIndex] = {
+            name: featObj,
+            currentUses: Math.max(0, Math.min(maxUses, (maxUses || 0) + delta))
+        };
+        featObj = charData.feats[featIndex];
+    } else {
+        if (featObj.currentUses === undefined) featObj.currentUses = maxUses || 0;
+        featObj.currentUses = Math.max(0, Math.min(maxUses || 0, featObj.currentUses + delta));
+    }
+
+    // Update both collapsed and expanded uses spans
+    const usesSpan = document.getElementById(`uses-${id}`);
+    const expSpan = document.getElementById(`exp-uses-${id}`);
+    if (usesSpan) usesSpan.textContent = featObj.currentUses ?? 0;
+    if (expSpan) expSpan.textContent = featObj.currentUses ?? 0;
+
+    // Trigger auto-save
+    window.scheduleAutoSave?.();
+};
+
+/**
+ * Adjusts the usage counter for a trait.
+ * Converts string-based traits to objects with currentUses tracking.
+ * @param {string} traitName - Name of the trait
+ * @param {number} delta - Amount to change uses by (positive or negative)
+ * @param {object} charData - Character data object
+ * @param {number} maxUses - Maximum uses for the trait
+ */
+window.changeTraitUses = function(traitName, delta, charData, maxUses) {
+    if (!charData || !Array.isArray(charData.traits)) return;
+    
+    // Find the trait in the array
+    let trait = charData.traits.find(t =>
+        (typeof t === 'string' && t === traitName) ||
+        (typeof t === 'object' && t.name === traitName)
+    );
+    if (!trait) return;
+    
+    // If trait is a string, convert to object
+    if (typeof trait === 'string') {
+        const idx = charData.traits.indexOf(trait);
+        charData.traits[idx] = {
+            name: trait,
+            currentUses: Math.max(0, Math.min(maxUses, (maxUses || 0) + delta))
+        };
+        trait = charData.traits[idx];
+    } else {
+        if (trait.currentUses === undefined) trait.currentUses = maxUses || 0;
+        trait.currentUses = Math.max(0, Math.min(maxUses, trait.currentUses + delta));
+    }
+    
+    // Update display
+    const usesSpan = document.getElementById(`uses-${sanitizeId(traitName)}`);
+    if (usesSpan) usesSpan.textContent = trait.currentUses ?? 0;
+    
+    // Trigger auto-save
+    window.scheduleAutoSave?.();
+};
+
+/**
+ * Toggles a feat's active state.
+ * @param {string} featName - Name of the feat to toggle
+ */
 window.toggleFeat = function(featName) {
     const toggle = event.target;
     toggle.classList.toggle('active');
@@ -227,7 +332,15 @@ window.toggleFeat = function(featName) {
     }
 };
 
-// Handle technique usage
+// ============================================================================
+// POWER AND TECHNIQUE USAGE
+// ============================================================================
+
+/**
+ * Deducts energy when using a technique.
+ * @param {string} name - Name of the technique
+ * @param {number} energy - Energy cost of the technique
+ */
 window.useTechnique = function(name, energy) {
     const energyInput = document.getElementById('currentEnergy');
     if (!energyInput) return;
@@ -247,11 +360,24 @@ window.useTechnique = function(name, energy) {
     window.updateResourceColors?.();
 };
 
+/**
+ * Deducts energy when using a power.
+ * Delegates to useTechnique as the logic is identical.
+ * @param {string} name - Name of the power
+ * @param {number} energy - Energy cost of the power
+ */
 window.usePower = function(name, energy) {
     window.useTechnique(name, energy); // Same logic
 };
 
-// Handle notes save
+// ============================================================================
+// NOTES AND PERSISTENCE
+// ============================================================================
+
+/**
+ * Saves character notes to character data.
+ * Provides visual feedback on successful save.
+ */
 window.saveNotes = function() {
     const notesTextarea = document.getElementById('character-notes');
     if (!notesTextarea) return;
@@ -272,6 +398,10 @@ window.saveNotes = function() {
         }, 2000);
     }
 };
+
+// ============================================================================
+// UI STYLES
+// ============================================================================
 
 // Add CSS for roll popup
 const style = document.createElement('style');

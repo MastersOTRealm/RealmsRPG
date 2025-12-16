@@ -3,7 +3,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import { 
   calculateItemCosts,
   calculateCurrencyCostAndRarity,
@@ -11,6 +11,7 @@ import {
   formatProficiencyChip,
   computeSplits
 } from '/scripts/item_calc.js';
+import { fetchItemProperties } from '/scripts/utils/rtdb-cache.js';
 
 let appCheckInitialized = false;
 
@@ -21,64 +22,6 @@ let appCheckInitialized = false;
     function sanitizeId(name) {
         if (!name) return '';
         return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-    }
-
-    // Fetch item properties from Realtime Database
-    async function fetchItemProperties(database) {
-        // Retry wrapper for transient offline/network hiccups (borrowed from codex.js)
-        async function getWithRetry(path, attempts = 3) {
-            const r = ref(database, path);
-            let lastErr;
-            for (let i = 0; i < attempts; i++) {
-                try {
-                    return await get(r);
-                } catch (err) {
-                    lastErr = err;
-                    const msg = (err && err.message) || '';
-                    const isOffline = msg.includes('Client is offline') || msg.toLowerCase().includes('network');
-                    if (!isOffline || i === attempts - 1) throw err;
-                    await new Promise(res => setTimeout(res, 500 * (i + 1))); // simple backoff
-                }
-            }
-            throw lastErr;
-        }
-
-        try {
-            // Use lowercase 'properties' to match the actual database path
-            const propertiesRef = ref(database, 'properties');
-            console.log('Fetching from path: properties');
-            const snapshot = await getWithRetry('properties');
-            
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                console.log('Raw properties data:', data);
-                itemProperties = Object.entries(data).map(([id, prop]) => ({
-                    id: id,
-                    name: prop.name || '',
-                    description: prop.description || '',
-                    base_ip: parseFloat(prop.base_ip) || 0,
-                    base_tp: parseFloat(prop.base_tp) || 0,
-                    base_c: parseFloat(prop.base_c) || 0,
-                    op_1_desc: prop.op_1_desc || '',
-                    op_1_ip: parseFloat(prop.op_1_ip) || 0,
-                    op_1_tp: parseFloat(prop.op_1_tp) || 0,
-                    op_1_c: parseFloat(prop.op_1_c) || 0,
-                    type: prop.type ? prop.type.charAt(0).toUpperCase() + prop.type.slice(1) : 'Weapon'
-                }));
-                
-                console.log('Loaded', itemProperties.length, 'properties from database');
-                return true;
-            } else {
-                console.error('No properties found in database at path: properties');
-                return false;
-            }
-        } catch (error) {
-            console.error('Error fetching properties:', error);
-            if (error.code === 'PERMISSION_DENIED') {
-                console.error('Permission denied for /properties - check Firebase Realtime Database Rules');
-            }
-            return false;
-        }
     }
 
     const selectedItemProperties = [];
@@ -814,9 +757,10 @@ let appCheckInitialized = false;
             const database = getDatabase(app);
 
             // Fetch properties from Realtime Database
-            const propertiesLoaded = await fetchItemProperties(database);
+            // Fetch item properties from shared RTDB cache
+            itemProperties = await fetchItemProperties(database);
             
-            if (!propertiesLoaded) {
+            if (!itemProperties || itemProperties.length === 0) {
                 alert('Failed to load item properties. Please refresh the page.');
             } else {
                 // Populate initial ability requirement dropdown after properties load

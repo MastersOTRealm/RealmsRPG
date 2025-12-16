@@ -1,5 +1,6 @@
 import { formatPowerDamage } from '../../../power_calc.js';
 import { buildTechniquePartChips } from './techniques.js';
+import { CollapsibleRow } from '../shared/collapsible-row.js';
 
 export function createPowersContent(powers) {
     const content = document.createElement('div');
@@ -10,52 +11,58 @@ export function createPowersContent(powers) {
         return content;
     }
     const header = document.createElement('div');
-    header.className = 'library-table-header tech'; // reuse style
+    header.className = 'library-table-header tech';
     header.style.gridTemplateColumns = '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr';
     header.innerHTML = '<div>NAME</div><div>ACTION</div><div>DAMAGE</div><div>ENERGY</div><div>AREA</div><div>DURATION</div>';
     content.appendChild(header);
+
     powers.forEach(power => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'collapsible-tech'; // reuse styling
-        wrapper.style.marginBottom = '10px';
-        // --- Build chips with blue highlight for TP cost ---
+        // Build chips with blue highlight for TP cost
         let chipsHTML = '';
         if (Array.isArray(power.parts) && power.parts.length && power.partsDb) {
             chipsHTML = buildTechniquePartChips(power.parts, power.partsDb);
         } else if (power.partChipsHTML) {
             chipsHTML = power.partChipsHTML;
         }
+
         const damageStr = formatPowerDamage(power.damage);
-        wrapper.innerHTML = `
-            <div class="collapsed-row" style="grid-template-columns:1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr;">
-                <div><strong>${power.name}</strong> <span class="expand-indicator">▼</span></div>
-                <div>${power.actionType || 'Basic Action'}</div>
-                <div>${damageStr || '-'}</div>
-                <div><button class="energy-use-btn" data-name="${power.name}" data-energy="${power.energy || 0}">Use (${power.energy || 0})</button></div>
-                <div>${power.area || '-'}</div>
-                <div>${power.duration || '-'}</div>
-            </div>
-            <div class="expanded-body">
-                ${power.description ? `<p style="margin:0 0 10px;">${power.description}</p>` : ''}
-                ${chipsHTML ? `
-                    <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Parts & Proficiencies</h4>
-                    <div class="part-chips">${chipsHTML}</div>
-                ` : ''}
-            </div>
-        `;
-        wrapper.querySelector('.collapsed-row').addEventListener('click', (e) => {
-            if (e.target.classList.contains('energy-use-btn')) return;
-            wrapper.classList.toggle('open');
-            const ind = wrapper.querySelector('.expand-indicator');
-            if (ind) ind.textContent = wrapper.classList.contains('open') ? '▲' : '▼';
+        const expandedContent = chipsHTML ? `
+            <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Parts & Proficiencies</h4>
+            <div class="part-chips">${chipsHTML}</div>
+        ` : '';
+
+        const row = new CollapsibleRow({
+            title: power.name,
+            columns: [
+                { content: power.actionType || 'Basic Action' },
+                { content: damageStr || '-' }
+            ],
+            description: power.description || '',
+            className: 'collapsible-tech',
+            gridColumns: '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr',
+            actionButton: {
+                label: `Use (${power.energy || 0})`,
+                data: { name: power.name, energy: power.energy || 0 },
+                onClick: (e) => {
+                    const energy = parseInt(e.target.dataset.energy);
+                    const name = e.target.dataset.name;
+                    window.usePower(name, energy);
+                }
+            },
+            expandedContent: expandedContent
         });
-        wrapper.querySelector('.energy-use-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const energy = parseInt(e.target.dataset.energy);
-            const name = e.target.dataset.name;
-            usePower(name, energy);
-        });
-        content.appendChild(wrapper);
+
+        // Add additional columns for area and duration after the action button
+        const collapsedRow = row.element.querySelector('.collapsed-row');
+        const areaDiv = document.createElement('div');
+        areaDiv.textContent = power.area || '-';
+        const durationDiv = document.createElement('div');
+        durationDiv.textContent = power.duration || '-';
+        collapsedRow.appendChild(areaDiv);
+        collapsedRow.appendChild(durationDiv);
+
+        row.element.style.marginBottom = '10px';
+        content.appendChild(row.element);
     });
     return content;
 }

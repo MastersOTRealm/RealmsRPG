@@ -3,8 +3,9 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriveArea, deriveDuration } from '/scripts/power_calc.js';
+import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
 
 (() => {
     // const powerParts = powerPartsData;
@@ -21,49 +22,6 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
 
     // NEW: State for selected advanced mechanic parts
     const selectedAdvancedParts = [];
-
-    async function fetchPowerParts(database) {
-        const powerPartsRef = ref(database, 'parts');
-        const snapshot = await get(powerPartsRef);
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            powerParts = Object.entries(data)
-                .filter(([id, part]) => part.type && part.type.toLowerCase() === 'power')
-                .map(([id, part]) => ({
-                    id: id,
-                    name: part.name || '',
-                    description: part.description || '',
-                    category: part.category || '',
-                    base_en: parseFloat(part.base_en) || 0,
-                    base_tp: parseFloat(part.base_tp) || 0,
-                    op_1_desc: part.op_1_desc || '',
-                    op_1_en: parseFloat(part.op_1_en) || 0,
-                    op_1_tp: parseFloat(part.op_1_tp) || 0,
-                    op_2_desc: part.op_2_desc || '',
-                    op_2_en: parseFloat(part.op_2_en) || 0,
-                    op_2_tp: parseFloat(part.op_2_tp) || 0,
-                    op_3_desc: part.op_3_desc || '',
-                    op_3_en: parseFloat(part.op_3_en) || 0,
-                    op_3_tp: parseFloat(part.op_3_tp) || 0,
-                    type: part.type || 'power',
-                    mechanic: part.mechanic === 'true' || part.mechanic === true,
-                    percentage: part.percentage === 'true' || part.percentage === true,
-                    // NEW: master duration flag
-                    duration: part.duration === 'true' || part.duration === true
-                }));
-            
-            // Fetch duration parts
-            durationParts = {
-                rounds: Object.values(data).find(part => part.name === 'Duration (Round)'),
-                minutes: Object.values(data).find(part => part.name === 'Duration (Minute)'),
-                hours: Object.values(data).find(part => part.name === 'Duration (Hour)'),
-                days: Object.values(data).find(part => part.name === 'Duration (Days)'),
-                permanent: Object.values(data).find(part => part.name === 'Duration (Permanent)')
-            };
-        } else {
-            // console.log("No power parts data available");
-        }
-    }
 
     function addPowerPart() {
         if (powerParts.length === 0) return;
@@ -1298,8 +1256,17 @@ import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriv
             const db = getFirestore(app);
             const database = getDatabase(app);
 
-            // Fetch power parts from Realtime Database
-            await fetchPowerParts(database);
+            // Fetch power parts from shared RTDB cache
+            powerParts = await fetchPowerParts(database);
+            
+            // Extract duration parts from cached data
+            durationParts = {
+                rounds: powerParts.find(part => part.name === 'Duration (Round)'),
+                minutes: powerParts.find(part => part.name === 'Duration (Minute)'),
+                hours: powerParts.find(part => part.name === 'Duration (Hour)'),
+                days: powerParts.find(part => part.name === 'Duration (Days)'),
+                permanent: powerParts.find(part => part.name === 'Duration (Permanent)')
+            };
 
             // NEW: Populate advanced mechanics chips after fetching parts
             populateAdvancedMechanics();

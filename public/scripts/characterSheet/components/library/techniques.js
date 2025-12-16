@@ -1,3 +1,5 @@
+import { CollapsibleRow } from '../shared/collapsible-row.js';
+
 export function createTechniquesContent(techniques) {
     const content = document.createElement('div');
     content.id = 'techniques-content';
@@ -12,48 +14,40 @@ export function createTechniquesContent(techniques) {
     content.appendChild(header);
 
     techniques.forEach(t => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'collapsible-tech';
-        // --- Build chips with blue highlight for TP cost ---
+        // Build chips with blue highlight for TP cost
         let chipsHTML = '';
         if (Array.isArray(t.parts) && t.parts.length && t.partsDb) {
             chipsHTML = buildTechniquePartChips(t.parts, t.partsDb);
         } else if (t.partChipsHTML) {
             chipsHTML = t.partChipsHTML;
         }
-        wrapper.innerHTML = `
-            <div class="collapsed-row">
-                <div>
-                   <strong>${t.name}</strong>
-                   <span class="expand-indicator">▼</span>
-                </div>
-                <div>${t.actionType || 'Basic Action'}</div>
-                <div>${t.weaponName || 'Unarmed'}</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-                    <button class="energy-use-btn" data-name="${t.name}" data-energy="${t.energy}">Use (${t.energy})</button>
-                </div>
-            </div>
-            <div class="expanded-body">
-                ${t.description ? `<p style="margin:0 0 10px;">${t.description}</p>` : ''}
-                ${chipsHTML ? `
-                    <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Parts & Proficiencies</h4>
-                    <div class="part-chips">${chipsHTML}</div>
-                ` : ''}
-            </div>
-        `;
-        wrapper.querySelector('.collapsed-row').addEventListener('click', (e) => {
-            if (e.target.classList.contains('energy-use-btn')) return;
-            wrapper.classList.toggle('open');
-            const ind = wrapper.querySelector('.expand-indicator');
-            if (ind) ind.textContent = wrapper.classList.contains('open') ? '▲' : '▼';
+
+        const expandedContent = chipsHTML ? `
+            <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Parts & Proficiencies</h4>
+            <div class="part-chips">${chipsHTML}</div>
+        ` : '';
+
+        const row = new CollapsibleRow({
+            title: t.name,
+            columns: [
+                { content: t.actionType || 'Basic Action' },
+                { content: t.weaponName || 'Unarmed' }
+            ],
+            description: t.description || '',
+            className: 'collapsible-tech',
+            actionButton: {
+                label: `Use (${t.energy})`,
+                data: { name: t.name, energy: t.energy },
+                onClick: (e) => {
+                    const energy = parseInt(e.target.dataset.energy);
+                    const name = e.target.dataset.name;
+                    window.useTechnique(name, energy);
+                }
+            },
+            expandedContent: expandedContent
         });
-        wrapper.querySelector('.energy-use-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const energy = parseInt(e.target.dataset.energy);
-            const name = e.target.dataset.name;
-            useTechnique(name, energy);
-        });
-        content.appendChild(wrapper);
+
+        content.appendChild(row.element);
     });
     return content;
 }

@@ -2,7 +2,7 @@ import { initializeFirebase } from '/scripts/auth.js'; // Use correct path for y
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import { calculateItemCosts } from '/scripts/item_calc.js';
 import { 
     buildMechanicPartPayload,
@@ -12,6 +12,7 @@ import {
     computeActionTypeFromSelection,
     formatTechniqueDamage
 } from '/scripts/technique_calc.js';
+import { fetchTechniqueParts, fetchItemProperties } from '/scripts/utils/rtdb-cache.js';
 
 // Store Firebase objects after initialization
 let firebaseApp = null;
@@ -40,84 +41,6 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
     function sanitizeId(name) {
         if (!name) return '';
         return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-    }
-
-    // Fetch technique parts from Realtime Database
-    async function fetchTechniqueParts(database) {
-        // Retry wrapper for transient offline/network hiccups (borrowed from codex.js)
-        async function getWithRetry(path, attempts = 3) {
-            const r = ref(database, path);
-            let lastErr;
-            for (let i = 0; i < attempts; i++) {
-                try {
-                    return await get(r);
-                } catch (err) {
-                    lastErr = err;
-                    const msg = (err && err.message) || '';
-                    const isOffline = msg.includes('Client is offline') || msg.toLowerCase().includes('network');
-                    if (!isOffline || i === attempts - 1) throw err;
-                    await new Promise(res => setTimeout(res, 500 * (i + 1))); // simple backoff
-                }
-            }
-            throw lastErr;
-        }
-
-        try {
-            // Use 'parts' to match the database path
-            const partsRef = ref(database, 'parts');
-            console.log('Fetching from path: parts');
-            const snapshot = await getWithRetry('parts');
-            
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                console.log('Raw parts data:', data);
-                
-                // Log all unique types present in the data for debugging
-                const allTypes = Object.values(data).map(part => part.type).filter(Boolean);
-                const uniqueTypes = [...new Set(allTypes)];
-                console.log('Unique part types in database:', uniqueTypes);
-                
-                techniqueParts = Object.entries(data)
-                    .filter(([id, part]) => part.type && part.type.toLowerCase() === 'technique') // Case-insensitive filter
-                    .map(([id, part]) => ({
-                        id: id,
-                        name: part.name || '',
-                        description: part.description || '',
-                        category: part.category || '',
-                        // Coerce to numbers
-                        base_en: parseFloat(part.base_en) || 0,
-                        base_tp: parseFloat(part.base_tp) || 0,
-                        op_1_desc: part.op_1_desc || '',
-                        op_1_en: parseFloat(part.op_1_en) || 0,
-                        op_1_tp: parseFloat(part.op_1_tp) || 0,
-                        op_2_desc: part.op_2_desc || '',
-                        op_2_en: parseFloat(part.op_2_en) || 0,
-                        op_2_tp: parseFloat(part.op_2_tp) || 0,
-                        op_3_desc: part.op_3_desc || '',
-                        op_3_en: parseFloat(part.op_3_en) || 0,
-                        op_3_tp: parseFloat(part.op_3_tp) || 0,
-                        type: part.type || 'technique',
-                        mechanic: part.mechanic === 'true' || part.mechanic === true,
-                        percentage: part.percentage === 'true' || part.percentage === true,
-                        // Add alt fields if present (assuming similar structure)
-                        alt_base_en: parseFloat(part.alt_base_en) || 0,
-                        alt_tp: parseFloat(part.alt_tp) || 0,
-                        alt_desc: part.alt_desc || ''
-                    }));
-                
-                console.log('Loaded', techniqueParts.length, 'technique parts from database');
-                return true;
-            } else {
-                console.error('No parts found in database at path: parts');
-                return false;
-            }
-        } catch (error) {
-            console.error('Error fetching parts:', error);
-            if (error.code === 'PERMISSION_DENIED') {
-                console.error('Permission denied for /parts - check Firebase Realtime Database Rules');
-            }
-            return false;
-        }
     }
 
     function generatePartContent(partIndex, part) {
@@ -413,10 +336,10 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         firebaseDb = db;
         firebaseFunctions = functions;
 
-        // Fetch parts from Realtime Database
-        const partsLoaded = await fetchTechniqueParts(getDatabase(app));
+        // Fetch technique parts from shared RTDB cache
+        techniqueParts = await fetchTechniqueParts(getDatabase(app));
         
-        if (!partsLoaded) {
+        if (!techniqueParts || techniqueParts.length === 0) {
             alert('Failed to load technique parts. Please refresh the page.');
         }
 
@@ -507,48 +430,15 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         }
     }
 
-    // Load properties from Realtime Database (copied from library.js for consistency)
-    let itemPropertiesCache = null;
-    async function loadItemProperties(database) {
-        if (itemPropertiesCache) return itemPropertiesCache;
-        
-        try {
-            const propertiesRef = ref(database, 'properties');
-            const snapshot = await get(propertiesRef);
-            
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                itemPropertiesCache = Object.entries(data).map(([id, prop]) => ({
-                    id: id,
-                    name: prop.name || '',
-                    description: prop.description || '',
-                    base_ip: parseFloat(prop.base_ip) || 0,
-                    base_tp: parseFloat(prop.base_tp) || 0,
-                    base_gp: parseFloat(prop.base_gp) || 0,
-                    op_1_desc: prop.op_1_desc || '',
-                    op_1_ip: parseFloat(prop.op_1_ip) || 0,
-                    op_1_tp: parseFloat(prop.op_1_tp) || 0,
-                    op_1_gp: parseFloat(prop.op_1_gp) || 0,
-                    type: prop.type ? prop.type.charAt(0).toUpperCase() + prop.type.slice(1) : 'Weapon'
-                }));
-                console.log(`Loaded ${itemPropertiesCache.length} properties from database`);
-                return itemPropertiesCache;
-            }
-        } catch (error) {
-            console.error('Error loading properties:', error);
-        }
-        return [];
-    }
-
     // --- MISSING FUNCTION: loadWeaponLibrary ---
     async function loadWeaponLibrary() {
         if (!firebaseAuth || !firebaseDb) return;
         const user = firebaseAuth.currentUser;
         if (!user) return;
         try {
-            // Fetch properties data first
+            // Fetch properties data from shared RTDB cache
             const database = getDatabase(firebaseApp);
-            const propertiesData = await loadItemProperties(database);
+            const propertiesData = await fetchItemProperties(database);
             if (!propertiesData || propertiesData.length === 0) {
                 console.error('Failed to load properties for weapon library');
                 return;
