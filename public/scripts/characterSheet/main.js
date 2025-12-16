@@ -147,11 +147,21 @@ function longRest() {
     }
 }
 
+/**
+ * Sanitizes a string to create a valid HTML/CSS ID.
+ * @param {string} str - String to sanitize
+ * @returns {string} Sanitized ID string with only alphanumeric and underscores
+ */
 function sanitizeId(str) {
     return str.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
-// Unified character loader using centralized data enrichment
+/**
+ * Loads and renders a character by ID from Firestore.
+ * Handles data enrichment, normalization, and UI rendering.
+ * @param {string} id - Character document ID
+ * @throws {Error} If character ID is missing or data cannot be loaded
+ */
 async function loadCharacterById(id) {
     if (!id) {
         throw new Error('No character id provided.');
@@ -198,7 +208,11 @@ async function loadCharacterById(id) {
     }
 }
 
-// --- Load traits from RTDB for use in feats tab ---
+/**
+ * Loads all traits from Firebase Realtime Database.
+ * Used for enriching feat data with trait information.
+ * @returns {Promise<Object>} Object mapping trait IDs to trait data
+ */
 async function loadTraitsFromDatabase() {
     // Ensure Firebase is initialized and get rtdb
     const { rtdb } = await initializeFirebase();
@@ -222,7 +236,13 @@ window.updateCharacterData = (updates) => {
 // --- PATCH: Expose renderLibrary globally for modal to trigger inventory refresh ---
 window.renderLibrary = renderLibrary;
 
-// Helper to ensure Unarmed Prowess is always present and correct in weapons list (for display only)
+/**
+ * Ensures Unarmed Prowess is always present in weapons list for display.
+ * Calculates unarmed damage based on character's Strength score.
+ * This is for UI display only - Unarmed Prowess is NOT saved to Firestore.
+ * @param {Object} charData - Character data object
+ * @returns {Array} Weapons array with Unarmed Prowess prepended
+ */
 function getWeaponsWithUnarmed(charData) {
     if (!charData || !charData.abilities) return [];
     const str = charData.abilities.strength || 0;
@@ -244,7 +264,12 @@ function getWeaponsWithUnarmed(charData) {
     ];
 }
 
-// Remove Unarmed Prowess from weapons before saving
+/**
+ * Removes Unarmed Prowess from weapons array before saving to Firestore.
+ * Unarmed Prowess is dynamically generated and should never be persisted.
+ * @param {Array} weapons - Array of weapon objects or strings
+ * @returns {Array} Filtered weapons array without Unarmed Prowess
+ */
 function stripUnarmedProwessFromWeapons(weapons) {
     return (weapons || []).filter(w => {
         if (typeof w === 'string') return w !== 'Unarmed Prowess';
@@ -252,8 +277,12 @@ function stripUnarmedProwessFromWeapons(weapons) {
     });
 }
 
-// Helper to re-render archetype column (e.g., after equipping/unequipping weapons)
-// Optimized to only update changed elements when possible
+/**
+ * Re-renders the archetype column with updated character data.
+ * Recalculates all derived stats (defenses, health, energy, bonuses, etc.)
+ * Called after equipping/unequipping items or other stat changes.
+ * @param {Object} [options={}] - Reserved for future optimization options
+ */
 window.refreshArchetypeColumn = function(options = {}) {
     if (!currentCharacterData) return;
     
