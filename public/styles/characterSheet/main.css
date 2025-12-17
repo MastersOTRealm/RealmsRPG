@@ -79,6 +79,7 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
 }
 
 .action-button:hover {
@@ -88,6 +89,60 @@ body {
 
 .action-button:active {
     transform: translateY(0);
+}
+
+/* Notification dot for unapplied points */
+.notification-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    background: #4caf50;
+    border-radius: 50%;
+    border: 2px solid white;
+    animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* Level up indicator styles */
+.level-up-indicator {
+    color: #4caf50;
+    margin-left: 6px;
+    font-size: 14px;
+    animation: bounce-up 1s ease-in-out infinite;
+}
+
+@keyframes bounce-up {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+.can-level-up {
+    color: #4caf50 !important;
+    font-weight: 700;
+}
+
+.level-up-available {
+    color: #4caf50 !important;
+    filter: drop-shadow(0 0 3px #4caf50);
+    animation: glow-green 1.5s ease-in-out infinite;
+}
+
+@keyframes glow-green {
+    0%, 100% { filter: drop-shadow(0 0 2px #4caf50); }
+    50% { filter: drop-shadow(0 0 6px #4caf50); }
+}
+
+/* Level select dropdown */
+.level-select {
+    width: 50px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .save-button {

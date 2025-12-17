@@ -359,13 +359,16 @@ window.setEditMode = async function(enabled) {
     window.isEditMode = enabled;
     document.body.classList.toggle('edit-mode', enabled);
     
-    // Update button text
+    // Update button text and notification dot
     const editBtn = document.getElementById('toggle-edit-mode');
     if (editBtn) {
         editBtn.innerHTML = enabled 
             ? '<span>✔️</span> Done' 
             : '<span>🖉</span> Edit';
         editBtn.classList.toggle('active', enabled);
+        
+        // Update notification dot based on unapplied points
+        updateEditButtonNotification();
     }
     
     // Re-render the library to show/hide edit controls
@@ -377,6 +380,55 @@ window.setEditMode = async function(enabled) {
         }
     }
 };
+
+/**
+ * Updates the edit button notification dot based on unapplied points
+ */
+function updateEditButtonNotification() {
+    const editBtn = document.getElementById('toggle-edit-mode');
+    if (!editBtn || !currentCharacterData) return;
+    
+    const level = currentCharacterData.level || 1;
+    const xp = currentCharacterData.xp || 0;
+    const canLevelUp = xp >= (level * 4);
+    
+    const resources = getCharacterResourceTracking(currentCharacterData);
+    
+    // Calculate skill points including defense vals
+    const skillsSpent = (currentCharacterData.skills || []).reduce((sum, skill) => {
+        let cost = skill.skill_val || 0;
+        const isSubSkill = skill.baseSkill || false;
+        if (skill.prof && !isSubSkill) cost += 1;
+        return sum + cost;
+    }, 0);
+    const defenseSpent = Object.values(currentCharacterData.defenseVals || {}).reduce((sum, val) => sum + (val * 2), 0);
+    const totalSkillSpent = skillsSpent + defenseSpent;
+    const totalSkillPoints = calculateSkillPoints(level);
+    const skillRemaining = totalSkillPoints - totalSkillSpent;
+    
+    const hasUnapplied = 
+        resources.abilityPoints.remaining > 0 ||
+        resources.healthEnergyPoints.remaining > 0 ||
+        skillRemaining > 0 ||
+        resources.feats.archetype.remaining > 0 ||
+        resources.feats.character.remaining > 0 ||
+        canLevelUp;
+    
+    // Add or remove notification dot
+    let notificationDot = editBtn.querySelector('.notification-dot');
+    if (hasUnapplied && !window.isEditMode) {
+        if (!notificationDot) {
+            notificationDot = document.createElement('span');
+            notificationDot.className = 'notification-dot';
+            editBtn.appendChild(notificationDot);
+        }
+    } else if (notificationDot) {
+        notificationDot.remove();
+    }
+}
+
+// Make it available for refresh
+window.updateEditButtonNotification = updateEditButtonNotification;
 
 /**
  * Gets resource tracking information for the current character
@@ -943,6 +995,9 @@ window.refreshCharacterSheet = function() {
     renderSkills(currentCharacterData);
     renderArchetype({ ...currentCharacterData, weapons: getWeaponsWithUnarmed(currentCharacterData) }, calculatedData);
     renderLibrary({ ...currentCharacterData, weapons: getWeaponsWithUnarmed(currentCharacterData) });
+    
+    // Update edit button notification dot
+    updateEditButtonNotification();
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1018,6 +1073,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         loadingOverlay.style.display = 'none';
         characterSheet.style.display = 'block';
+        
+        // Update edit button notification dot on initial load
+        updateEditButtonNotification();
 
         document.getElementById('save-character')?.addEventListener('click', async () => {
             if (currentCharacterId === 'placeholder') {

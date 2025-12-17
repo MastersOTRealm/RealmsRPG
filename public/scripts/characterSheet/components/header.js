@@ -1,5 +1,49 @@
 import { formatBonus } from '../utils.js';
 import { getCharacterResourceTracking } from '../validation.js';
+import { calculateSkillPoints } from '../level-progression.js';
+
+/**
+ * Check if character has any unapplied points or unchosen feats
+ * @param {object} charData - Character data
+ * @returns {object} Object with hasUnappliedPoints boolean and details
+ */
+function checkUnappliedPoints(charData) {
+    const resources = getCharacterResourceTracking(charData);
+    const level = charData.level || 1;
+    const xp = charData.xp || 0;
+    const canLevelUp = xp >= (level * 4);
+    
+    // Calculate skill points spent including defense vals
+    const skillsSpent = (charData.skills || []).reduce((sum, skill) => {
+        let cost = skill.skill_val || 0;
+        const isSubSkill = skill.baseSkill || false;
+        if (skill.prof && !isSubSkill) cost += 1;
+        return sum + cost;
+    }, 0);
+    const defenseSpent = Object.values(charData.defenseVals || {}).reduce((sum, val) => sum + (val * 2), 0);
+    const totalSkillSpent = skillsSpent + defenseSpent;
+    const totalSkillPoints = calculateSkillPoints(level);
+    const skillRemaining = totalSkillPoints - totalSkillSpent;
+    
+    const hasUnapplied = 
+        resources.abilityPoints.remaining > 0 ||
+        resources.healthEnergyPoints.remaining > 0 ||
+        skillRemaining > 0 ||
+        resources.feats.archetype.remaining > 0 ||
+        resources.feats.character.remaining > 0;
+    
+    return {
+        hasUnappliedPoints: hasUnapplied,
+        canLevelUp,
+        details: {
+            abilityPoints: resources.abilityPoints.remaining,
+            healthEnergyPoints: resources.healthEnergyPoints.remaining,
+            skillPoints: skillRemaining,
+            archetypeFeats: resources.feats.archetype.remaining,
+            characterFeats: resources.feats.character.remaining
+        }
+    };
+}
 
 /**
  * Renders the health-energy allocation controls for edit mode
@@ -199,6 +243,11 @@ export function renderHeader(charData, calculatedData) {
     window.updateResourceColors?.();
 
     const isEdit = window.isEditMode;
+    const level = charData.level || 1;
+    const xp = charData.xp || 0;
+    const canLevelUp = xp >= (level * 4);
+    const unappliedInfo = checkUnappliedPoints(charData);
+    
     // Example for character name:
     let nameHtml = '';
     if (isEdit) {
@@ -208,26 +257,37 @@ export function renderHeader(charData, calculatedData) {
         nameHtml = `<span>${charData.name}</span>`;
     }
 
-    // Add similar for XP
+    // Add similar for XP - show level up indicator if can level up
     let xpHtml = '';
     if (isEdit) {
-        xpHtml = `<span class="editable-field" id="xp-display">${charData.xp || 0}</span>
+        const xpClass = canLevelUp ? 'can-level-up' : '';
+        xpHtml = `<span class="editable-field ${xpClass}" id="xp-display">${xp}</span>
                   <span class="edit-icon" data-edit="xp">🖉</span>`;
     } else {
-        xpHtml = `${charData.xp || 0}`;
+        xpHtml = `${xp}`;
+    }
+    
+    // Level HTML with dropdown editing
+    let levelHtml = '';
+    if (isEdit) {
+        const levelPenClass = canLevelUp ? 'level-up-available' : '';
+        levelHtml = `<span class="editable-field" id="level-display">${level}</span>
+                     <span class="edit-icon ${levelPenClass}" data-edit="level" title="${canLevelUp ? 'Ready to level up!' : 'Edit level'}">🖉</span>`;
+    } else {
+        levelHtml = `${level}`;
     }
 
-    // Update the HTML to use nameHtml and xpHtml
+    // Update the HTML to use nameHtml, xpHtml, and levelHtml
     header.innerHTML = `
         <div class="header-left">
             <div class="portrait" style="background-image: url('${charData.portrait || '/assets/placeholder-portrait.jpg'}');">
-                ${!charData.portrait ? '<div class="portrait-placeholder">�</div>' : ''}
+                ${!charData.portrait ? '<div class="portrait-placeholder">📷</div>' : ''}
             </div>
             <div class="character-details">
                 <h1 class="name">${genderSymbol ? genderSymbol + ' ' : ''}${nameHtml}</h1>
                 <div class="race-class">${charData.species || 'Unknown Species'}</div>
-                <div class="xp-level">XP: ${xpHtml}</div>
-                <div class="xp-level">LEVEL ${charData.level || 1}</div>
+                <div class="xp-level">XP: ${xpHtml}${canLevelUp ? '<span class="level-up-indicator" title="Ready to level up!">⬆</span>' : ''}</div>
+                <div class="xp-level">LEVEL ${levelHtml}</div>
             </div>
         </div>
         <div class="header-middle">
@@ -373,6 +433,99 @@ export function renderHeader(charData, calculatedData) {
                     } else if (e.key === 'Escape') {
                         // Cancel: revert without saving
                         input.replaceWith(xpDisplaySpan);
+                    }
+                });
+            });
+        }
+    }
+
+    // Add event listener for Level edit icon:
+    if (isEdit) {
+        const levelEditIcon = header.querySelector('.edit-icon[data-edit="level"]');
+        const levelDisplaySpan = header.querySelector('#level-display');
+        if (levelEditIcon && levelDisplaySpan) {
+            levelEditIcon.addEventListener('click', () => {
+                const currentLevel = charData.level || 1;
+                
+                // Create dropdown for level selection
+                const select = document.createElement('select');
+                select.className = 'editable-input level-select';
+                select.style.border = '1px solid #1a73e8';
+                select.style.padding = '2px 4px';
+                select.style.borderRadius = '3px';
+                select.style.background = '#f0f8ff';
+                
+                // Add options 1-20
+                for (let i = 1; i <= 20; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    if (i === currentLevel) option.selected = true;
+                    select.appendChild(option);
+                }
+                
+                // Replace display with select
+                levelDisplaySpan.replaceWith(select);
+                select.focus();
+                
+                // Handle level change
+                const handleLevelChange = (newLevel) => {
+                    if (newLevel === currentLevel) {
+                        // No change, just restore
+                        select.replaceWith(levelDisplaySpan);
+                        return;
+                    }
+                    
+                    const xpCost = currentLevel * 4;
+                    const currentXp = charData.xp || 0;
+                    const canReduceXp = currentXp > 0 && newLevel > currentLevel;
+                    
+                    let message = `Are you sure you want to change level from ${currentLevel} to ${newLevel}?`;
+                    if (canReduceXp && newLevel > currentLevel) {
+                        message += `\\n\\nWould you like to spend ${xpCost} XP to represent leveling up from level ${currentLevel}?`;
+                        message += `\\n\\nCurrent XP: ${currentXp}`;
+                        message += `\\nXP after spending: ${Math.max(0, currentXp - xpCost)}`;
+                    }
+                    
+                    // Use a custom confirmation dialog approach
+                    if (confirm(message)) {
+                        charData.level = newLevel;
+                        
+                        // Ask about XP reduction only when leveling up
+                        if (canReduceXp && newLevel > currentLevel) {
+                            const reduceXp = confirm(`Spend ${xpCost} XP for this level increase?\\n\\nClick OK to spend XP, or Cancel to keep current XP total.`);
+                            if (reduceXp) {
+                                charData.xp = Math.max(0, currentXp - xpCost);
+                            }
+                        }
+                        
+                        window.scheduleAutoSave();
+                        window.refreshCharacterSheet();
+                    } else {
+                        // Restore original display
+                        select.replaceWith(levelDisplaySpan);
+                    }
+                };
+                
+                select.addEventListener('change', () => {
+                    const newLevel = parseInt(select.value);
+                    handleLevelChange(newLevel);
+                });
+                
+                select.addEventListener('blur', () => {
+                    // If still in DOM, restore original
+                    if (select.parentNode) {
+                        select.replaceWith(levelDisplaySpan);
+                    }
+                });
+                
+                select.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        select.replaceWith(levelDisplaySpan);
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const newLevel = parseInt(select.value);
+                        handleLevelChange(newLevel);
                     }
                 });
             });
