@@ -5,20 +5,54 @@ import {
     getAbilityDecreaseInfo,
     ABILITY_CONSTRAINTS
 } from '../validation.js';
-import { calculateAbilityPoints, calculateAbilityPointsSpent } from '../level-progression.js';
+import { calculateAbilityPoints, calculateAbilityPointsSpent, calculateSkillPoints } from '../level-progression.js';
 
 const abilityNames = ['strength', 'vitality', 'agility', 'acuity', 'intelligence', 'charisma'];
 const defenseNames = ['might', 'fortitude', 'reflex', 'discernment', 'mentalFortitude', 'resolve'];
 const defenseDisplayNames = ['Might', 'Fortitude', 'Reflex', 'Discernment', 'Mental Fort.', 'Resolve'];
 
 /**
- * Renders the resource tracker bar showing remaining ability points only
+ * Calculate skill points spent on defense vals
+ * Each defense val costs 2 skill points
+ */
+function calculateDefenseSkillPoints(defenseVals) {
+    return Object.values(defenseVals || {}).reduce((sum, val) => sum + (val * 2), 0);
+}
+
+/**
+ * Get skill points available for defense vals
+ */
+function getDefenseSkillPointsTracking(charData) {
+    const level = charData.level || 1;
+    const totalSkillPoints = calculateSkillPoints(level);
+    
+    // Calculate spent on skills (from skills component)
+    const skillsSpent = charData.skills ? charData.skills.reduce((sum, skill) => {
+        let cost = skill.skill_val || 0;
+        // Add 1 for proficiency if it's a base skill (not a sub-skill)
+        const isSubSkill = skill.baseSkill || false;
+        if (skill.prof && !isSubSkill) {
+            cost += 1;
+        }
+        return sum + cost;
+    }, 0) : 0;
+    
+    const defenseSpent = calculateDefenseSkillPoints(charData.defenseVals);
+    const totalSpent = skillsSpent + defenseSpent;
+    const remaining = totalSkillPoints - totalSpent;
+    
+    return { total: totalSkillPoints, spent: totalSpent, remaining, defenseSpent, skillsSpent };
+}
+
+/**
+ * Renders the resource tracker bar showing remaining ability points and skill points
  * Health-Energy points are now shown in the header section
  * @param {object} charData - Character data
  * @returns {string} HTML string for resource tracker
  */
 function renderResourceTracker(charData) {
     const resources = getCharacterResourceTracking(charData);
+    const skillTracking = getDefenseSkillPointsTracking(charData);
     
     return `
         <div class="resource-tracker">
@@ -28,6 +62,13 @@ function renderResourceTracker(charData) {
                     ${resources.abilityPoints.remaining} / ${resources.abilityPoints.total}
                 </span>
                 <span class="resource-constraint">(Max: ${resources.abilityPoints.maxAbility}, Neg Sum: ${resources.abilityPoints.negativeSum}/${ABILITY_CONSTRAINTS.MAX_NEGATIVE_SUM})</span>
+            </div>
+            <div class="resource-item skill-resource">
+                <span class="resource-label">Skill Points:</span>
+                <span class="resource-value ${skillTracking.remaining < 0 ? 'over-budget' : ''}">
+                    ${skillTracking.remaining} / ${skillTracking.total}
+                </span>
+                <span class="resource-constraint">(Skills: ${skillTracking.skillsSpent}, Defenses: ${skillTracking.defenseSpent})</span>
             </div>
         </div>
     `;
@@ -44,6 +85,8 @@ function renderEditableAbility(charData, entry) {
     const defVal = charData.defenseVals?.[entry.defKey] || 0;
     const defenseBonus = abilVal + defVal;
     const defenseScore = defenseBonus + 10;
+    const level = charData.level || 1;
+    const maxDefenseBonus = level + 10;
     
     const editInfo = window.getAbilityEditInfo ? window.getAbilityEditInfo(entry.abil) : {
         canIncrease: true,
@@ -53,6 +96,15 @@ function renderEditableAbility(charData, entry) {
     };
     
     const costLabel = editInfo.increaseCost > 1 ? `(${editInfo.increaseCost}pts)` : '';
+    
+    // Defense editing validation
+    const skillTracking = getDefenseSkillPointsTracking(charData);
+    const canIncreaseDefense = skillTracking.remaining >= 2 && defenseBonus < maxDefenseBonus;
+    const canDecreaseDefense = defVal > 0;
+    const defenseIncTitle = !canIncreaseDefense 
+        ? (skillTracking.remaining < 2 ? 'Not enough skill points (2 needed)' : `Defense cannot exceed level + 10 (${maxDefenseBonus})`)
+        : 'Increase defense value (2 skill points)';
+    const defenseDecTitle = canDecreaseDefense ? 'Decrease defense value (refund 2 skill points)' : 'Defense value is 0';
     
     return `
         <div class="ability edit-mode-ability">
@@ -74,7 +126,17 @@ function renderEditableAbility(charData, entry) {
                 <div class="sub-ability-label">SCORE</div>
                 <div class="sub-ability-score">${defenseScore}</div>
                 <div class="sub-ability-label">BONUS</div>
-                <span class="sub-ability-bonus-display">${formatBonus(defenseBonus)}</span>
+                <div class="defense-edit-controls">
+                    <button class="defense-dec" 
+                        onclick="window.decreaseDefense('${entry.defKey}')" 
+                        ${!canDecreaseDefense ? 'disabled' : ''}
+                        title="${defenseDecTitle}">−</button>
+                    <span class="sub-ability-bonus-display">${formatBonus(defenseBonus)}</span>
+                    <button class="defense-inc" 
+                        onclick="window.increaseDefense('${entry.defKey}')" 
+                        ${!canIncreaseDefense ? 'disabled' : ''}
+                        title="${defenseIncTitle}">+</button>
+                </div>
             </div>
         </div>
     `;

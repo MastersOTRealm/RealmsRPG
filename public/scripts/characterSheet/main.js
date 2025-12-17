@@ -12,6 +12,7 @@ import { enrichCharacterData, normalizeCharacter } from './utils/data-enrichment
 import { getCharacterResourceTracking, validateHealthIncrease, validateEnergyIncrease } from './validation.js';
 import { 
     calculateAbilityPoints,
+    calculateSkillPoints,
     canIncreaseAbility, 
     canDecreaseAbility, 
     getAbilityIncreaseCost,
@@ -449,6 +450,95 @@ window.decreaseAbility = function(abilityName) {
     
     // Apply the decrease
     currentCharacterData.abilities[abilityName] = (currentCharacterData.abilities[abilityName] || 0) - 1;
+    
+    // Trigger re-render and auto-save
+    window.refreshCharacterSheet();
+    scheduleAutoSave();
+    return true;
+};
+
+/**
+ * Attempts to increase a defense value
+ * Costs 2 skill points per increase
+ * @param {string} defenseKey - Defense key (might, fortitude, reflex, discernment, mentalFortitude, resolve)
+ * @returns {boolean} Whether the increase was successful
+ */
+window.increaseDefense = function(defenseKey) {
+    if (!currentCharacterData || !window.isEditMode) return false;
+    
+    const level = currentCharacterData.level || 1;
+    const defenseVals = currentCharacterData.defenseVals || {};
+    const abilities = currentCharacterData.abilities || {};
+    
+    // Map defense keys to ability names
+    const defenseToAbility = {
+        might: 'strength',
+        fortitude: 'vitality',
+        reflex: 'agility',
+        discernment: 'acuity',
+        mentalFortitude: 'intelligence',
+        resolve: 'charisma'
+    };
+    
+    const abilityName = defenseToAbility[defenseKey];
+    const abilityValue = abilities[abilityName] || 0;
+    const currentDefVal = defenseVals[defenseKey] || 0;
+    const currentDefenseBonus = abilityValue + currentDefVal;
+    const maxDefenseBonus = level + 10;
+    
+    // Check if defense bonus would exceed level + 10
+    if (currentDefenseBonus >= maxDefenseBonus) {
+        showNotification(`Defense cannot exceed level + 10 (${maxDefenseBonus})`, 'error');
+        return false;
+    }
+    
+    // Check skill points (need 2 points)
+    const totalSkillPoints = calculateSkillPoints(level);
+    const skillsSpent = (currentCharacterData.skills || []).reduce((sum, skill) => {
+        let cost = skill.skill_val || 0;
+        const isSubSkill = skill.baseSkill || false;
+        if (skill.prof && !isSubSkill) cost += 1;
+        return sum + cost;
+    }, 0);
+    const defenseSpent = Object.values(defenseVals).reduce((sum, val) => sum + (val * 2), 0);
+    const totalSpent = skillsSpent + defenseSpent;
+    const remaining = totalSkillPoints - totalSpent;
+    
+    if (remaining < 2) {
+        showNotification('Not enough skill points (2 needed)', 'error');
+        return false;
+    }
+    
+    // Apply the increase
+    if (!currentCharacterData.defenseVals) currentCharacterData.defenseVals = {};
+    currentCharacterData.defenseVals[defenseKey] = currentDefVal + 1;
+    
+    // Trigger re-render and auto-save
+    window.refreshCharacterSheet();
+    scheduleAutoSave();
+    return true;
+};
+
+/**
+ * Attempts to decrease a defense value
+ * Refunds 2 skill points per decrease
+ * @param {string} defenseKey - Defense key
+ * @returns {boolean} Whether the decrease was successful
+ */
+window.decreaseDefense = function(defenseKey) {
+    if (!currentCharacterData || !window.isEditMode) return false;
+    
+    const defenseVals = currentCharacterData.defenseVals || {};
+    const currentDefVal = defenseVals[defenseKey] || 0;
+    
+    if (currentDefVal <= 0) {
+        showNotification('Defense value is already 0', 'error');
+        return false;
+    }
+    
+    // Apply the decrease
+    if (!currentCharacterData.defenseVals) currentCharacterData.defenseVals = {};
+    currentCharacterData.defenseVals[defenseKey] = currentDefVal - 1;
     
     // Trigger re-render and auto-save
     window.refreshCharacterSheet();

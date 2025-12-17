@@ -528,6 +528,46 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
     font-weight: 700;
 }
 
+/* Defense editing controls */
+.defense-edit-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.defense-dec,
+.defense-inc {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid #6c757d;
+    background: white;
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.defense-dec:hover:not(:disabled),
+.defense-inc:hover:not(:disabled) {
+    background: #6c757d;
+    color: white;
+    transform: scale(1.1);
+}
+
+.defense-dec:disabled,
+.defense-inc:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}
+
 /* Edit mode visual indicator */
 body.edit-mode #abilities-section {
     border: 2px solid #f39c12;
