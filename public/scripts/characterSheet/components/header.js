@@ -7,6 +7,38 @@ import { calculateSkillPoints } from '../level-progression.js';
  * @param {object} charData - Character data
  * @returns {object} Object with hasUnappliedPoints boolean and details
  */
+/**
+ * Format ability display text based on character's martial and power abilities
+ * @param {object} charData - Character data
+ * @returns {string} Formatted ability text
+ */
+function formatAbilityText(charData) {
+    if (!charData) return 'No Archetype Abilities';
+    
+    const powAbil = charData.pow_abil;
+    const martAbil = charData.mart_abil;
+    const powProf = charData.pow_prof || 0;
+    const martProf = charData.mart_prof || 0;
+    
+    const parts = [];
+    
+    if (powProf > 0 && powAbil) {
+        const capitalizedPowAbil = String(powAbil).charAt(0).toUpperCase() + String(powAbil).slice(1).toLowerCase();
+        parts.push(`Power: ${capitalizedPowAbil}`);
+    }
+    
+    if (martProf > 0 && martAbil) {
+        const capitalizedMartAbil = String(martAbil).charAt(0).toUpperCase() + String(martAbil).slice(1).toLowerCase();
+        parts.push(`Martial: ${capitalizedMartAbil}`);
+    }
+    
+    if (parts.length === 0) {
+        return 'No Archetype Abilities';
+    }
+    
+    return parts.join(' • ');
+}
+
 function checkUnappliedPoints(charData) {
     const resources = getCharacterResourceTracking(charData);
     const level = charData.level || 1;
@@ -170,6 +202,7 @@ export function renderHeader(charData, calculatedData) {
             </div>
             <div class="character-details">
                 <h1 class="name">${genderSymbol ? genderSymbol + ' ' : ''}${charData.name || 'Unnamed Character'}</h1>
+                <div class="ability-text">${formatAbilityText(charData)}</div>
                 <div class="race-class">${charData.species || 'Unknown Species'}</div>
                 <div class="xp-level">XP: ${charData.xp || 0}</div>
                 <div class="xp-level">LEVEL ${charData.level || 1}</div>
@@ -322,6 +355,9 @@ export function renderHeader(charData, calculatedData) {
             </div>
             <div class="character-details">
                 <h1 class="name">${genderSymbol ? genderSymbol + ' ' : ''}${nameHtml}</h1>
+                <div class="ability-text">
+                    ${isEdit ? '<span class="editable-field" id="ability-display">' + formatAbilityText(charData) + '</span><span class="edit-icon" data-edit="abilities" title="Edit Archetype Abilities">🖉</span>' : formatAbilityText(charData)}
+                </div>
                 <div class="race-class">${charData.species || 'Unknown Species'}</div>
                 <div class="xp-level">XP: ${xpHtml}${canLevelUp ? '<span class="level-up-indicator" title="Ready to level up!">⬆</span>' : ''}</div>
                 <div class="xp-level">LEVEL ${levelHtml}</div>
@@ -476,6 +512,17 @@ export function renderHeader(charData, calculatedData) {
         }
     }
 
+    // Add event listener for Ability edit icon:
+    if (isEdit) {
+        const abilityEditIcon = header.querySelector('.edit-icon[data-edit="abilities"]');
+        const abilityDisplaySpan = header.querySelector('#ability-display');
+        if (abilityEditIcon && abilityDisplaySpan) {
+            abilityEditIcon.addEventListener('click', () => {
+                showAbilityEditModal(charData, abilityDisplaySpan);
+            });
+        }
+    }
+
     // Add event listener for Level edit icon:
     if (isEdit) {
         const levelEditIcon = header.querySelector('.edit-icon[data-edit="level"]');
@@ -570,6 +617,159 @@ export function renderHeader(charData, calculatedData) {
     }
 
     // ...existing code...
+}
+
+/**
+ * Show modal for editing character's martial and power abilities
+ * @param {object} charData - Character data
+ * @param {HTMLElement} displaySpan - The span element to update after editing
+ */
+function showAbilityEditModal(charData, displaySpan) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'ability-edit-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.className = 'ability-edit-modal';
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        min-width: 400px;
+        max-width: 500px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    `;
+    
+    const abilities = ['Strength', 'Vitality', 'Agility', 'Acuity', 'Intelligence', 'Charisma'];
+    const powProf = charData.pow_prof || 0;
+    const martProf = charData.mart_prof || 0;
+    const currentPowAbil = charData.pow_abil || 'charisma'; // Default to charisma
+    const currentMartAbil = charData.mart_abil || 'strength'; // Default to strength
+    
+    let newPowAbil = currentPowAbil;
+    let newMartAbil = currentMartAbil;
+    
+    modal.innerHTML = `
+        <h2 style="margin: 0 0 20px 0; color: var(--primary-dark); text-align: center;">Edit Archetype Abilities</h2>
+        
+        ${powProf > 0 ? `
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Power Ability:</label>
+            <select id="power-ability-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                ${abilities.map(ability => 
+                    `<option value="${ability.toLowerCase()}" ${ability.toLowerCase() === currentPowAbil.toLowerCase() ? 'selected' : ''}>${ability}</option>`
+                ).join('')}
+            </select>
+        </div>
+        ` : ''}
+        
+        ${martProf > 0 ? `
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Martial Ability:</label>
+            <select id="martial-ability-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                ${abilities.map(ability => 
+                    `<option value="${ability.toLowerCase()}" ${ability.toLowerCase() === currentMartAbil.toLowerCase() ? 'selected' : ''}>${ability}</option>`
+                ).join('')}
+            </select>
+        </div>
+        ` : ''}
+        
+        ${powProf === 0 && martProf === 0 ? '<p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">No archetype proficiencies found. Set martial or power proficiency first.</p>' : ''}
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button id="cancel-ability-edit" style="padding: 8px 16px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 6px; cursor: pointer;">Cancel</button>
+            <button id="save-ability-edit" style="padding: 8px 16px; border: none; background: var(--primary-blue); color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Save Changes</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Event listeners
+    const powerSelect = modal.querySelector('#power-ability-select');
+    const martialSelect = modal.querySelector('#martial-ability-select');
+    
+    if (powerSelect) {
+        powerSelect.addEventListener('change', (e) => {
+            newPowAbil = e.target.value;
+        });
+    }
+    
+    if (martialSelect) {
+        martialSelect.addEventListener('change', (e) => {
+            newMartAbil = e.target.value;
+        });
+    }
+    
+    // Cancel button
+    modal.querySelector('#cancel-ability-edit').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    
+    // Save button
+    modal.querySelector('#save-ability-edit').addEventListener('click', () => {
+        let changed = false;
+        
+        if (powProf > 0) {
+            const newValue = newPowAbil.toLowerCase();
+            const oldValue = (charData.pow_abil || 'charisma').toLowerCase();
+            if (newValue !== oldValue) {
+                charData.pow_abil = newValue;
+                changed = true;
+            }
+        }
+        
+        if (martProf > 0) {
+            const newValue = newMartAbil.toLowerCase();
+            const oldValue = (charData.mart_abil || 'strength').toLowerCase();
+            if (newValue !== oldValue) {
+                charData.mart_abil = newValue;
+                changed = true;
+            }
+        }
+        
+        if (changed) {
+            // Update the display
+            displaySpan.textContent = formatAbilityText(charData);
+            
+            // Trigger auto-save and refresh
+            if (window.scheduleAutoSave) window.scheduleAutoSave();
+            if (window.refreshCharacterSheet) window.refreshCharacterSheet();
+        }
+        
+        document.body.removeChild(overlay);
+    });
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+        }
+    });
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            document.removeEventListener('keydown', handleEscape);
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
 }
 
 function formatArchetype(archetype) {
