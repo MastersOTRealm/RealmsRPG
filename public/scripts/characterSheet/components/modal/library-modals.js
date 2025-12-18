@@ -312,8 +312,16 @@ window.addPowerToCharacter = function(encodedName) {
     }
     
     if (!Array.isArray(charData.powers)) charData.powers = [];
-    if (!charData.powers.includes(name)) {
-        charData.powers.push(name);
+    
+    // Check if power already exists (support both string and object format)
+    const exists = charData.powers.some(p => {
+        const pName = typeof p === 'string' ? p : p.name;
+        return pName === name;
+    });
+    
+    if (!exists) {
+        // Add as object with innate defaulting to false
+        charData.powers.push({ name: name, innate: false });
     }
     
     if (window.scheduleAutoSave) window.scheduleAutoSave();
@@ -338,6 +346,37 @@ window.removePowerFromCharacter = function(encodedName) {
     if (window.scheduleAutoSave) window.scheduleAutoSave();
     refreshLibraryAfterChange(charData, 'powers');
     if (typeof window.showNotification === 'function') window.showNotification(`Removed "${name}" power.`, 'success');
+};
+
+/**
+ * Toggle the innate status of a power
+ * @param {string} powerName - The name of the power
+ * @param {boolean} isInnate - Whether the power should be innate
+ */
+window.togglePowerInnate = function(powerName, isInnate) {
+    const charData = getCharacterData();
+    if (!charData) return;
+    
+    if (!Array.isArray(charData.powers)) charData.powers = [];
+    
+    // Convert all powers to object format and update the target power
+    charData.powers = charData.powers.map(p => {
+        const pName = typeof p === 'string' ? p : p.name;
+        const pInnate = typeof p === 'object' ? p.innate : false;
+        
+        if (pName === powerName) {
+            return { name: pName, innate: isInnate };
+        }
+        return { name: pName, innate: pInnate };
+    });
+    
+    if (window.scheduleAutoSave) window.scheduleAutoSave();
+    refreshLibraryAfterChange(charData, 'powers');
+    
+    const status = isInnate ? 'marked as innate' : 'unmarked as innate';
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(`"${powerName}" ${status}.`, 'success');
+    }
 };
 
 // ============================================================================

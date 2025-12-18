@@ -89,10 +89,11 @@ export function createTechniquesContent(techniques) {
     return content;
 }
 
-// --- Shared helper for blue chips for powers/techniques ---
+// --- Shared helper for collapsible chips for powers/techniques ---
+// Creates clickable chips that expand to show description and level details
 export function buildTechniquePartChips(parts, partsDb) {
     if (!Array.isArray(parts) || !partsDb) return '';
-    return parts.map(pl => {
+    return parts.map((pl, idx) => {
         const def = partsDb.find(p => p.name === pl.name);
         if (!def) return '';
         // Calculate TP cost
@@ -105,12 +106,80 @@ export function buildTechniquePartChips(parts, partsDb) {
             (def.op_2_tp || 0) * l2 +
             (def.op_3_tp || 0) * l3;
         const finalTP = Math.floor(rawTP);
-        let text = def.name;
-        if (l1 > 0) text += ` (Opt1 ${l1})`;
-        if (l2 > 0) text += ` (Opt2 ${l2})`;
-        if (l3 > 0) text += ` (Opt3 ${l3})`;
-        if (finalTP > 0) text += ` [+${finalTP} TP]`;
+        
+        // Build chip label
+        let labelText = def.name;
+        if (l1 > 0) labelText += ` (Lvl ${l1})`;
+        if (l2 > 0) labelText += ` (Opt2 ${l2})`;
+        if (l3 > 0) labelText += ` (Opt3 ${l3})`;
+        if (finalTP > 0) labelText += ` [+${finalTP} TP]`;
+        
+        // Build description content for expanded view
+        let descContent = def.description || 'No description available.';
+        if (l1 > 0 && def.op_1_desc) {
+            descContent += `<br><strong>Level ${l1}:</strong> ${def.op_1_desc}`;
+        }
+        if (l2 > 0 && def.op_2_desc) {
+            descContent += `<br><strong>Option 2 (${l2}):</strong> ${def.op_2_desc}`;
+        }
+        if (l3 > 0 && def.op_3_desc) {
+            descContent += `<br><strong>Option 3 (${l3}):</strong> ${def.op_3_desc}`;
+        }
+        
         const tpClass = finalTP > 0 ? 'tp-cost' : '';
-        return `<span class="part-chip ${tpClass}" title="TP:${finalTP}">${text}</span>`;
+        const chipId = `chip-${idx}-${Date.now()}`;
+        
+        return `
+            <span class="part-chip collapsible-chip ${tpClass}" data-chip-id="${chipId}" onclick="this.classList.toggle('expanded')" title="Click to expand">
+                <span class="chip-label">${labelText}</span>
+                <span class="chip-expand-icon">▼</span>
+                <div class="chip-description">${descContent}</div>
+            </span>
+        `;
     }).join('');
+}
+
+/**
+ * Build collapsible property chips for armaments (weapons/armor)
+ * @param {Array} properties - Array of property objects with name, op_1_lvl, etc.
+ * @param {Array} propsDb - Database of all properties with descriptions
+ * @returns {string} HTML string of collapsible chips
+ */
+export function buildPropertyChips(properties, propsDb) {
+    if (!Array.isArray(properties) || !properties.length) return '';
+    
+    // Exclude base properties that are displayed elsewhere
+    const EXCLUDED_PROPS = [
+        "Damage Reduction", "Split Damage Dice", "Range", "Shield Base", 
+        "Armor Base", "Weapon Damage", "Critical Range +1",
+        "Armor Strength Requirement", "Armor Agility Requirement", "Armor Vitality Requirement"
+    ];
+    
+    return properties.map((prop, idx) => {
+        const propName = typeof prop === 'string' ? prop : (prop.name || '');
+        if (!propName || EXCLUDED_PROPS.includes(propName)) return '';
+        
+        const lvl = (typeof prop === 'object' ? prop.op_1_lvl : 0) || 0;
+        const def = propsDb?.find(p => p.name === propName);
+        
+        // Build label
+        let labelText = propName;
+        if (lvl > 0) labelText += ` (Lvl ${lvl})`;
+        
+        // Build description
+        let descContent = def?.description || 'No description available.';
+        if (lvl > 0 && def?.op_1_desc) {
+            descContent += `<br><strong>Level ${lvl}:</strong> ${def.op_1_desc}`;
+        }
+        
+        const chipId = `prop-chip-${idx}-${Date.now()}`;
+        
+        return `
+            <span class="part-chip collapsible-chip property-chip" data-chip-id="${chipId}" onclick="this.classList.toggle('expanded')" title="Click to expand">
+                <span class="chip-label">${labelText}</span>
+                <span class="chip-expand-icon">▼</span>
+                <div class="chip-description">${descContent}</div>
+            </span>
+        `;
+    }).filter(Boolean).join('');
 }

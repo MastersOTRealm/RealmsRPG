@@ -183,11 +183,13 @@ function cleanForSave(data) {
         }).filter(Boolean);
     }
     
-    // Clean up powers - only save names
+    // Clean up powers - save as objects with name and innate flag
     if (Array.isArray(cleaned.powers)) {
         cleaned.powers = cleaned.powers.map(p => {
-            if (typeof p === 'string') return p;
-            if (p && typeof p === 'object') return p.name;
+            if (typeof p === 'string') return { name: p, innate: false };
+            if (p && typeof p === 'object' && p.name) {
+                return { name: p.name, innate: !!p.innate };
+            }
             return null;
         }).filter(Boolean);
     }

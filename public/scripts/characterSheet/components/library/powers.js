@@ -9,11 +9,13 @@ export function createPowersContent(powers) {
     
     const isEditMode = document.body.classList.contains('edit-mode');
     
-    // Calculate innate values using archetype progression (always visible)
+    // Get character data for innate calculations
     const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
+    
+    // Calculate innate values using archetype progression
     let innateThreshold = 0;
     let innatePools = 0;
-    let innateEnergy = 0;
+    let innateEnergyMax = 0;
     
     if (typeof window.calculateArchetypeProgression === 'function' && charData) {
         const progression = window.calculateArchetypeProgression(
@@ -24,29 +26,52 @@ export function createPowersContent(powers) {
         );
         innateThreshold = progression.innateThreshold || 0;
         innatePools = progression.innatePools || 0;
-        innateEnergy = progression.innateEnergy || 0;
+        innateEnergyMax = progression.innateEnergy || 0;
     }
 
-    // Add header with "Add Power" button - always visible
-    const editHeader = document.createElement('div');
-    editHeader.className = 'library-section-header';
-    editHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;';
+    // Separate powers into innate and non-innate
+    // Check both the power object and charData.powers for innate flag
+    const innatePowers = [];
+    const regularPowers = [];
+    
+    powers.forEach(power => {
+        // Check if this power is marked as innate in charData.powers
+        const savedPower = (charData?.powers || []).find(p => {
+            const pName = typeof p === 'string' ? p : p.name;
+            return pName === power.name;
+        });
+        const isInnate = (typeof savedPower === 'object' && savedPower.innate === true) || power.innate === true;
+        
+        if (isInnate) {
+            innatePowers.push({ ...power, innate: true });
+        } else {
+            regularPowers.push({ ...power, innate: false });
+        }
+    });
+
+    // Calculate innate energy used (sum of energy costs of innate powers)
+    const innateEnergyUsed = innatePowers.reduce((sum, p) => sum + (p.energy || 0), 0);
+    const innateEnergyCurrent = Math.max(0, innateEnergyMax - innateEnergyUsed);
+
+    // === INNATE POWERS SECTION ===
+    const innateHeader = document.createElement('div');
+    innateHeader.className = 'library-section-header';
+    innateHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;';
     
     // Left side: Title
-    const titleEl = document.createElement('h3');
-    titleEl.textContent = 'INNATE POWER';
-    editHeader.appendChild(titleEl);
+    const innateTitleEl = document.createElement('h3');
+    innateTitleEl.textContent = 'INNATE POWERS';
+    innateHeader.appendChild(innateTitleEl);
     
     // Right side: Innate displays + Add button
     const rightControls = document.createElement('div');
     rightControls.style.cssText = 'display: flex; align-items: center; gap: 12px;';
     
     // Add innate displays if any values > 0
-    if (innateThreshold > 0 || innatePools > 0 || innateEnergy > 0) {
+    if (innateThreshold > 0 || innatePools > 0 || innateEnergyMax > 0) {
         const displays = [
             { label: 'Threshold', value: innateThreshold },
-            { label: 'Pools', value: innatePools },
-            { label: 'Energy', value: innateEnergy }
+            { label: 'Pools', value: innatePools }
         ].filter(item => item.value > 0);
 
         displays.forEach(item => {
@@ -70,6 +95,34 @@ export function createPowersContent(powers) {
             `;
             rightControls.appendChild(display);
         });
+        
+        // Innate Energy with current/max display
+        if (innateEnergyMax > 0) {
+            const energyDisplay = document.createElement('div');
+            energyDisplay.className = 'innate-stat-chip';
+            energyDisplay.style.cssText = `
+                background: var(--bg-medium);
+                color: var(--primary-dark);
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-weight: 600;
+                font-size: 0.85em;
+                border: 1px solid var(--border-color);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            `;
+            const energyColor = innateEnergyCurrent < 0 ? 'var(--error-color, #dc3545)' : 'var(--primary-blue)';
+            energyDisplay.innerHTML = `
+                <span style="color: var(--text-secondary); font-weight: 500;">Energy:</span>
+                <span class="innate-energy-display">
+                    <span class="innate-energy-current" style="color: ${energyColor}; font-weight: 700;">${innateEnergyCurrent}</span>
+                    <span class="innate-energy-separator" style="color: var(--text-secondary);">/</span>
+                    <span class="innate-energy-max" style="color: var(--primary-blue); font-weight: 700;">${innateEnergyMax}</span>
+                </span>
+            `;
+            rightControls.appendChild(energyDisplay);
+        }
     }
     
     // Add Power button
@@ -79,86 +132,160 @@ export function createPowersContent(powers) {
     addBtn.onclick = () => window.showPowerModal?.();
     rightControls.appendChild(addBtn);
     
-    editHeader.appendChild(rightControls);
-    content.appendChild(editHeader);
-    
-    if (!powers.length) {
-        const emptyMsg = document.createElement('p');
-        emptyMsg.style.cssText = 'text-align:center;color:var(--text-secondary);padding:20px;';
-        emptyMsg.textContent = 'No powers selected';
-        content.appendChild(emptyMsg);
-        return content;
+    innateHeader.appendChild(rightControls);
+    content.appendChild(innateHeader);
+
+    // Column headers for innate powers (with Innate checkbox column in edit mode)
+    const innateTableHeader = document.createElement('div');
+    innateTableHeader.className = 'library-table-header tech';
+    if (isEditMode) {
+        innateTableHeader.style.gridTemplateColumns = '1.4fr 1fr 1fr 0.8fr 0.7fr 0.7fr 0.5fr';
+        innateTableHeader.innerHTML = '<div>NAME</div><div>ACTION</div><div>DAMAGE</div><div>ENERGY</div><div>AREA</div><div>DURATION</div><div>INNATE</div>';
+    } else {
+        innateTableHeader.style.gridTemplateColumns = '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr';
+        innateTableHeader.innerHTML = '<div>NAME</div><div>ACTION</div><div>DAMAGE</div><div>ENERGY</div><div>AREA</div><div>DURATION</div>';
     }
-    const header = document.createElement('div');
-    header.className = 'library-table-header tech';
-    header.style.gridTemplateColumns = '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr';
-    header.innerHTML = '<div>NAME</div><div>ACTION</div><div>DAMAGE</div><div>ENERGY</div><div>AREA</div><div>DURATION</div>';
-    content.appendChild(header);
+    content.appendChild(innateTableHeader);
 
-    powers.forEach(power => {
-        // Build chips with blue highlight for TP cost
-        let chipsHTML = '';
-        if (Array.isArray(power.parts) && power.parts.length && power.partsDb) {
-            chipsHTML = buildTechniquePartChips(power.parts, power.partsDb);
-        } else if (power.partChipsHTML) {
-            chipsHTML = power.partChipsHTML;
-        }
-
-        const damageStr = formatPowerDamage(power.damage);
-        const expandedContent = chipsHTML ? `
-            <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Parts & Proficiencies</h4>
-            <div class="part-chips">${chipsHTML}</div>
-        ` : '';
-
-        const row = new CollapsibleRow({
-            title: power.name,
-            columns: [
-                { content: power.actionType || 'Basic Action' },
-                { content: damageStr || '-' }
-            ],
-            description: power.description || '',
-            className: 'collapsible-tech',
-            gridColumns: '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr',
-            actionButton: {
-                label: `Use (${power.energy || 0})`,
-                data: { name: power.name, energy: power.energy || 0 },
-                onClick: (e) => {
-                    const energy = parseInt(e.target.dataset.energy);
-                    const name = e.target.dataset.name;
-                    window.usePower(name, energy);
-                }
-            },
-            expandedContent: expandedContent
+    // Render innate powers
+    if (innatePowers.length > 0) {
+        innatePowers.forEach(power => {
+            const row = createPowerRow(power, isEditMode, true);
+            content.appendChild(row);
         });
+    } else {
+        const emptyMsg = document.createElement('p');
+        emptyMsg.style.cssText = 'text-align:center;color:var(--text-secondary);padding:12px;font-size:13px;';
+        emptyMsg.textContent = 'No innate powers selected';
+        content.appendChild(emptyMsg);
+    }
 
-        // Add additional columns for area and duration after the action button
-        const collapsedRow = row.element.querySelector('.collapsed-row');
-        const areaDiv = document.createElement('div');
-        areaDiv.textContent = power.area || '-';
-        const durationDiv = document.createElement('div');
-        durationDiv.textContent = power.duration || '-';
-        collapsedRow.appendChild(areaDiv);
-        collapsedRow.appendChild(durationDiv);
+    // === REGULAR POWERS SECTION ===
+    const regularHeader = document.createElement('div');
+    regularHeader.className = 'powers-section-header';
+    regularHeader.innerHTML = '<h4>POWERS</h4>';
+    regularHeader.style.marginTop = '24px';
+    content.appendChild(regularHeader);
 
-        // Add remove button in edit mode
-        if (isEditMode) {
-            collapsedRow.style.position = 'relative';
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'resource-remove-btn';
-            removeBtn.innerHTML = '✕';
-            removeBtn.title = 'Remove power';
-            removeBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 8px;font-size:0.9em;background:var(--error-color, #dc3545);color:white;border:none;border-radius:4px;cursor:pointer;z-index:10;';
-            removeBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (confirm(`Remove "${power.name}" power?`)) {
-                    window.removePowerFromCharacter(encodeURIComponent(power.name));
-                }
-            };
-            collapsedRow.appendChild(removeBtn);
-        }
+    // Column headers for regular powers
+    const regularTableHeader = document.createElement('div');
+    regularTableHeader.className = 'library-table-header tech';
+    if (isEditMode) {
+        regularTableHeader.style.gridTemplateColumns = '1.4fr 1fr 1fr 0.8fr 0.7fr 0.7fr 0.5fr';
+        regularTableHeader.innerHTML = '<div>NAME</div><div>ACTION</div><div>DAMAGE</div><div>ENERGY</div><div>AREA</div><div>DURATION</div><div>INNATE</div>';
+    } else {
+        regularTableHeader.style.gridTemplateColumns = '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr';
+        regularTableHeader.innerHTML = '<div>NAME</div><div>ACTION</div><div>DAMAGE</div><div>ENERGY</div><div>AREA</div><div>DURATION</div>';
+    }
+    content.appendChild(regularTableHeader);
 
-        row.element.style.marginBottom = '10px';
-        content.appendChild(row.element);
-    });
+    // Render regular powers
+    if (regularPowers.length > 0) {
+        regularPowers.forEach(power => {
+            const row = createPowerRow(power, isEditMode, false);
+            content.appendChild(row);
+        });
+    } else {
+        const emptyMsg = document.createElement('p');
+        emptyMsg.style.cssText = 'text-align:center;color:var(--text-secondary);padding:12px;font-size:13px;';
+        emptyMsg.textContent = 'No regular powers selected';
+        content.appendChild(emptyMsg);
+    }
+
     return content;
+}
+
+/**
+ * Creates a power row element
+ * @param {object} power - Power data
+ * @param {boolean} isEditMode - Whether in edit mode
+ * @param {boolean} isInnate - Whether this power is innate
+ * @returns {HTMLElement} The power row element
+ */
+function createPowerRow(power, isEditMode, isInnate) {
+    // Build chips with blue highlight for TP cost
+    let chipsHTML = '';
+    if (Array.isArray(power.parts) && power.parts.length && power.partsDb) {
+        chipsHTML = buildTechniquePartChips(power.parts, power.partsDb);
+    } else if (power.partChipsHTML) {
+        chipsHTML = power.partChipsHTML;
+    }
+
+    const damageStr = formatPowerDamage(power.damage);
+    const expandedContent = chipsHTML ? `
+        <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Parts & Proficiencies</h4>
+        <div class="part-chips">${chipsHTML}</div>
+    ` : '';
+
+    const gridCols = isEditMode ? '1.4fr 1fr 1fr 0.8fr 0.7fr 0.7fr 0.5fr' : '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr';
+
+    const row = new CollapsibleRow({
+        title: power.name,
+        columns: [
+            { content: power.actionType || 'Basic Action' },
+            { content: damageStr || '-' }
+        ],
+        description: power.description || '',
+        className: 'collapsible-tech',
+        gridColumns: gridCols,
+        actionButton: {
+            label: `Use (${power.energy || 0})`,
+            data: { name: power.name, energy: power.energy || 0 },
+            onClick: (e) => {
+                const energy = parseInt(e.target.dataset.energy);
+                const name = e.target.dataset.name;
+                window.usePower(name, energy);
+            }
+        },
+        expandedContent: expandedContent
+    });
+
+    // Add additional columns for area and duration
+    const collapsedRow = row.element.querySelector('.collapsed-row');
+    const areaDiv = document.createElement('div');
+    areaDiv.textContent = power.area || '-';
+    const durationDiv = document.createElement('div');
+    durationDiv.textContent = power.duration || '-';
+    collapsedRow.appendChild(areaDiv);
+    collapsedRow.appendChild(durationDiv);
+
+    // Add innate checkbox in edit mode
+    if (isEditMode) {
+        const innateCell = document.createElement('div');
+        innateCell.className = 'innate-checkbox-cell';
+        innateCell.style.cssText = 'display: flex; align-items: center; justify-content: center;';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'innate-checkbox';
+        checkbox.checked = isInnate;
+        checkbox.title = isInnate ? 'Unmark as innate power' : 'Mark as innate power';
+        checkbox.onclick = (e) => {
+            e.stopPropagation();
+            window.togglePowerInnate?.(power.name, e.target.checked);
+        };
+        
+        innateCell.appendChild(checkbox);
+        collapsedRow.appendChild(innateCell);
+    }
+
+    // Add remove button in edit mode
+    if (isEditMode) {
+        collapsedRow.style.position = 'relative';
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'resource-remove-btn';
+        removeBtn.innerHTML = '✕';
+        removeBtn.title = 'Remove power';
+        removeBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 8px;font-size:0.9em;background:var(--error-color, #dc3545);color:white;border:none;border-radius:4px;cursor:pointer;z-index:10;';
+        removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm(`Remove "${power.name}" power?`)) {
+                window.removePowerFromCharacter(encodeURIComponent(power.name));
+            }
+        };
+        collapsedRow.appendChild(removeBtn);
+    }
+
+    row.element.style.marginBottom = '10px';
+    return row.element;
 }

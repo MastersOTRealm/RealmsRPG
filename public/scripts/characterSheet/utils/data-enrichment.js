@@ -184,12 +184,14 @@ export async function enrichPowers(characterPowers, userId) {
         
         const displayPowers = powerEntries.map(entry => {
             const name = typeof entry === 'string' ? entry : (entry?.name || '');
+            const innate = typeof entry === 'object' ? !!entry.innate : false;
             if (!name) return null;
             
             const found = allPowers.find(p => p.name === name);
             if (!found) {
                 return {
                     name,
+                    innate,
                     description: 'No description available',
                     energy: 0,
                     actionType: 'Basic Action',
@@ -204,14 +206,17 @@ export async function enrichPowers(characterPowers, userId) {
             return {
                 ...found,
                 ...display,
+                innate,
                 partsDb: powerPartsDb
             };
         }).filter(Boolean);
         
-        // Saveable format: only names
-        const saveablePowers = powerEntries.map(p => 
-            typeof p === 'string' ? p : (p?.name || '')
-        ).filter(Boolean);
+        // Saveable format: objects with name and innate flag
+        const saveablePowers = powerEntries.map(p => {
+            const name = typeof p === 'string' ? p : (p?.name || '');
+            const innate = typeof p === 'object' ? !!p.innate : false;
+            return name ? { name, innate } : null;
+        }).filter(Boolean);
         
         return { displayPowers, saveablePowers };
     } catch (e) {
