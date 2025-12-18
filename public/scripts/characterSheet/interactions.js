@@ -85,18 +85,28 @@ if (typeof document !== 'undefined') {
 
 /**
  * Internal helper to add a d20 roll to the roll log.
+ * Automatically applies +2 bonus for natural 20s and -2 penalty for natural 1s.
  * @private
  * @param {string} type - Type of roll (skill, attack, ability, defense)
  * @param {string} title - Title for the roll (e.g., "Strength Check")
  * @param {number} roll - The d20 roll result (1-20)
  * @param {number} bonus - The modifier to add to the roll
- * @param {string} critSuccessMsg - Message to display on a natural 20
- * @param {string} critFailMsg - Message to display on a natural 1
  */
-function _addD20RollToLog(type, title, roll, bonus, critSuccessMsg = 'Critical Success!', critFailMsg = 'Critical Fail!') {
-    const total = roll + bonus;
+function _addD20RollToLog(type, title, roll, bonus) {
     const isCritSuccess = roll === 20;
     const isCritFail = roll === 1;
+    
+    // Apply natural 20/1 bonuses to the total
+    let total = roll + bonus;
+    let critMessage = null;
+    
+    if (isCritSuccess) {
+        total += 2; // Natural 20 adds +2 to total
+        critMessage = 'Natural 20! +2 to the total!';
+    } else if (isCritFail) {
+        total -= 2; // Natural 1 subtracts 2 from total
+        critMessage = 'Natural 1! -2 from the total!';
+    }
     
     addRoll({
         type,
@@ -106,7 +116,7 @@ function _addD20RollToLog(type, title, roll, bonus, critSuccessMsg = 'Critical S
         total,
         isCritSuccess,
         isCritFail,
-        critMessage: isCritSuccess ? critSuccessMsg : (isCritFail ? critFailMsg : null)
+        critMessage
     });
 }
 
@@ -131,9 +141,7 @@ window.rollAttack = function(weaponName, attackBonus) {
         'attack',
         `${weaponName} Attack`,
         roll,
-        attackBonus,
-        'Critical Hit! Roll damage twice!',
-        'Critical Miss!'
+        attackBonus
     );
 };
 
@@ -148,9 +156,7 @@ window.rollAttackBonus = function(name, bonus) {
         'attack',
         `${name} Attack Roll`,
         roll,
-        bonus,
-        'Critical Hit! Double damage!',
-        'Critical Miss!'
+        bonus
     );
 };
 

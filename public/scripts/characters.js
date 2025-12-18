@@ -2,7 +2,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 
 const FALLBACK_AVATAR =
@@ -37,13 +37,91 @@ function createCharacterCard(docSnap) {
   card.innerHTML = `
     <div class="portrait">
       <img src="${portrait}" alt="${name}" onerror="this.src='${FALLBACK_AVATAR}'">
+      <button class="delete-character-btn" title="Delete Character">×</button>
     </div>
     <p class="name">${name}</p>
   `;
-  card.addEventListener('click', () => {
+  
+  // Add click handler for the main card (excluding delete button)
+  card.addEventListener('click', (e) => {
+    // Don't navigate if clicking the delete button
+    if (e.target.classList.contains('delete-character-btn')) {
+      return;
+    }
     window.location.href = `/characterSheet.html?id=${docSnap.id}`;
   });
+  
+  // Add click handler for delete button
+  const deleteBtn = card.querySelector('.delete-character-btn');
+  deleteBtn.addEventListener('click', async (e) => {
+    e.stopPropagation(); // Prevent card click event
+    await deleteCharacter(docSnap.id, name, card);
+  });
+  
   return card;
+}
+
+// Function to delete a character with confirmation
+async function deleteCharacter(charId, charName, cardElement) {
+  const confirmMessage = `Are you sure you want to delete the character "${charName}"?\n\nThis action cannot be undone.`;
+  
+  if (!confirm(confirmMessage)) {
+    return; // User cancelled
+  }
+  
+  try {
+    // Get current user to ensure proper path
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      alert('You must be logged in to delete characters.');
+      return;
+    }
+    
+    // Delete the character document from Firestore
+    const db = getFirestore();
+    await deleteDoc(doc(db, 'users', user.uid, 'character', charId));
+    
+    // Remove the card from the DOM with a nice animation
+    cardElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    cardElement.style.opacity = '0';
+    cardElement.style.transform = 'scale(0.8)';
+    
+    setTimeout(() => {
+      cardElement.remove();
+      
+      // Check if grid is now empty (only has add slot)
+      const grid = document.getElementById('character-grid');
+      const characterCards = grid.querySelectorAll('.character-card:not(.add-new)');
+      
+      if (characterCards.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.padding = '16px';
+        emptyMsg.style.opacity = '.75';
+        emptyMsg.textContent = 'You have no saved characters yet.';
+        // Insert before the add slot
+        const addSlot = grid.querySelector('.add-new');
+        grid.insertBefore(emptyMsg, addSlot);
+      }
+    }, 300);
+    
+    console.log(`Character "${charName}" (${charId}) deleted successfully.`);
+    
+  } catch (error) {
+    console.error('Error deleting character:', error);
+    
+    let errorMessage = 'Failed to delete character. Please try again.';
+    if (error.code === 'permission-denied') {
+      errorMessage = 'Permission denied. You can only delete your own characters.';
+    } else if (error.code === 'not-found') {
+      errorMessage = 'Character not found. It may have already been deleted.';
+      // Still remove from DOM since it's gone from the database
+      cardElement.remove();
+    }
+    
+    alert(errorMessage);
+  }
 }
 
 async function loadCharacters(db, uid) {
