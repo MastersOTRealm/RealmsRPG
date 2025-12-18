@@ -18,7 +18,9 @@ import {
     getAbilityIncreaseCost,
     getAbilityDecreaseRefund,
     calculateAbilityPointsSpent,
-    ABILITY_CONSTRAINTS
+    ABILITY_CONSTRAINTS,
+    calculateArchetypeProgression,
+    calculateArmamentProficiency
 } from './level-progression.js';
 
 // Promise-based initialization guard for async data loading
@@ -108,10 +110,12 @@ function cleanForSave(data) {
         'skills',
         // Archetype/Build
         'archetype', 'archetypeName', 'archetypeAbility',
+        // Proficiency data (must be saved!)
+        'mart_prof', 'pow_prof', 'mart_abil', 'pow_abil', 'archetypeChoices',
         // References (names only, not full objects)
         'feats', 'techniques', 'powers', 'traits',
         // Inventory (names/equipped status only, not full item data)
-        'weapons', 'armor', 'equipment',
+        'weapons', 'armor', 'equipment', 'currency',
         // Notes and misc user data
         'notes', 'backstory', 'appearance', 'archetypeDesc', 'allies', 'organizations',
         // Ancestry data
@@ -340,6 +344,10 @@ window.updateCharacterData = (updates) => {
 };
 // --- PATCH: Expose renderLibrary globally for modal to trigger inventory refresh ---
 window.renderLibrary = renderLibrary;
+
+// Make archetype progression functions globally accessible
+window.calculateArchetypeProgression = calculateArchetypeProgression;
+window.calculateArmamentProficiency = calculateArmamentProficiency;
 
 // =====================================================
 // EDIT MODE MANAGEMENT

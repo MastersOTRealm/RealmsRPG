@@ -1,5 +1,11 @@
 import { formatBonus } from '../utils.js';
 import { getCharacterResourceTracking } from '../validation.js';
+import { 
+    calculateArchetypeProgression, 
+    getArchetypeMilestoneLevels, 
+    getArchetypeType,
+    getArchetypeChoiceBenefits
+} from '../level-progression.js';
 
 /**
  * Renders the proficiency editing controls
@@ -93,6 +99,15 @@ export function renderArchetype(charData, calculatedData) {
         ${proficiencyContent}
     `;
     container.appendChild(archetypeSection);
+    
+    // Archetype Choices Section (only for mixed archetypes in edit mode)
+    const archetype = getArchetypeType(charData.mart_prof || 0, charData.pow_prof || 0);
+    if (archetype === 'mixed' && isEditMode) {
+        const choicesSection = createArchetypeChoicesSection(charData);
+        if (choicesSection) {
+            container.appendChild(choicesSection);
+        }
+    }
     
     // Bonuses
     const bonusesSection = document.createElement('div');
@@ -375,3 +390,112 @@ function capitalizeDamageType(type) {
     if (!type) return '';
     return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 }
+
+/**
+ * Creates the archetype choices section for mixed archetypes
+ * Shows milestone levels where player can choose between feat or innate bonuses
+ */
+function createArchetypeChoicesSection(charData) {
+    const level = charData.level || 1;
+    const milestones = getArchetypeMilestoneLevels(level);
+    const archetypeChoices = charData.archetypeChoices || {};
+    const benefits = getArchetypeChoiceBenefits();
+    
+    if (milestones.length === 0) {
+        return null; // No milestone choices available yet
+    }
+    
+    const section = document.createElement('div');
+    section.className = 'archetype-choices-section';
+    section.innerHTML = `
+        <div class="section-title">ARCHETYPE CHOICES</div>
+        <div class="archetype-choices-info">
+            Mixed archetype: Choose at each milestone level
+        </div>
+    `;
+    
+    const choicesContainer = document.createElement('div');
+    choicesContainer.className = 'archetype-choices-container';
+    
+    milestones.forEach(milestoneLevel => {
+        const currentChoice = archetypeChoices[milestoneLevel] || null;
+        
+        const choiceRow = document.createElement('div');
+        choiceRow.className = 'archetype-choice-row';
+        choiceRow.innerHTML = `
+            <div class="milestone-label">Level ${milestoneLevel}</div>
+            <div class="choice-buttons">
+                <button class="choice-btn ${currentChoice === 'innate' ? 'selected' : ''}" 
+                        onclick="window.setArchetypeChoice(${milestoneLevel}, 'innate')"
+                        title="${benefits.innate.description}">
+                    <span class="choice-icon">✨</span>
+                    <span class="choice-text">Innate</span>
+                </button>
+                <button class="choice-btn ${currentChoice === 'feat' ? 'selected' : ''}" 
+                        onclick="window.setArchetypeChoice(${milestoneLevel}, 'feat')"
+                        title="${benefits.feat.description}">
+                    <span class="choice-icon">⚔️</span>
+                    <span class="choice-text">Feat</span>
+                </button>
+            </div>
+        `;
+        choicesContainer.appendChild(choiceRow);
+    });
+    
+    section.appendChild(choicesContainer);
+    
+    // Add current totals summary
+    const progression = calculateArchetypeProgression(
+        level,
+        charData.mart_prof || 0,
+        charData.pow_prof || 0,
+        archetypeChoices
+    );
+    
+    const summary = document.createElement('div');
+    summary.className = 'archetype-choice-summary';
+    summary.innerHTML = `
+        <div class="summary-item">
+            <span class="summary-label">Bonus Feats:</span>
+            <span class="summary-value">${progression.bonusArchetypeFeats}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Innate Threshold:</span>
+            <span class="summary-value">${progression.innateThreshold}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Innate Pools:</span>
+            <span class="summary-value">${progression.innatePools}</span>
+        </div>
+    `;
+    section.appendChild(summary);
+    
+    return section;
+}
+
+/**
+ * Global function to set an archetype choice at a milestone level
+ */
+window.setArchetypeChoice = function(milestoneLevel, choice) {
+    const charData = typeof window.currentCharacterData === 'function' 
+        ? window.currentCharacterData() 
+        : window.currentCharacterData;
+    
+    if (!charData) return;
+    
+    // Initialize archetypeChoices if needed
+    if (!charData.archetypeChoices) {
+        charData.archetypeChoices = {};
+    }
+    
+    // Toggle: if same choice is clicked, deselect it
+    if (charData.archetypeChoices[milestoneLevel] === choice) {
+        delete charData.archetypeChoices[milestoneLevel];
+    } else {
+        charData.archetypeChoices[milestoneLevel] = choice;
+    }
+    
+    // Refresh and save
+    window.refreshCharacterSheet?.();
+    window.scheduleAutoSave?.();
+};

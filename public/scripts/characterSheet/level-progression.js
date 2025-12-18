@@ -91,9 +91,14 @@ export function calculateMaxCharacterFeats(level) {
  * Get all progression data for a given level
  * @param {number} level - Character level
  * @param {number} highestArchetypeAbility - The higher of the two archetype ability scores
+ * @param {number} martialProf - Martial proficiency level
+ * @param {number} powerProf - Power proficiency level
+ * @param {object} archetypeChoices - Object storing choices made at milestone levels
  * @returns {object} Object containing all calculated progression values
  */
-export function getLevelProgression(level, highestArchetypeAbility = 0) {
+export function getLevelProgression(level, highestArchetypeAbility = 0, martialProf = 0, powerProf = 0, archetypeChoices = {}) {
+    const archetypeProgression = calculateArchetypeProgression(level, martialProf, powerProf, archetypeChoices);
+    
     return {
         level,
         healthEnergyPoints: calculateHealthEnergyPoints(level),
@@ -101,8 +106,9 @@ export function getLevelProgression(level, highestArchetypeAbility = 0) {
         skillPoints: calculateSkillPoints(level),
         trainingPoints: calculateTrainingPoints(level, highestArchetypeAbility),
         proficiencyPoints: calculateProficiencyPoints(level),
-        maxArchetypeFeats: calculateMaxArchetypeFeats(level),
-        maxCharacterFeats: calculateMaxCharacterFeats(level)
+        maxArchetypeFeats: calculateMaxArchetypeFeats(level) + archetypeProgression.bonusArchetypeFeats,
+        maxCharacterFeats: calculateMaxCharacterFeats(level),
+        ...archetypeProgression
     };
 }
 
@@ -112,11 +118,14 @@ export function getLevelProgression(level, highestArchetypeAbility = 0) {
  * @param {number} currentLevel - Current level
  * @param {number} newLevel - New level
  * @param {number} highestArchetypeAbility - The higher of the two archetype ability scores
+ * @param {number} martialProf - Martial proficiency level
+ * @param {number} powerProf - Power proficiency level
+ * @param {object} archetypeChoices - Object storing choices made at milestone levels
  * @returns {object} Object containing the deltas for each progression value
  */
-export function getLevelUpDelta(currentLevel, newLevel, highestArchetypeAbility = 0) {
-    const current = getLevelProgression(currentLevel, highestArchetypeAbility);
-    const next = getLevelProgression(newLevel, highestArchetypeAbility);
+export function getLevelUpDelta(currentLevel, newLevel, highestArchetypeAbility = 0, martialProf = 0, powerProf = 0, archetypeChoices = {}) {
+    const current = getLevelProgression(currentLevel, highestArchetypeAbility, martialProf, powerProf, archetypeChoices);
+    const next = getLevelProgression(newLevel, highestArchetypeAbility, martialProf, powerProf, archetypeChoices);
     
     return {
         healthEnergyPoints: next.healthEnergyPoints - current.healthEnergyPoints,
@@ -125,7 +134,11 @@ export function getLevelUpDelta(currentLevel, newLevel, highestArchetypeAbility 
         trainingPoints: next.trainingPoints - current.trainingPoints,
         proficiencyPoints: next.proficiencyPoints - current.proficiencyPoints,
         maxArchetypeFeats: next.maxArchetypeFeats - current.maxArchetypeFeats,
-        maxCharacterFeats: next.maxCharacterFeats - current.maxCharacterFeats
+        maxCharacterFeats: next.maxCharacterFeats - current.maxCharacterFeats,
+        innateThreshold: next.innateThreshold - current.innateThreshold,
+        innatePools: next.innatePools - current.innatePools,
+        innateEnergy: next.innateEnergy - current.innateEnergy,
+        armamentProficiency: next.armamentProficiency - current.armamentProficiency
     };
 }
 
@@ -345,4 +358,265 @@ export function getNegativeAbilitySum(abilities) {
     return Object.values(abilities || {})
         .filter(v => v < 0)
         .reduce((sum, v) => sum + v, 0);
+}
+
+// =====================================================
+// ARCHETYPE PROGRESSION SYSTEM
+// =====================================================
+
+/**
+ * Determine character archetype based on proficiencies
+ * @param {number} martialProf - Martial proficiency level
+ * @param {number} powerProf - Power proficiency level
+ * @returns {string} Archetype type: 'power', 'martial', or 'mixed'
+ */
+export function getArchetypeType(martialProf, powerProf) {
+    if (martialProf === 0 && powerProf > 0) return 'power';
+    if (powerProf === 0 && martialProf > 0) return 'martial';
+    if (martialProf > 0 && powerProf > 0) return 'mixed';
+    return 'none'; // Both are 0
+}
+
+/**
+ * Get milestone levels where archetype choices can be made (every 3 levels starting at 4)
+ * @param {number} maxLevel - Maximum level to calculate up to
+ * @returns {number[]} Array of milestone levels
+ */
+export function getArchetypeMilestoneLevels(maxLevel) {
+    const milestones = [];
+    for (let level = 4; level <= maxLevel; level += 3) {
+        milestones.push(level);
+    }
+    return milestones;
+}
+
+/**
+ * Calculate armament proficiency based on martial proficiency
+ * @param {number} martialProf - Martial proficiency level
+ * @returns {number} Armament proficiency value
+ */
+export function calculateArmamentProficiency(martialProf) {
+    if (martialProf === 0) return 3;
+    if (martialProf === 1) return 8;
+    if (martialProf === 2) return 12;
+    return 12 + (3 * (martialProf - 2)); // 15, 18, 21, etc.
+}
+
+/**
+ * Calculate base innate threshold for pure power archetype
+ * @param {number} level - Character level
+ * @returns {number} Base innate threshold
+ */
+export function calculateBaseInnateThreshold(level) {
+    if (level < 4) return 8;
+    const bonuses = Math.floor((level - 1) / 3); // Level 4, 7, 10, etc.
+    return 8 + bonuses;
+}
+
+/**
+ * Calculate base innate pools for pure power archetype
+ * @param {number} level - Character level
+ * @returns {number} Base innate pools
+ */
+export function calculateBaseInnatePools(level) {
+    if (level < 4) return 2;
+    const bonuses = Math.floor((level - 1) / 3); // Level 4, 7, 10, etc.
+    return 2 + bonuses;
+}
+
+/**
+ * Calculate bonus archetype feats for pure martial archetype
+ * @param {number} level - Character level
+ * @returns {number} Bonus archetype feats
+ */
+export function calculateBonusArchetypeFeats(level) {
+    if (level < 4) return 2;
+    const bonuses = Math.floor((level - 1) / 3); // Level 4, 7, 10, etc.
+    return 2 + bonuses;
+}
+
+/**
+ * Calculate archetype progression based on proficiencies and choices
+ * @param {number} level - Character level
+ * @param {number} martialProf - Martial proficiency level
+ * @param {number} powerProf - Power proficiency level
+ * @param {object} archetypeChoices - Choices made at milestone levels
+ * @returns {object} Complete archetype progression data
+ */
+export function calculateArchetypeProgression(level, martialProf, powerProf, archetypeChoices = {}) {
+    const archetype = getArchetypeType(martialProf, powerProf);
+    const armamentProficiency = calculateArmamentProficiency(martialProf);
+    
+    let innateThreshold = 0;
+    let innatePools = 0;
+    let innateEnergy = 0;
+    let bonusArchetypeFeats = 0;
+    
+    switch (archetype) {
+        case 'power':
+            // Pure Power Archetype
+            innateThreshold = calculateBaseInnateThreshold(level);
+            innatePools = calculateBaseInnatePools(level);
+            innateEnergy = innateThreshold * innatePools;
+            break;
+            
+        case 'martial':
+            // Pure Martial Archetype
+            bonusArchetypeFeats = calculateBonusArchetypeFeats(level);
+            break;
+            
+        case 'mixed':
+            // Mixed Archetype - Base values + choices
+            innateThreshold = 6;
+            innatePools = 1;
+            bonusArchetypeFeats = 1;
+            
+            // Apply choices made at milestone levels
+            const milestones = getArchetypeMilestoneLevels(level);
+            for (const milestoneLevel of milestones) {
+                const choice = archetypeChoices[milestoneLevel];
+                if (choice === 'innate') {
+                    innateThreshold += 1;
+                    innatePools += 1;
+                } else if (choice === 'feat') {
+                    bonusArchetypeFeats += 1;
+                }
+                // If no choice is made, no bonus is applied
+            }
+            
+            innateEnergy = innateThreshold * innatePools;
+            break;
+            
+        default:
+            // No archetype (both proficiencies are 0)
+            break;
+    }
+    
+    return {
+        archetype,
+        armamentProficiency,
+        innateThreshold,
+        innatePools,
+        innateEnergy,
+        bonusArchetypeFeats,
+        availableMilestones: archetype === 'mixed' ? getArchetypeMilestoneLevels(level) : []
+    };
+}
+
+/**
+ * Validate an archetype choice for a given milestone level
+ * @param {number} milestoneLevel - The level where the choice is being made
+ * @param {string} choice - The choice: 'innate' or 'feat'
+ * @param {number} martialProf - Martial proficiency level
+ * @param {number} powerProf - Power proficiency level
+ * @returns {object} Validation result
+ */
+export function validateArchetypeChoice(milestoneLevel, choice, martialProf, powerProf) {
+    const archetype = getArchetypeType(martialProf, powerProf);
+    
+    if (archetype !== 'mixed') {
+        return {
+            isValid: false,
+            reason: `Archetype choices are only available for mixed archetypes (both martial and power proficiency > 0)`
+        };
+    }
+    
+    if (!getArchetypeMilestoneLevels(milestoneLevel).includes(milestoneLevel)) {
+        return {
+            isValid: false,
+            reason: `Level ${milestoneLevel} is not a valid milestone level for archetype choices`
+        };
+    }
+    
+    if (!['innate', 'feat'].includes(choice)) {
+        return {
+            isValid: false,
+            reason: `Invalid choice "${choice}". Must be "innate" or "feat"`
+        };
+    }
+    
+    return {
+        isValid: true,
+        reason: null
+    };
+}
+
+/**
+ * Apply an archetype choice and return updated choices object
+ * @param {object} currentChoices - Current archetype choices
+ * @param {number} milestoneLevel - Level where choice is being made
+ * @param {string} choice - The choice: 'innate' or 'feat'
+ * @param {number} martialProf - Martial proficiency level
+ * @param {number} powerProf - Power proficiency level
+ * @returns {object} Updated choices object or error
+ */
+export function applyArchetypeChoice(currentChoices, milestoneLevel, choice, martialProf, powerProf) {
+    const validation = validateArchetypeChoice(milestoneLevel, choice, martialProf, powerProf);
+    
+    if (!validation.isValid) {
+        return {
+            success: false,
+            error: validation.reason,
+            choices: currentChoices
+        };
+    }
+    
+    const newChoices = { ...currentChoices };
+    newChoices[milestoneLevel] = choice;
+    
+    return {
+        success: true,
+        error: null,
+        choices: newChoices
+    };
+}
+
+/**
+ * Clear choices that are no longer valid due to proficiency changes
+ * @param {object} currentChoices - Current archetype choices
+ * @param {number} level - Current character level
+ * @param {number} martialProf - Current martial proficiency
+ * @param {number} powerProf - Current power proficiency
+ * @returns {object} Cleaned choices object
+ */
+export function cleanInvalidArchetypeChoices(currentChoices, level, martialProf, powerProf) {
+    const archetype = getArchetypeType(martialProf, powerProf);
+    
+    // If not mixed archetype, clear all choices
+    if (archetype !== 'mixed') {
+        return {};
+    }
+    
+    // Remove choices for levels above current level
+    const validMilestones = getArchetypeMilestoneLevels(level);
+    const cleanedChoices = {};
+    
+    for (const [milestoneLevel, choice] of Object.entries(currentChoices)) {
+        const levelNum = parseInt(milestoneLevel);
+        if (validMilestones.includes(levelNum)) {
+            cleanedChoices[levelNum] = choice;
+        }
+    }
+    
+    return cleanedChoices;
+}
+
+/**
+ * Get summary of what each choice provides at a milestone level
+ * @param {number} milestoneLevel - The milestone level
+ * @returns {object} Summary of choice benefits
+ */
+export function getArchetypeChoiceBenefits(milestoneLevel) {
+    return {
+        innate: {
+            label: 'Innate Power',
+            description: '+1 Innate Threshold, +1 Innate Pool',
+            benefits: ['Innate Threshold +1', 'Innate Pools +1']
+        },
+        feat: {
+            label: 'Combat Expertise', 
+            description: '+1 Bonus Archetype Feat',
+            benefits: ['Archetype Feats +1']
+        }
+    };
 }

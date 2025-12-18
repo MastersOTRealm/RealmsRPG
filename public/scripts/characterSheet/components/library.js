@@ -47,11 +47,11 @@ export async function renderLibrary(charData) {
     container.appendChild(proficienciesContent);
     container.appendChild(notesContent);
 
-    // --- Insert currency box above weapons section when inventory tab is active ---
-    function showCurrencyBoxIfNeeded() {
-        document.querySelectorAll('.inventory-currency-box').forEach(el => el.remove());
-        if (inventoryContent.classList.contains('active') && inventoryContent._currencyBox) {
-            inventoryContent.insertBefore(inventoryContent._currencyBox, inventoryContent.firstChild);
+    // --- Insert top boxes (armament proficiency & currency) above weapons section when inventory tab is active ---
+    function showTopBoxesIfNeeded() {
+        document.querySelectorAll('.inventory-top-boxes').forEach(el => el.remove());
+        if (inventoryContent.classList.contains('active') && inventoryContent._topBoxes) {
+            inventoryContent.insertBefore(inventoryContent._topBoxes, inventoryContent.firstChild);
         }
     }
 
@@ -68,9 +68,9 @@ export async function renderLibrary(charData) {
                     content.classList.add('active');
                 }
             });
-            showCurrencyBoxIfNeeded();
+            showTopBoxesIfNeeded();
         });
     });
 
-    showCurrencyBoxIfNeeded();
+    showTopBoxesIfNeeded();
 }

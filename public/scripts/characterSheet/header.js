@@ -9,7 +9,18 @@ export function renderHeader(character) {
     const currentEnergy = character.currentEnergy ?? character.energy ?? 0;
     const maxEnergy = character.energy || 0;
     const terminal = Math.ceil(maxHealth / 4);
-    const innateEnergy = character.innateEnergy || 0;
+    
+    // Calculate innate threshold using archetype progression
+    let innateThreshold = 0;
+    if (typeof window.calculateArchetypeProgression === 'function') {
+        const progression = window.calculateArchetypeProgression(
+            character.level || 1,
+            character.mart_prof || 0,
+            character.pow_prof || 0,
+            character.archetypeChoices || {}
+        );
+        innateThreshold = progression.innateThreshold;
+    }
 
     container.innerHTML = `
         <div class="character-header">
@@ -49,7 +60,7 @@ export function renderHeader(character) {
                         <input type="number" class="energy-input" id="current-energy" 
                                value="${currentEnergy}" min="0" max="${maxEnergy}">
                         <div class="energy-max">/ ${maxEnergy}</div>
-                        ${innateEnergy > 0 ? `<div class="energy-sublabel">Innate Energy: ${innateEnergy}</div>` : ''}
+                        ${innateThreshold > 0 ? `<div class="energy-sublabel">Innate Threshold: ${innateThreshold}</div>` : ''}
                     </div>
                 </div>
             </div>

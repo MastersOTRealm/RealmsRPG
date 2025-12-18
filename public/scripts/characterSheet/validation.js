@@ -216,7 +216,13 @@ export function validateProficiencyIncrease(character, proficiencyType, newValue
 export function validateFeatAddition(character, featType) {
     const level = character.level || 1;
     const highestArchetypeAbility = getHighestArchetypeAbility(character);
-    const progression = getLevelProgression(level, highestArchetypeAbility);
+    const progression = getLevelProgression(
+        level, 
+        highestArchetypeAbility,
+        character.mart_prof || 0,
+        character.pow_prof || 0,
+        character.archetypeChoices || {}
+    );
     const featCounts = countFeatsByTypeSync(character, progression);
     
     let maxFeats, currentFeats;
@@ -261,7 +267,13 @@ export function validateFeatAddition(character, featType) {
 export function getCharacterResourceTracking(character) {
     const level = character.level || 1;
     const highestArchetypeAbility = getHighestArchetypeAbility(character);
-    const progression = getLevelProgression(level, highestArchetypeAbility);
+    const progression = getLevelProgression(
+        level, 
+        highestArchetypeAbility,
+        character.mart_prof || 0,
+        character.pow_prof || 0,
+        character.archetypeChoices || {}
+    );
     
     const baseAbilities = character.baseAbilities || character.ancestryAbilities || {};
     const abilityPointsSpent = calculateSpentAbilityPoints(character.abilities, baseAbilities);
