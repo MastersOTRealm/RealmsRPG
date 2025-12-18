@@ -149,3 +149,126 @@
 .properties-row:hover td {
     background-color: var(--bg-light) !important;
 }
+
+/* ============================================
+   PROFICIENCY EDITOR STYLES
+   ============================================ */
+
+.proficiency-editor {
+    padding: 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    margin-top: 12px;
+}
+
+.prof-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.prof-points-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prof-points-value {
+    font-size: 16px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.prof-points-value.has-points {
+    color: #4caf50;
+    border: 2px solid #4caf50;
+}
+
+.prof-points-value.no-points {
+    color: var(--primary-blue);
+    border: 2px solid var(--primary-blue);
+}
+
+.prof-points-value.over-budget {
+    color: var(--danger-red, #dc3545);
+    border: 2px solid var(--danger-red, #dc3545);
+}
+
+.prof-controls-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.prof-control-box {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: white;
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    border: 1px solid var(--border-color);
+}
+
+.prof-box-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+}
+
+.prof-box-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.3px;
+}
+
+.prof-box-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.2;
+}
+
+.prof-control-box .prof-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-blue);
+    background: white;
+    color: var(--primary-blue);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+}
+
+.prof-control-box .prof-btn:hover:not(:disabled) {
+    background: var(--primary-blue);
+    color: white;
+    transform: scale(1.1);
+}
+
+.prof-control-box .prof-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}

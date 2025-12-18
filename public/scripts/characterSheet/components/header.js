@@ -66,12 +66,22 @@ function renderHealthEnergyEditor(charData, calculatedData) {
         
         const isExpanded = window.isEditingHealthEnergy || false;
         const expandedClass = isExpanded ? ' expanded' : '';
+        
+        // Three states: over-budget (red), has-points (green), no-points (blue)
+        let remainingClass;
+        if (remaining < 0) {
+            remainingClass = 'over-budget';
+        } else if (remaining > 0) {
+            remainingClass = 'has-points';
+        } else {
+            remainingClass = 'no-points';
+        }
 
         return `
             <div id="health-energy-editor" class="health-energy-editor${expandedClass}">
                 <div class="he-header">
                     <span class="he-title">Health-Energy Points</span>
-                    <span class="he-remaining ${remaining < 0 ? 'over-budget' : ''}">${remaining} remaining</span>
+                    <span class="he-remaining ${remainingClass}">${remaining} remaining</span>
                 </div>
                 <div class="he-controls">
                     <div class="he-control-group">
@@ -79,7 +89,7 @@ function renderHealthEnergyEditor(charData, calculatedData) {
                         <div class="he-buttons">
                             <button class="he-btn dec" onclick="window.decreaseHealthAllocation()" ${healthAlloc <= 0 ? 'disabled' : ''}>−</button>
                             <span class="he-value">${healthAlloc}</span>
-                            <button class="he-btn inc" onclick="window.increaseHealthAllocation()" ${remaining <= 0 ? 'disabled' : ''}>+</button>
+                            <button class="he-btn inc" onclick="window.increaseHealthAllocation()">+</button>
                         </div>
                         <span class="he-max">Max HP: ${calculatedData.healthEnergy.maxHealth}</span>
                     </div>
@@ -88,7 +98,7 @@ function renderHealthEnergyEditor(charData, calculatedData) {
                         <div class="he-buttons">
                             <button class="he-btn dec" onclick="window.decreaseEnergyAllocation()" ${energyAlloc <= 0 ? 'disabled' : ''}>−</button>
                             <span class="he-value">${energyAlloc}</span>
-                            <button class="he-btn inc" onclick="window.increaseEnergyAllocation()" ${remaining <= 0 ? 'disabled' : ''}>+</button>
+                            <button class="he-btn inc" onclick="window.increaseEnergyAllocation()">+</button>
                         </div>
                         <span class="he-max">Max EP: ${calculatedData.healthEnergy.maxEnergy}</span>
                     </div>
@@ -120,8 +130,18 @@ export function renderHeader(charData, calculatedData) {
     
     // Determine pencil icon color based on remaining points
     const resources = isEditMode ? getCharacterResourceTracking(charData) : null;
-    const hasPoints = resources && resources.healthEnergyPoints && resources.healthEnergyPoints.remaining > 0;
-    const penClass = hasPoints ? 'has-points' : 'no-points';
+    // Three states: over-budget (red), has-points (green), no-points (blue)
+    let penClass = 'no-points';
+    if (resources && resources.healthEnergyPoints) {
+        const remaining = resources.healthEnergyPoints.remaining;
+        if (remaining < 0) {
+            penClass = 'over-budget';
+        } else if (remaining > 0) {
+            penClass = 'has-points';
+        } else {
+            penClass = 'no-points';
+        }
+    }
     const healthEnergyToggle = isEditMode ? `<span class="edit-section-toggle resources-edit-toggle ${penClass}" onclick="window.toggleHealthEnergyEditor()" title="Edit Health/Energy allocation">🖉</span>` : '';
     
     const header = document.createElement('div');

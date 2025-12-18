@@ -9,30 +9,39 @@ import { getCharacterResourceTracking } from '../validation.js';
 function renderProficiencyEditor(charData) {
     const resources = getCharacterResourceTracking(charData);
     const profPoints = resources.proficiencyPoints;
-    const hasPoints = profPoints.remaining > 0;
+    
+    // Three states: over-budget (red), has-points (green), no-points (blue)
+    let statusClass;
+    if (profPoints.remaining < 0) {
+        statusClass = 'over-budget';
+    } else if (profPoints.remaining > 0) {
+        statusClass = 'has-points';
+    } else {
+        statusClass = 'no-points';
+    }
     
     return `
         <div class="proficiency-editor">
             <div class="prof-header">
-                <span class="prof-title">Proficiency Points</span>
-                <span class="prof-remaining ${profPoints.remaining < 0 ? 'over-budget' : ''}">${profPoints.remaining} / ${profPoints.total}</span>
+                <span class="prof-points-label">Proficiency Points:</span>
+                <span class="prof-points-value ${statusClass}">${profPoints.remaining} / ${profPoints.total}</span>
             </div>
-            <div class="prof-controls">
-                <div class="prof-control-group">
-                    <span class="prof-label">Martial</span>
-                    <div class="prof-buttons">
-                        <button class="prof-btn dec" onclick="window.decreaseMartialProf()" ${profPoints.martial <= 0 ? 'disabled' : ''}>−</button>
-                        <span class="prof-value">${profPoints.martial}</span>
-                        <button class="prof-btn inc" onclick="window.increaseMartialProf()" ${profPoints.remaining <= 0 ? 'disabled' : ''}>+</button>
+            <div class="prof-controls-row">
+                <div class="prof-control-box">
+                    <button class="prof-btn dec" onclick="window.decreaseMartialProf()" ${profPoints.martial <= 0 ? 'disabled' : ''}>−</button>
+                    <div class="prof-box-content">
+                        <span class="prof-box-label">MARTIAL</span>
+                        <span class="prof-box-value">${profPoints.martial}</span>
                     </div>
+                    <button class="prof-btn inc" onclick="window.increaseMartialProf()">+</button>
                 </div>
-                <div class="prof-control-group">
-                    <span class="prof-label">Power</span>
-                    <div class="prof-buttons">
-                        <button class="prof-btn dec" onclick="window.decreasePowerProf()" ${profPoints.power <= 0 ? 'disabled' : ''}>−</button>
-                        <span class="prof-value">${profPoints.power}</span>
-                        <button class="prof-btn inc" onclick="window.increasePowerProf()" ${profPoints.remaining <= 0 ? 'disabled' : ''}>+</button>
+                <div class="prof-control-box">
+                    <button class="prof-btn dec" onclick="window.decreasePowerProf()" ${profPoints.power <= 0 ? 'disabled' : ''}>−</button>
+                    <div class="prof-box-content">
+                        <span class="prof-box-label">POWER</span>
+                        <span class="prof-box-value">${profPoints.power}</span>
                     </div>
+                    <button class="prof-btn inc" onclick="window.increasePowerProf()">+</button>
                 </div>
             </div>
         </div>
@@ -52,8 +61,18 @@ export function renderArchetype(charData, calculatedData) {
     
     // Determine pencil icon color
     const resources = isEditMode ? getCharacterResourceTracking(charData) : null;
-    const hasPoints = resources && resources.proficiencyPoints.remaining > 0;
-    const penClass = hasPoints ? 'has-points' : 'no-points';
+    // Three states: over-budget (red), has-points (green), no-points (blue)
+    let penClass = 'no-points';
+    if (resources) {
+        const remaining = resources.proficiencyPoints.remaining;
+        if (remaining < 0) {
+            penClass = 'over-budget';
+        } else if (remaining > 0) {
+            penClass = 'has-points';
+        } else {
+            penClass = 'no-points';
+        }
+    }
     const proficiencyToggle = isEditMode ? `<span class="edit-section-toggle proficiency-edit-toggle ${penClass}" onclick="window.toggleProficiencyEditor()" title="Edit proficiency allocation">🖉</span>` : '';
     
     // Show editor if editing, otherwise show normal view

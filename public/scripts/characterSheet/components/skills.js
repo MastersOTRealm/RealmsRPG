@@ -1,6 +1,7 @@
 import { formatBonus } from '../utils.js';
 import { calculateSkillPoints } from '../level-progression.js';
 import { fetchSkills, fetchSpecies } from '../../utils/rtdb-cache.js';
+import { renderAbilities } from './abilities.js';
 
 // Track if skills are being edited
 let isEditingSkills = false;
@@ -58,6 +59,18 @@ function getSkillInfo(skillName, skillsData) {
     return Object.values(skillsData || {}).find(s => s.name === skillName) || null;
 }
 
+// Helper to refresh abilities section when skill points change
+function refreshAbilitiesSection(charData) {
+    // Only refresh if the abilities section is visible/rendered
+    try {
+        // Get calculated data for abilities render
+        const calculatedData = window.getCalculatedData ? window.getCalculatedData() : {};
+        renderAbilities(charData, calculatedData);
+    } catch (e) {
+        // Ignore if abilities section not available
+    }
+}
+
 // Toggle skill editing mode
 window.toggleSkillsEditor = function() {
     isEditingSkills = !isEditingSkills;
@@ -89,13 +102,20 @@ function calculateSpentSkillPoints(skills, skillsData, speciesSkills) {
     return spent;
 }
 
-// Get skill point tracking
+// Calculate defense skill points spent
+function calculateDefenseSkillPoints(defenseVals) {
+    return Object.values(defenseVals || {}).reduce((sum, val) => sum + (val * 2), 0);
+}
+
+// Get skill point tracking (includes defense spending for proper sync with ability editing)
 function getSkillPointTracking(charData, skillsData, speciesSkills) {
     const level = charData.level || 1;
     const total = calculateSkillPoints(level);
-    const spent = calculateSpentSkillPoints(charData.skills, skillsData, speciesSkills);
-    const remaining = total - spent;
-    return { total, spent, remaining };
+    const skillsSpent = calculateSpentSkillPoints(charData.skills, skillsData, speciesSkills);
+    const defenseSpent = calculateDefenseSkillPoints(charData.defenseVals);
+    const totalSpent = skillsSpent + defenseSpent;
+    const remaining = total - totalSpent;
+    return { total, spent: totalSpent, remaining, skillsSpent, defenseSpent };
 }
 
 export async function renderSkills(charData) {
@@ -138,8 +158,15 @@ export async function renderSkills(charData) {
     let headerHtml = '<div class="section-title">SKILLS</div>';
     if (isEditMode) {
         const tracking = getSkillPointTracking(charData, skillsData, speciesSkills);
-        const hasPoints = tracking.remaining > 0;
-        const penClass = hasPoints ? 'has-points' : 'no-points';
+        // Three states: over-budget (red), has-points (green), no-points (blue)
+        let penClass;
+        if (tracking.remaining < 0) {
+            penClass = 'over-budget';
+        } else if (tracking.remaining > 0) {
+            penClass = 'has-points';
+        } else {
+            penClass = 'no-points';
+        }
         headerHtml = `
             <div class="skills-header-row">
                 <div class="section-title">SKILLS</div>
@@ -152,11 +179,20 @@ export async function renderSkills(charData) {
     // Show skill point tracker when editing
     if (isEditMode && isEditingSkills) {
         const tracking = getSkillPointTracking(charData, skillsData, speciesSkills);
+        // Three states: over-budget (red), has-points (green), no-points (blue)
+        let trackerClass;
+        if (tracking.remaining < 0) {
+            trackerClass = 'over-budget';
+        } else if (tracking.remaining > 0) {
+            trackerClass = 'has-points';
+        } else {
+            trackerClass = 'no-points';
+        }
         const trackerHtml = `
             <div class="skill-point-tracker">
                 <div class="tracker-row">
                     <span class="tracker-label">Skill Points:</span>
-                    <span class="tracker-value ${tracking.remaining < 0 ? 'over-budget' : tracking.remaining > 0 ? 'has-points' : ''}">${tracking.remaining} / ${tracking.total}</span>
+                    <span class="tracker-value ${trackerClass}">${tracking.remaining} / ${tracking.total}</span>
                 </div>
                 <button class="skill-add-btn" onclick="window.showSkillModal()">+ Add Skill</button>
             </div>
@@ -480,6 +516,7 @@ function attachSkillEditHandlers(container, charData, skillsData, speciesSkills)
                 
                 if (window.scheduleAutoSave) window.scheduleAutoSave();
                 renderSkills(charData);
+                refreshAbilitiesSection(charData);
             }
         });
     });
@@ -492,6 +529,7 @@ function attachSkillEditHandlers(container, charData, skillsData, speciesSkills)
                 charData.skills[idx].ability = select.value;
                 if (window.scheduleAutoSave) window.scheduleAutoSave();
                 renderSkills(charData);
+                refreshAbilitiesSection(charData);
             }
         });
     });
@@ -525,8 +563,7 @@ function attachSkillEditHandlers(container, charData, skillsData, speciesSkills)
                             skill.prof = true;
                             skill.skill_val = 1;
                         } else {
-                            // Already proficient: increase skill_val
-                            if (tracking.remaining <= 0) return;
+                            // Already proficient: increase skill_val (allow overspending)
                             skill.skill_val = newVal;
                         }
                     } else {
@@ -549,8 +586,7 @@ function attachSkillEditHandlers(container, charData, skillsData, speciesSkills)
                             // Skill_val remains 0 (or set to 0 explicitly?)
                             skill.skill_val = 0;
                         } else {
-                            // Already proficient or from species: increase skill_val
-                            if (tracking.remaining <= 0) return;
+                            // Already proficient or from species: increase skill_val (allow overspending)
                             skill.skill_val = newVal;
                         }
                     } else {
@@ -562,6 +598,7 @@ function attachSkillEditHandlers(container, charData, skillsData, speciesSkills)
                 
                 if (window.scheduleAutoSave) window.scheduleAutoSave();
                 renderSkills(charData);
+                refreshAbilitiesSection(charData);
             }
         });
     });
@@ -591,6 +628,7 @@ function attachSkillEditHandlers(container, charData, skillsData, speciesSkills)
                 
                 if (window.scheduleAutoSave) window.scheduleAutoSave();
                 renderSkills(charData);
+                refreshAbilitiesSection(charData);
             }
         });
     });

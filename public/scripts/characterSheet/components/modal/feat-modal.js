@@ -13,6 +13,7 @@ import {
     initFirebase
 } from './modal-core.js';
 import { getCharacterResourceTracking, validateFeatAddition } from '../../validation.js';
+import { renderAbilities } from '../abilities.js';
 
 // --- Feat state ---
 let allFeats = [];
@@ -85,6 +86,60 @@ export async function showFeatModal(featType = 'archetype') {
 }
 
 /**
+ * Roman numeral utilities for feat leveling
+ */
+const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+const ROMAN_TO_NUM = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10 };
+
+/**
+ * Parse a feat name to extract base name and roman numeral level
+ * @param {string} name - Feat name like "Action Surge II"
+ * @returns {{ baseName: string, level: number, hasLevel: boolean }}
+ */
+function parseFeatLevel(name) {
+    if (!name) return { baseName: name, level: 1, hasLevel: false };
+    
+    // Check for roman numeral at the end (with space before it)
+    const match = name.match(/^(.+?)\s+(I{1,3}|IV|VI{0,3}|IX|X)$/i);
+    if (match) {
+        const baseName = match[1].trim();
+        const roman = match[2].toUpperCase();
+        const level = ROMAN_TO_NUM[roman] || 1;
+        return { baseName, level, hasLevel: true };
+    }
+    
+    // No roman numeral - this is level 1 (base feat)
+    return { baseName: name, level: 1, hasLevel: false };
+}
+
+/**
+ * Get the prerequisite feat name for a leveled feat
+ * @param {string} name - Feat name like "Action Surge II"
+ * @returns {string|null} - Prerequisite feat name or null if none needed
+ */
+function getPrerequisiteFeat(name) {
+    const parsed = parseFeatLevel(name);
+    if (parsed.level <= 1) return null; // Level 1 feats have no prerequisite
+    
+    const prevLevel = parsed.level - 1;
+    if (prevLevel === 1) {
+        // Previous level is the base feat (no numeral)
+        return parsed.baseName;
+    }
+    // Previous level has a roman numeral
+    return `${parsed.baseName} ${ROMAN_NUMERALS[prevLevel - 1]}`;
+}
+
+/**
+ * Get the feat name that this feat replaces (the lower level version)
+ * @param {string} name - Feat name like "Action Surge III"
+ * @returns {string|null} - Feat to replace or null
+ */
+function getFeatToReplace(name) {
+    return getPrerequisiteFeat(name); // Same as prerequisite
+}
+
+/**
  * Check if character meets feat requirements
  */
 function checkFeatRequirements(feat, charData) {
@@ -108,13 +163,29 @@ function checkFeatRequirements(feat, charData) {
     }
     
     if (feat.skill_req && feat.skill_req.length > 0) {
-        const skills = charData.skills || {};
+        const skillsArray = Array.isArray(charData.skills) ? charData.skills : [];
+        const abilities = charData.abilities || {};
+        
         for (let i = 0; i < feat.skill_req.length; i++) {
             const reqSkill = feat.skill_req[i];
             const reqVal = feat.skill_req_val?.[i] || 0;
-            const charVal = skills[reqSkill.toLowerCase()] || 0;
-            if (charVal < reqVal) {
-                issues.push(`${reqSkill} ${reqVal} required (have ${charVal})`);
+            
+            // Find the skill by name (case insensitive)
+            const skill = skillsArray.find(s => s.name && s.name.toLowerCase() === reqSkill.toLowerCase());
+            
+            if (!skill || !skill.prof) {
+                // Skill not found or not proficient
+                issues.push(`${reqSkill} proficiency required (not proficient)`);
+            } else {
+                // Calculate skill bonus: ability value + skill_val
+                const abilityName = skill.ability || '';
+                const abilityValue = abilities[abilityName.toLowerCase()] || 0;
+                const skillVal = skill.skill_val || 0;
+                const bonus = abilityValue + skillVal;
+                
+                if (bonus < reqVal) {
+                    issues.push(`${reqSkill} +${reqVal} required (have +${bonus})`);
+                }
             }
         }
     }
@@ -129,6 +200,19 @@ function checkFeatRequirements(feat, charData) {
         const powProf = charData.pow_prof || 0;
         if (powProf < parseInt(feat.pow_prof_req)) {
             issues.push(`Power Prof ${feat.pow_prof_req} required`);
+        }
+    }
+    
+    // Check for prerequisite feat (roman numeral leveling)
+    const prereqFeat = getPrerequisiteFeat(feat.name);
+    if (prereqFeat) {
+        const featsArray = charData.feats || [];
+        const hasPrereq = featsArray.some(f => {
+            const name = typeof f === 'string' ? f : f?.name;
+            return name === prereqFeat;
+        });
+        if (!hasPrereq) {
+            issues.push(`Requires "${prereqFeat}" feat`);
         }
     }
     
@@ -148,7 +232,8 @@ function renderFeatModal(container) {
     });
     
     const categories = Array.from(new Set(typeFilteredFeats.map(f => f.category).filter(Boolean))).sort();
-    const remainingClass = remaining > 0 ? 'points-available' : 'points-complete';
+    // Three-state: green (has-points) if remaining > 0, blue (no-points) if remaining == 0, red (over-budget) if remaining < 0
+    const remainingClass = remaining > 0 ? 'has-points' : (remaining < 0 ? 'over-budget' : 'no-points');
     
     container.innerHTML = `
         <div class="modal-header-info">
@@ -267,8 +352,17 @@ function renderFeatTable() {
             reqText.push(skillReqs);
         }
         
-        const isDisabled = !canAdd || !req.met;
-        const btnTitle = !canAdd ? 'No slots remaining' : (!req.met ? req.issues.join(', ') : 'Add feat');
+        // Allow adding feats even when overspent or requirements not met
+        // Button styling indicates status: green (slots available + met), blue (slots full + met), red (unmet requirements)
+        let btnClass = 'modal-add-btn';
+        let btnTitle = 'Add feat';
+        if (!req.met) {
+            btnClass += ' btn-unmet';
+            btnTitle = `Requirements not met: ${req.issues.join(', ')}`;
+        } else if (!canAdd) {
+            btnClass += ' btn-overspend';
+            btnTitle = 'Will overspend feat slots';
+        }
         
         return `
             <tr class="${req.met ? '' : 'row-unmet'}">
@@ -277,9 +371,8 @@ function renderFeatTable() {
                 <td>${f.category || '-'}</td>
                 <td class="requirements-cell ${req.met ? '' : 'unmet'}">${reqText.join('; ') || '-'}</td>
                 <td>
-                    <button class="modal-add-btn ${isDisabled ? 'disabled' : ''}" 
-                            onclick="window.addFeatToCharacter('${encodeURIComponent(f.name)}', '${selectedFeatType}')"
-                            ${isDisabled ? 'disabled' : ''}
+                    <button class="${btnClass}" 
+                            onclick="window.addFeatToCharacter('${encodeURIComponent(f.name)}', '${selectedFeatType}', ${!req.met})"
                             title="${btnTitle}">
                         Add
                     </button>
@@ -291,8 +384,11 @@ function renderFeatTable() {
 
 /**
  * Add a feat to the character
+ * @param {string} encodedName - URL-encoded feat name
+ * @param {string} featType - 'archetype' or 'character'
+ * @param {boolean} unmetRequirements - Whether the feat has unmet requirements
  */
-window.addFeatToCharacter = function(encodedName, featType) {
+window.addFeatToCharacter = async function(encodedName, featType, unmetRequirements = false) {
     const name = decodeURIComponent(encodedName);
     const charData = getCharacterData();
     
@@ -301,15 +397,8 @@ window.addFeatToCharacter = function(encodedName, featType) {
         return;
     }
     
-    const validation = validateFeatAddition(charData, featType);
-    if (!validation.valid) {
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(validation.error, 'error');
-        } else {
-            alert(validation.error);
-        }
-        return;
-    }
+    // Allow overspending - just proceed without validation blocking
+    // The UI will show red styling if overspent
     
     if (!Array.isArray(charData.feats)) charData.feats = [];
     
@@ -319,19 +408,47 @@ window.addFeatToCharacter = function(encodedName, featType) {
     });
     
     if (!alreadyHas) {
-        charData.feats.push(name);
+        // Check if this is a leveled feat that should replace a lower level version
+        const featToReplace = getFeatToReplace(name);
+        if (featToReplace) {
+            // Remove the lower level version
+            charData.feats = charData.feats.filter(f => {
+                const featName = typeof f === 'string' ? f : f?.name;
+                return featName !== featToReplace;
+            });
+        }
+        
+        // Store feat with unmet requirements flag if applicable
+        if (unmetRequirements) {
+            charData.feats.push({ name: name, unmetRequirements: true });
+        } else {
+            charData.feats.push(name);
+        }
     }
     
     if (window.scheduleAutoSave) window.scheduleAutoSave();
-    refreshLibraryAfterChange(charData, 'feats');
+    
+    // Refresh library first (this will re-enrich the character data)
+    await refreshLibraryAfterChange(charData, 'feats');
+    
+    // Then refresh abilities section to update feat point tracking (now with enriched data)
+    try {
+        const calculatedData = window.getCalculatedData ? window.getCalculatedData() : {};
+        renderAbilities(charData, calculatedData);
+    } catch (e) {
+        // Ignore if abilities section not available
+    }
+    
     closeResourceModal();
-    if (typeof window.showNotification === 'function') window.showNotification(`Added "${name}" feat.`, 'success');
+    const warningMsg = unmetRequirements ? ' (requirements not met)' : '';
+    const replacedMsg = getFeatToReplace(name) ? ` (replaced ${getFeatToReplace(name)})` : '';
+    if (typeof window.showNotification === 'function') window.showNotification(`Added "${name}" feat${warningMsg}${replacedMsg}.`, unmetRequirements ? 'warning' : 'success');
 };
 
 /**
  * Remove a feat from the character
  */
-window.removeFeatFromCharacter = function(encodedName, featType) {
+window.removeFeatFromCharacter = async function(encodedName, featType) {
     const name = decodeURIComponent(encodedName);
     const charData = getCharacterData();
     
@@ -349,7 +466,18 @@ window.removeFeatFromCharacter = function(encodedName, featType) {
     }
     
     if (window.scheduleAutoSave) window.scheduleAutoSave();
-    refreshLibraryAfterChange(charData, 'feats');
+    
+    // Refresh library first (this will re-enrich the character data)  
+    await refreshLibraryAfterChange(charData, 'feats');
+    
+    // Then refresh abilities section to update feat point tracking (now with enriched data)
+    try {
+        const calculatedData = window.getCalculatedData ? window.getCalculatedData() : {};
+        renderAbilities(charData, calculatedData);
+    } catch (e) {
+        // Ignore if abilities section not available
+    }
+    
     if (typeof window.showNotification === 'function') window.showNotification(`Removed "${name}" feat.`, 'success');
 };
 

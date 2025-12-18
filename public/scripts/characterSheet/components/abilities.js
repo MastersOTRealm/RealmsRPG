@@ -54,18 +54,38 @@ function renderResourceTracker(charData) {
     const resources = getCharacterResourceTracking(charData);
     const skillTracking = getDefenseSkillPointsTracking(charData);
     
+    // Three states for ability points: over-budget (red), has-points (green), no-points (blue)
+    let abilityClass;
+    if (resources.abilityPoints.remaining < 0) {
+        abilityClass = 'over-budget';
+    } else if (resources.abilityPoints.remaining > 0) {
+        abilityClass = 'has-points';
+    } else {
+        abilityClass = 'no-points';
+    }
+    
+    // Three states for skill points: over-budget (red), has-points (green), no-points (blue)
+    let skillClass;
+    if (skillTracking.remaining < 0) {
+        skillClass = 'over-budget';
+    } else if (skillTracking.remaining > 0) {
+        skillClass = 'has-points';
+    } else {
+        skillClass = 'no-points';
+    }
+    
     return `
         <div class="resource-tracker">
             <div class="resource-item ability-resource">
                 <span class="resource-label">Ability Points:</span>
-                <span class="resource-value ${resources.abilityPoints.remaining < 0 ? 'over-budget' : ''}">
+                <span class="resource-value ${abilityClass}">
                     ${resources.abilityPoints.remaining} / ${resources.abilityPoints.total}
                 </span>
                 <span class="resource-constraint">(Max: ${resources.abilityPoints.maxAbility}, Neg Sum: ${resources.abilityPoints.negativeSum}/${ABILITY_CONSTRAINTS.MAX_NEGATIVE_SUM})</span>
             </div>
             <div class="resource-item skill-resource">
                 <span class="resource-label">Skill Points:</span>
-                <span class="resource-value ${skillTracking.remaining < 0 ? 'over-budget' : ''}">
+                <span class="resource-value ${skillClass}">
                     ${skillTracking.remaining} / ${skillTracking.total}
                 </span>
                 <span class="resource-constraint">(Skills: ${skillTracking.skillsSpent}, Defenses: ${skillTracking.defenseSpent})</span>
@@ -97,13 +117,13 @@ function renderEditableAbility(charData, entry) {
     
     const costLabel = editInfo.increaseCost > 1 ? `(${editInfo.increaseCost}pts)` : '';
     
-    // Defense editing validation
+    // Defense editing validation - only block if max defense bonus is reached
     const skillTracking = getDefenseSkillPointsTracking(charData);
-    const canIncreaseDefense = skillTracking.remaining >= 2 && defenseBonus < maxDefenseBonus;
+    const canIncreaseDefense = defenseBonus < maxDefenseBonus; // Allow overspending skill points
     const canDecreaseDefense = defVal > 0;
     const defenseIncTitle = !canIncreaseDefense 
-        ? (skillTracking.remaining < 2 ? 'Not enough skill points (2 needed)' : `Defense cannot exceed level + 10 (${maxDefenseBonus})`)
-        : 'Increase defense value (2 skill points)';
+        ? `Defense cannot exceed level + 10 (${maxDefenseBonus})`
+        : `Increase defense value (2 skill points)${skillTracking.remaining < 2 ? ' - will overspend' : ''}`;
     const defenseDecTitle = canDecreaseDefense ? 'Decrease defense value (refund 2 skill points)' : 'Defense value is 0';
     
     return `
@@ -117,7 +137,6 @@ function renderEditableAbility(charData, entry) {
                 <span class="ability-mod-display">${formatBonus(abilVal)}</span>
                 <button class="ability-inc" 
                     onclick="window.increaseAbility('${entry.abil}')" 
-                    ${!editInfo.canIncrease ? 'disabled' : ''}
                     title="${editInfo.increaseReason || 'Increase ability'} ${costLabel}">+</button>
             </div>
             ${editInfo.increaseCost > 1 ? `<div class="ability-cost-hint">${costLabel}</div>` : ''}
@@ -188,8 +207,16 @@ export function renderAbilities(charData, calculatedData) {
     // Add pencil icon in top-right when in edit mode (always visible)
     if (isEditMode) {
         const resources = getCharacterResourceTracking(charData);
-        const hasPoints = resources.abilityPoints.remaining > 0;
-        const penClass = hasPoints ? 'has-points' : 'no-points';
+        const remaining = resources.abilityPoints.remaining;
+        // Three states: over-budget (red), has-points (green), no-points (blue)
+        let penClass;
+        if (remaining < 0) {
+            penClass = 'over-budget';
+        } else if (remaining > 0) {
+            penClass = 'has-points';
+        } else {
+            penClass = 'no-points';
+        }
         const penIcon = `
             <div class="abilities-edit-toggle">
                 <span class="edit-section-toggle ${penClass}" onclick="window.toggleAbilitiesEditor()" title="Edit abilities">🖉</span>

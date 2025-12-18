@@ -114,16 +114,22 @@
   font-weight: 600;
 }
 
-.feat-slots-badge.points-available {
+.feat-slots-badge.has-points {
   background: rgba(76, 175, 80, 0.15);
   color: #2e7d32;
   border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
-.feat-slots-badge.points-complete {
+.feat-slots-badge.no-points {
   background: rgba(74, 144, 226, 0.15);
   color: var(--primary-blue, #1a73e8);
   border: 1px solid rgba(74, 144, 226, 0.3);
+}
+
+.feat-slots-badge.over-budget {
+  background: rgba(192, 57, 43, 0.15);
+  color: var(--danger-red, #c0392b);
+  border: 1px solid rgba(192, 57, 43, 0.3);
 }
 
 /* ============================================
@@ -318,6 +324,39 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* Unmet requirements button - orange/warning style */
+.modal-add-btn.btn-unmet {
+  background: linear-gradient(135deg, #f5a623 0%, #d68910 100%);
+  border-color: #d68910;
+}
+
+.modal-add-btn.btn-unmet:hover {
+  background: linear-gradient(135deg, #f7b84b 0%, #e5a21e 100%);
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+}
+
+/* Overspend button - red/danger style */
+.modal-add-btn.btn-overspend {
+  background: linear-gradient(135deg, var(--danger-red, #c0392b) 0%, #922b21 100%);
+  border-color: #922b21;
+}
+
+.modal-add-btn.btn-overspend:hover {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3);
+}
+
+/* Combined unmet + overspend - darker red */
+.modal-add-btn.btn-unmet.btn-overspend {
+  background: linear-gradient(135deg, #c0392b 0%, #7b241c 100%);
+  border-color: #7b241c;
+}
+
+.modal-add-btn.btn-unmet.btn-overspend:hover {
+  background: linear-gradient(135deg, #e74c3c 0%, #922b21 100%);
+  box-shadow: 0 4px 12px rgba(123, 36, 28, 0.3);
 }
 
 /* ============================================

@@ -36,6 +36,14 @@ export function clearAllCaches() {
     _speciesCache = null;
 }
 
+/**
+ * Get cached feat data synchronously (returns null if not cached)
+ * @returns {Array|null} Cached feat data or null
+ */
+export function getCachedFeats() {
+    return _allFeatsCache;
+}
+
 // ============================================================================
 // Retry Helper (for network resilience)
 // ============================================================================
@@ -314,7 +322,8 @@ export async function fetchAllFeats(database = null) {
             uses_per_rec: parseInt(feat.uses_per_rec) || 0,
             rec_period: feat.rec_period || 'Full Recovery',
             char_feat: feat.char_feat === true || feat.char_feat === 'true',
-            state_feat: feat.state_feat === true || feat.state_feat === 'true'
+            state_feat: feat.state_feat === true || feat.state_feat === 'true',
+            feat_lvl: parseInt(feat.feat_lvl) || 1
         }));
         
         console.log(`[rtdb-cache] Loaded ${_allFeatsCache.length} character feats`);

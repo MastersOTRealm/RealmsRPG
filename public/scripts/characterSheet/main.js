@@ -457,15 +457,17 @@ window.increaseAbility = function(abilityName) {
     const spentPoints = calculateAbilityPointsSpent(currentCharacterData.abilities, baseAbilities);
     const availablePoints = totalPoints - spentPoints;
     
+    // Pass a large available points value to bypass point restriction (allow overspending)
     const result = canIncreaseAbility(
         currentCharacterData.abilities,
         abilityName,
         level,
-        availablePoints,
+        999, // Allow overspending
         baseAbilities
     );
     
-    if (!result.canIncrease) {
+    // Only block if it's a max ability constraint, not a points constraint
+    if (!result.canIncrease && result.reason && result.reason.includes('Maximum ability score')) {
         showNotification(result.reason, 'error');
         return false;
     }
@@ -544,22 +546,8 @@ window.increaseDefense = function(defenseKey) {
         return false;
     }
     
-    // Check skill points (need 2 points)
-    const totalSkillPoints = calculateSkillPoints(level);
-    const skillsSpent = (currentCharacterData.skills || []).reduce((sum, skill) => {
-        let cost = skill.skill_val || 0;
-        const isSubSkill = skill.baseSkill || false;
-        if (skill.prof && !isSubSkill) cost += 1;
-        return sum + cost;
-    }, 0);
-    const defenseSpent = Object.values(defenseVals).reduce((sum, val) => sum + (val * 2), 0);
-    const totalSpent = skillsSpent + defenseSpent;
-    const remaining = totalSkillPoints - totalSpent;
-    
-    if (remaining < 2) {
-        showNotification('Not enough skill points (2 needed)', 'error');
-        return false;
-    }
+    // Allow overspending - just apply the increase
+    // The UI will show red styling if overspent
     
     // Apply the increase
     if (!currentCharacterData.defenseVals) currentCharacterData.defenseVals = {};
@@ -613,16 +601,20 @@ window.getAbilityEditInfo = function(abilityName) {
     const availablePoints = totalPoints - spentPoints;
     
     const currentValue = currentCharacterData.abilities?.[abilityName] || 0;
-    const increaseResult = canIncreaseAbility(currentCharacterData.abilities, abilityName, level, availablePoints, baseAbilities);
+    // Pass large available points to bypass point restriction, only enforce max ability limit
+    const increaseResult = canIncreaseAbility(currentCharacterData.abilities, abilityName, level, 999, baseAbilities);
     const decreaseResult = canDecreaseAbility(currentCharacterData.abilities, abilityName, baseAbilities);
+    
+    // Only block if it's a max ability constraint, not a points constraint
+    const canIncrease = increaseResult.canIncrease || (!increaseResult.canIncrease && increaseResult.reason && !increaseResult.reason.includes('Maximum ability score'));
     
     return {
         currentValue,
-        canIncrease: increaseResult.canIncrease,
+        canIncrease: canIncrease,
         canDecrease: decreaseResult.canDecrease,
         increaseCost: increaseResult.cost,
         decreaseRefund: decreaseResult.refund,
-        increaseReason: increaseResult.reason,
+        increaseReason: availablePoints < increaseResult.cost ? `Will overspend by ${increaseResult.cost - availablePoints} points` : increaseResult.reason,
         decreaseReason: decreaseResult.reason
     };
 };
@@ -661,12 +653,7 @@ window.toggleProficiencyEditor = function() {
 window.increaseMartialProf = function() {
     if (!currentCharacterData || !window.isEditMode) return false;
     
-    const resources = getCharacterResourceTracking(currentCharacterData);
-    if (resources.proficiencyPoints.remaining <= 0) {
-        showNotification('No proficiency points remaining.', 'error');
-        return false;
-    }
-    
+    // Allow overspending - UI will show red if over budget
     currentCharacterData.mart_prof = (currentCharacterData.mart_prof || 0) + 1;
     window.refreshCharacterSheet();
     scheduleAutoSave();
@@ -696,12 +683,7 @@ window.decreaseMartialProf = function() {
 window.increasePowerProf = function() {
     if (!currentCharacterData || !window.isEditMode) return false;
     
-    const resources = getCharacterResourceTracking(currentCharacterData);
-    if (resources.proficiencyPoints.remaining <= 0) {
-        showNotification('No proficiency points remaining.', 'error');
-        return false;
-    }
-    
+    // Allow overspending - UI will show red if over budget
     currentCharacterData.pow_prof = (currentCharacterData.pow_prof || 0) + 1;
     window.refreshCharacterSheet();
     scheduleAutoSave();
@@ -736,12 +718,7 @@ window.increaseHealthAllocation = function(amount = 1) {
     const currentHealth = currentCharacterData.health_energy_points?.health || 0;
     const newHealth = currentHealth + amount;
     
-    const validation = validateHealthIncrease(currentCharacterData, newHealth);
-    
-    if (!validation.valid) {
-        showNotification(validation.error, 'error');
-        return false;
-    }
+    // Allow overspending - UI will show red if over budget
     
     // Apply the increase
     if (!currentCharacterData.health_energy_points) {
@@ -794,12 +771,7 @@ window.increaseEnergyAllocation = function(amount = 1) {
     const currentEnergy = currentCharacterData.health_energy_points?.energy || 0;
     const newEnergy = currentEnergy + amount;
     
-    const validation = validateEnergyIncrease(currentCharacterData, newEnergy);
-    
-    if (!validation.valid) {
-        showNotification(validation.error, 'error');
-        return false;
-    }
+    // Allow overspending - UI will show red if over budget
     
     // Apply the increase
     if (!currentCharacterData.health_energy_points) {
@@ -941,6 +913,49 @@ function capitalizeDamageType(type) {
     if (!type) return '';
     return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 }
+
+/**
+ * Get calculated data for the current character
+ * Used by components that need to refresh just their section
+ */
+window.getCalculatedData = function() {
+    if (!currentCharacterData) return {};
+    
+    let archetypeAbility = null;
+    if (currentCharacterData.pow_prof > 0) archetypeAbility = currentCharacterData.pow_abil;
+    else if (currentCharacterData.mart_prof > 0) archetypeAbility = currentCharacterData.mart_abil;
+    
+    const defensesCalc = calculateDefenses(currentCharacterData.abilities, currentCharacterData.defenseVals);
+    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0);
+    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0);
+    const maxHealth = calculateMaxHealth(
+        currentCharacterData.health_energy_points?.health || 0,
+        currentCharacterData.abilities.vitality || 0,
+        currentCharacterData.level || 1,
+        archetypeAbility,
+        currentCharacterData.abilities
+    );
+    const maxEnergy = calculateMaxEnergy(
+        currentCharacterData.health_energy_points?.energy || 0,
+        archetypeAbility,
+        currentCharacterData.abilities,
+        currentCharacterData.level || 1
+    );
+    
+    return {
+        defenseScores: defensesCalc.defenseScores,
+        defenseBonuses: defensesCalc.defenseBonuses,
+        healthEnergy: { maxHealth, maxEnergy },
+        bonuses: calculateBonuses(
+            currentCharacterData.mart_prof,
+            currentCharacterData.pow_prof,
+            currentCharacterData.abilities,
+            currentCharacterData.pow_abil || 'charisma'
+        ),
+        speed,
+        evasion
+    };
+};
 
 /**
  * Recalculates all derived stats and re-renders the entire character sheet.

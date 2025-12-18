@@ -22,6 +22,7 @@ import {
     canDecreaseAbility,
     getNegativeAbilitySum
 } from './level-progression.js';
+import { getCachedFeats } from '../utils/rtdb-cache.js';
 
 // Re-export for convenience
 export {
@@ -216,7 +217,7 @@ export function validateFeatAddition(character, featType) {
     const level = character.level || 1;
     const highestArchetypeAbility = getHighestArchetypeAbility(character);
     const progression = getLevelProgression(level, highestArchetypeAbility);
-    const featCounts = countFeatsByType(character, progression);
+    const featCounts = countFeatsByTypeSync(character, progression);
     
     let maxFeats, currentFeats;
     if (featType === 'archetype') {
@@ -301,49 +302,147 @@ export function getCharacterResourceTracking(character) {
             martial: character.mart_prof || 0,
             power: character.pow_prof || 0
         },
-        feats: countFeatsByType(character, progression)
+        feats: countFeatsByTypeSync(character, progression)
     };
 }
 
 /**
- * Count feats by type (archetype vs character) based on char_feat property
+ * Count feats by type (synchronous version - uses enriched data when available)
  * @param {object} character - Full character data
  * @param {object} progression - Level progression data
  * @returns {object} Feat tracking for both types
  */
-function countFeatsByType(character, progression) {
+function countFeatsByTypeSync(character, progression) {
     // Use _displayFeats if available (enriched data), otherwise check raw feats
     const displayFeats = character._displayFeats || [];
     const rawFeats = character.feats || [];
     
-    let archetypeCount = 0;
-    let characterCount = 0;
+    let archetypeCost = 0;
+    let characterCost = 0;
     
     if (displayFeats.length > 0) {
-        // Count from enriched display feats
+        // Count from enriched display feats, using feat_lvl for cost
         displayFeats.forEach(f => {
             if (f.state_feat) return; // Don't count state feats
+            const cost = parseInt(f.feat_lvl) || 1; // Use feat_lvl, default to 1
             if (f.char_feat) {
-                characterCount++;
+                characterCost += cost;
             } else {
-                archetypeCount++;
+                archetypeCost += cost;
             }
         });
-    } else {
-        // Fallback: all raw feats are archetype feats unless we can check
-        archetypeCount = rawFeats.length;
+    } else if (rawFeats.length > 0) {
+        // Fallback: try to use cached feat data to get proper feat_lvl values
+        try {
+            const cachedFeats = getCachedFeats();
+            
+            if (cachedFeats && cachedFeats.length > 0) {
+                rawFeats.forEach(featEntry => {
+                    const featName = typeof featEntry === 'string' ? featEntry : featEntry?.name;
+                    if (!featName) return;
+                    
+                    const featData = cachedFeats.find(f => f.name === featName);
+                    const cost = featData ? (parseInt(featData.feat_lvl) || 1) : 1;
+                    const isCharFeat = featData ? !!featData.char_feat : false;
+                    const isStateFeat = featData ? !!featData.state_feat : false;
+                    
+                    if (isStateFeat) return; // Don't count state feats
+                    
+                    if (isCharFeat) {
+                        characterCost += cost;
+                    } else {
+                        archetypeCost += cost;
+                    }
+                });
+            } else {
+                // Final fallback: all raw feats are archetype feats with cost 1 each
+                archetypeCost = rawFeats.length;
+            }
+        } catch (e) {
+            // If we can't access cache, fall back to counting as 1 each
+            archetypeCost = rawFeats.length;
+        }
     }
     
     return {
         archetype: {
             max: progression.maxArchetypeFeats,
-            current: archetypeCount,
-            remaining: progression.maxArchetypeFeats - archetypeCount
+            current: archetypeCost,
+            remaining: progression.maxArchetypeFeats - archetypeCost
         },
         character: {
             max: progression.maxCharacterFeats,
-            current: characterCount,
-            remaining: progression.maxCharacterFeats - characterCount
+            current: characterCost,
+            remaining: progression.maxCharacterFeats - characterCost
+        }
+    };
+}
+
+/**
+ * Count feats by type (async version - fetches feat data when needed)
+ * @param {object} character - Full character data
+ * @param {object} progression - Level progression data
+ * @returns {object} Feat tracking for both types
+ */
+async function countFeatsByType(character, progression) {
+    // Use _displayFeats if available (enriched data), otherwise check raw feats
+    const displayFeats = character._displayFeats || [];
+    const rawFeats = character.feats || [];
+    
+    let archetypeCost = 0;
+    let characterCost = 0;
+    
+    if (displayFeats.length > 0) {
+        // Count from enriched display feats, using feat_lvl for cost
+        displayFeats.forEach(f => {
+            if (f.state_feat) return; // Don't count state feats
+            const cost = parseInt(f.feat_lvl) || 1; // Use feat_lvl, default to 1
+            if (f.char_feat) {
+                characterCost += cost;
+            } else {
+                archetypeCost += cost;
+            }
+        });
+    } else if (rawFeats.length > 0) {
+        // Fallback: fetch feat data to get proper feat_lvl values
+        try {
+            const { fetchAllFeats } = await import('../utils/rtdb-cache.js');
+            const allFeats = await fetchAllFeats();
+            
+            rawFeats.forEach(featEntry => {
+                const featName = typeof featEntry === 'string' ? featEntry : featEntry?.name;
+                if (!featName) return;
+                
+                const featData = allFeats.find(f => f.name === featName);
+                const cost = featData ? (parseInt(featData.feat_lvl) || 1) : 1;
+                const isCharFeat = featData ? !!featData.char_feat : false;
+                const isStateFeat = featData ? !!featData.state_feat : false;
+                
+                if (isStateFeat) return; // Don't count state feats
+                
+                if (isCharFeat) {
+                    characterCost += cost;
+                } else {
+                    archetypeCost += cost;
+                }
+            });
+        } catch (e) {
+            // If we can't fetch feat data, fall back to counting as 1 each
+            console.warn('[validation] Failed to fetch feat data for cost calculation:', e);
+            archetypeCost = rawFeats.length;
+        }
+    }
+    
+    return {
+        archetype: {
+            max: progression.maxArchetypeFeats,
+            current: archetypeCost,
+            remaining: progression.maxArchetypeFeats - archetypeCost
+        },
+        character: {
+            max: progression.maxCharacterFeats,
+            current: characterCost,
+            remaining: progression.maxCharacterFeats - characterCost
         }
     };
 }

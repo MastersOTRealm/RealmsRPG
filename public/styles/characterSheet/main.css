@@ -360,6 +360,14 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
     font-size: 14px;
 }
 
+.resource-value.has-points {
+    color: #4caf50;
+}
+
+.resource-value.no-points {
+    color: var(--primary-blue);
+}
+
 .resource-value.over-budget {
     color: var(--danger-red);
 }
@@ -410,6 +418,16 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
     background: white;
     padding: 3px 10px;
     border-radius: 12px;
+}
+
+.he-remaining.has-points {
+    color: #388e3c;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.he-remaining.no-points {
+    color: var(--primary-blue);
+    background: rgba(74, 144, 226, 0.1);
 }
 
 .he-remaining.over-budget {
@@ -507,6 +525,11 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
 
 .edit-section-toggle.no-points {
     color: var(--primary-blue);
+}
+
+.edit-section-toggle.over-budget {
+    color: var(--danger-red, #dc3545);
+    filter: drop-shadow(0 0 2px var(--danger-red, #dc3545));
 }
 
 /* Editable Ability Styles */
@@ -673,6 +696,11 @@ body.edit-mode .ability {
     color: var(--primary-blue);
 }
 
+.prof-edit-toggle.over-budget {
+    color: var(--danger-red, #dc3545);
+    filter: drop-shadow(0 0 2px var(--danger-red, #dc3545));
+}
+
 .prof-edit-panel {
     background: var(--bg-secondary);
     padding: 16px;
@@ -704,6 +732,10 @@ body.edit-mode .ability {
 
 .prof-points-remaining.no-points {
     color: var(--primary-blue);
+}
+
+.prof-points-remaining.over-budget {
+    color: var(--danger-red, #dc3545);
 }
 
 .prof-edit-groups {
@@ -783,6 +815,55 @@ body.edit-mode .ability {
 .points-complete {
     color: var(--primary-blue);
     background: rgba(74, 144, 226, 0.1);
+}
+
+.points-over-budget {
+    color: var(--danger-red, #dc3545);
+    background: rgba(220, 53, 69, 0.1);
+}
+
+/* Resource add button color states */
+.resource-add-btn {
+    padding: 4px 10px;
+    font-size: 0.85em;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    transition: all 0.2s;
+    color: white;
+}
+
+.resource-add-btn.btn-green {
+    background: #4caf50;
+}
+
+.resource-add-btn.btn-green:hover {
+    background: #45a049;
+    transform: scale(1.02);
+}
+
+.resource-add-btn.btn-blue {
+    background: var(--primary-blue);
+}
+
+.resource-add-btn.btn-blue:hover {
+    background: var(--primary-dark);
+    transform: scale(1.02);
+}
+
+.resource-add-btn.btn-red {
+    background: var(--danger-red, #dc3545);
+}
+
+.resource-add-btn.btn-red:hover {
+    background: #c82333;
+    transform: scale(1.02);
+}
+
+/* Remove disabled state styling since we allow overspending */
+.resource-add-btn:disabled {
+    opacity: 1;
+    cursor: pointer;
 }
 
 .feat-edit-controls {

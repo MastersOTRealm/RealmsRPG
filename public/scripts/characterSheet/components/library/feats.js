@@ -64,13 +64,32 @@ function createTraitRow(trait, type, allTraits, charData) {
 function createFeatRow(f, featType = 'archetype') {
     const isEditMode = document.body.classList.contains('edit-mode');
     
+    // Check if this feat has unmet requirements (stored as object with unmetRequirements flag)
+    const hasUnmetRequirements = f.unmetRequirements === true;
+    
     const row = new CollapsibleRow({
         title: f.name,
         description: f.description || 'No description available.',
-        className: 'collapsible-feat',
+        className: `collapsible-feat${hasUnmetRequirements ? ' unmet-requirements' : ''}`,
         uses: f.uses ? { current: f.currentUses ?? f.uses, max: f.uses, recovery: f.recovery || 'Full Recovery' } : null,
         onUse: f.uses ? (delta) => window.changeFeatUses(f.name, delta) : null
     });
+    
+    // Add red border styling for unmet requirements
+    if (hasUnmetRequirements) {
+        row.element.style.cssText = 'border: 2px solid var(--danger-red, #dc3545); border-radius: 8px; margin-bottom: 4px;';
+        // Add warning indicator to header
+        const header = row.element.querySelector('.collapsed-row');
+        if (header) {
+            const warningBadge = document.createElement('span');
+            warningBadge.className = 'unmet-requirements-badge';
+            warningBadge.innerHTML = '⚠️';
+            warningBadge.title = 'Requirements not met';
+            warningBadge.style.cssText = 'margin-left: 8px; font-size: 14px;';
+            const titleEl = header.querySelector('.collapsed-row-title');
+            if (titleEl) titleEl.appendChild(warningBadge);
+        }
+    }
 
     // Add remove button in edit mode
     if (isEditMode) {
@@ -112,19 +131,37 @@ function addFeatEditControls(section, featType, tracking) {
     editControls.className = 'feat-edit-controls';
     editControls.style.cssText = 'display:flex;align-items:center;gap:8px;margin-left:auto;';
     
-    // Slots remaining indicator
-    const hasRemaining = tracking.remaining > 0;
-    const slotsIndicator = document.createElement('span');
-    slotsIndicator.className = `feat-slots-indicator ${hasRemaining ? 'points-available' : 'points-complete'}`;
-    slotsIndicator.textContent = `${tracking.current}/${tracking.max}`;
-    slotsIndicator.title = `${tracking.remaining} slots remaining`;
+    // Slots remaining indicator - three states
+    let indicatorClass;
+    if (tracking.remaining < 0) {
+        indicatorClass = 'points-over-budget';
+    } else if (tracking.remaining > 0) {
+        indicatorClass = 'points-available';
+    } else {
+        indicatorClass = 'points-complete';
+    }
     
-    // Add Feat button
+    const slotsIndicator = document.createElement('span');
+    slotsIndicator.className = `feat-slots-indicator ${indicatorClass}`;
+    slotsIndicator.textContent = `${tracking.current}/${tracking.max}`;
+    slotsIndicator.title = tracking.remaining >= 0 ? `${tracking.remaining} slots remaining` : `${Math.abs(tracking.remaining)} over limit`;
+    
+    // Add Feat button - three color states
+    let buttonClass;
+    if (tracking.remaining < 0) {
+        buttonClass = 'btn-red';
+    } else if (tracking.remaining > 0) {
+        buttonClass = 'btn-green';
+    } else {
+        buttonClass = 'btn-blue';
+    }
+    
     const addBtn = document.createElement('button');
-    addBtn.className = `resource-add-btn ${!hasRemaining ? 'disabled' : ''}`;
+    addBtn.className = `resource-add-btn ${buttonClass}`;
     addBtn.innerHTML = '+ Add';
-    addBtn.title = hasRemaining ? `Add ${featType} feat (${tracking.remaining} slots available)` : 'No slots remaining';
-    addBtn.disabled = !hasRemaining;
+    addBtn.title = tracking.remaining > 0 ? `Add ${featType} feat (${tracking.remaining} slots available)` : 
+                   tracking.remaining === 0 ? 'All slots filled' : 
+                   `Over limit by ${Math.abs(tracking.remaining)}`;
     addBtn.onclick = (e) => {
         e.stopPropagation();
         if (window.showFeatModal) {

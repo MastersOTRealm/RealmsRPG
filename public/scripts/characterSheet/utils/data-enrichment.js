@@ -47,6 +47,7 @@ export async function enrichFeats(characterFeats) {
         const currentUses = typeof featEntry === 'object' && typeof featEntry.currentUses === 'number'
             ? featEntry.currentUses
             : undefined;
+        const unmetRequirements = typeof featEntry === 'object' && featEntry.unmetRequirements === true;
         
         if (!featName) return null;
         
@@ -60,7 +61,9 @@ export async function enrichFeats(characterFeats) {
                 recovery: featData.rec_period || 'Full Recovery',
                 currentUses: typeof currentUses === 'number' ? currentUses : featData.uses_per_rec || 0,
                 char_feat: !!featData.char_feat,
-                state_feat: !!featData.state_feat
+                state_feat: !!featData.state_feat,
+                feat_lvl: parseInt(featData.feat_lvl) || 1,
+                unmetRequirements
             };
         }
         
@@ -72,16 +75,19 @@ export async function enrichFeats(characterFeats) {
             recovery: 'Full Recovery',
             currentUses: typeof currentUses === 'number' ? currentUses : 0,
             char_feat: false,
-            state_feat: false
+            state_feat: false,
+            feat_lvl: 1,
+            unmetRequirements
         };
     }).filter(Boolean);
     
-    // Saveable format: only name and currentUses
+    // Saveable format: only name, currentUses, and unmetRequirements
     const saveableFeats = featEntries.map(featEntry => {
         if (typeof featEntry === 'string') return featEntry;
         if (featEntry && typeof featEntry === 'object' && featEntry.name) {
             const obj = { name: featEntry.name };
             if (typeof featEntry.currentUses === 'number') obj.currentUses = featEntry.currentUses;
+            if (featEntry.unmetRequirements === true) obj.unmetRequirements = true;
             return obj;
         }
         return null;

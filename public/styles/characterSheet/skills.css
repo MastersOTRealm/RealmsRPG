@@ -60,6 +60,10 @@
     color: var(--success-color, #28a745);
 }
 
+.tracker-value.no-points {
+    color: var(--primary-blue, #1a73e8);
+}
+
 .tracker-value.over-budget {
     color: var(--error-color, #dc3545);
 }
