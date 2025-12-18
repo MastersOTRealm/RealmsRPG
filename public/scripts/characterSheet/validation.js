@@ -335,7 +335,6 @@ function countFeatsByTypeSync(character, progression) {
     if (displayFeats.length > 0) {
         // Count from enriched display feats, using feat_lvl for cost
         displayFeats.forEach(f => {
-            if (f.state_feat) return; // Don't count state feats
             const cost = parseInt(f.feat_lvl) || 1; // Use feat_lvl, default to 1
             if (f.char_feat) {
                 characterCost += cost;
@@ -356,9 +355,6 @@ function countFeatsByTypeSync(character, progression) {
                     const featData = cachedFeats.find(f => f.name === featName);
                     const cost = featData ? (parseInt(featData.feat_lvl) || 1) : 1;
                     const isCharFeat = featData ? !!featData.char_feat : false;
-                    const isStateFeat = featData ? !!featData.state_feat : false;
-                    
-                    if (isStateFeat) return; // Don't count state feats
                     
                     if (isCharFeat) {
                         characterCost += cost;
@@ -407,7 +403,6 @@ async function countFeatsByType(character, progression) {
     if (displayFeats.length > 0) {
         // Count from enriched display feats, using feat_lvl for cost
         displayFeats.forEach(f => {
-            if (f.state_feat) return; // Don't count state feats
             const cost = parseInt(f.feat_lvl) || 1; // Use feat_lvl, default to 1
             if (f.char_feat) {
                 characterCost += cost;
@@ -428,9 +423,6 @@ async function countFeatsByType(character, progression) {
                 const featData = allFeats.find(f => f.name === featName);
                 const cost = featData ? (parseInt(featData.feat_lvl) || 1) : 1;
                 const isCharFeat = featData ? !!featData.char_feat : false;
-                const isStateFeat = featData ? !!featData.state_feat : false;
-                
-                if (isStateFeat) return; // Don't count state feats
                 
                 if (isCharFeat) {
                     characterCost += cost;

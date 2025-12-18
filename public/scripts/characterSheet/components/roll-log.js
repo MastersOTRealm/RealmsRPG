@@ -9,6 +9,9 @@ let rollLog = [];
 let isRollLogOpen = false;
 let rollLogElement = null;
 
+// Dice roller state
+const dicePool = { d4: 0, d6: 0, d8: 0, d10: 0, d12: 0, d20: 0 };
+
 /**
  * Initialize the roll log component
  * Creates the toggle button and log container in the DOM
@@ -21,11 +24,11 @@ export function initRollLog() {
     container.id = 'roll-log-container';
     container.className = 'roll-log-container';
     
-    // Create toggle button
+    // Create toggle button with dice image
     const toggleBtn = document.createElement('button');
     toggleBtn.id = 'roll-log-toggle';
     toggleBtn.className = 'roll-log-toggle';
-    toggleBtn.innerHTML = '🎲';
+    toggleBtn.innerHTML = '<img src="/images/RD20.png" alt="Roll Log" class="toggle-dice-img">';
     toggleBtn.title = 'Toggle Roll Log';
     toggleBtn.onclick = toggleRollLog;
     
@@ -48,8 +51,45 @@ export function initRollLog() {
     rollList.className = 'roll-log-list';
     rollList.innerHTML = '<div class="roll-log-empty">No rolls yet. Roll some dice!</div>';
     
+    // Dice roller section
+    const diceRoller = document.createElement('div');
+    diceRoller.id = 'dice-roller-section';
+    diceRoller.className = 'dice-roller-section';
+    diceRoller.innerHTML = `
+        <div class="dice-roller-row">
+            <button id="dice-roll-btn" class="dice-roll-all-btn" style="display:none;" onclick="window.rollDicePool()">Roll</button>
+            <div class="dice-buttons">
+                <div class="dice-btn-wrapper" data-die="d4">
+                    <img src="/images/D4.png" alt="d4" class="dice-img" oncontextmenu="return false;">
+                    <span class="dice-count" style="display:none;">0</span>
+                </div>
+                <div class="dice-btn-wrapper" data-die="d6">
+                    <img src="/images/D6.png" alt="d6" class="dice-img" oncontextmenu="return false;">
+                    <span class="dice-count" style="display:none;">0</span>
+                </div>
+                <div class="dice-btn-wrapper" data-die="d8">
+                    <img src="/images/D8.png" alt="d8" class="dice-img" oncontextmenu="return false;">
+                    <span class="dice-count" style="display:none;">0</span>
+                </div>
+                <div class="dice-btn-wrapper" data-die="d10">
+                    <img src="/images/D10.png" alt="d10" class="dice-img" oncontextmenu="return false;">
+                    <span class="dice-count" style="display:none;">0</span>
+                </div>
+                <div class="dice-btn-wrapper" data-die="d12">
+                    <img src="/images/D12.png" alt="d12" class="dice-img" oncontextmenu="return false;">
+                    <span class="dice-count" style="display:none;">0</span>
+                </div>
+                <div class="dice-btn-wrapper" data-die="d20">
+                    <img src="/images/D20_1.png" alt="d20" class="dice-img" oncontextmenu="return false;">
+                    <span class="dice-count" style="display:none;">0</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
     logPanel.appendChild(header);
     logPanel.appendChild(rollList);
+    logPanel.appendChild(diceRoller);
     
     container.appendChild(logPanel);
     container.appendChild(toggleBtn);
@@ -57,11 +97,104 @@ export function initRollLog() {
     document.body.appendChild(container);
     rollLogElement = logPanel;
     
+    // Setup dice button click handlers
+    setupDiceButtons();
+    
     // Expose functions globally
     window.clearRollLog = clearRollLog;
     window.addRoll = addRoll;
     window.toggleRollLog = toggleRollLog;
     window.openRollLog = openRollLog;
+    window.rollDicePool = rollDicePool;
+}
+
+/**
+ * Setup click/right-click handlers for dice buttons
+ */
+function setupDiceButtons() {
+    setTimeout(() => {
+        const wrappers = document.querySelectorAll('.dice-btn-wrapper');
+        wrappers.forEach(wrapper => {
+            const die = wrapper.dataset.die;
+            const img = wrapper.querySelector('.dice-img');
+            
+            // Left click: add die
+            img.addEventListener('click', () => {
+                dicePool[die]++;
+                updateDiceUI();
+            });
+            
+            // Right click: remove die
+            img.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (dicePool[die] > 0) {
+                    dicePool[die]--;
+                    updateDiceUI();
+                }
+            });
+        });
+    }, 0);
+}
+
+/**
+ * Update the dice roller UI to reflect current pool
+ */
+function updateDiceUI() {
+    const hasAnyDice = Object.values(dicePool).some(v => v > 0);
+    const rollBtn = document.getElementById('dice-roll-btn');
+    
+    if (rollBtn) {
+        rollBtn.style.display = hasAnyDice ? 'block' : 'none';
+    }
+    
+    Object.entries(dicePool).forEach(([die, count]) => {
+        const wrapper = document.querySelector(`.dice-btn-wrapper[data-die="${die}"]`);
+        if (wrapper) {
+            const countEl = wrapper.querySelector('.dice-count');
+            if (countEl) {
+                countEl.textContent = count;
+                countEl.style.display = count > 0 ? 'flex' : 'none';
+            }
+            wrapper.classList.toggle('has-dice', count > 0);
+        }
+    });
+}
+
+/**
+ * Roll all dice in the pool
+ */
+function rollDicePool() {
+    const rolls = [];
+    let total = 0;
+    const diceStr = [];
+    
+    Object.entries(dicePool).forEach(([die, count]) => {
+        if (count > 0) {
+            const size = parseInt(die.substring(1));
+            diceStr.push(`${count}${die}`);
+            for (let i = 0; i < count; i++) {
+                const result = Math.floor(Math.random() * size) + 1;
+                rolls.push({ die, size, result });
+                total += result;
+            }
+        }
+    });
+    
+    if (rolls.length === 0) return;
+    
+    // Add to roll log
+    addRoll({
+        type: 'damage',
+        title: 'Dice Roll',
+        diceRolls: rolls.map(r => r.result),
+        diceDetails: rolls,
+        modifier: 0,
+        total: total
+    });
+    
+    // Clear the pool
+    Object.keys(dicePool).forEach(k => dicePool[k] = 0);
+    updateDiceUI();
 }
 
 /**
@@ -189,38 +322,44 @@ function createRollEntry(roll) {
             break;
     }
     
-    // Handle damage rolls differently
-    if (roll.type === 'damage') {
-        const diceHTML = roll.diceRolls ? roll.diceRolls.map(r => 
-            `<span class="roll-die">${r}</span>`
-        ).join(' + ') : '';
-        
-        const modifierHTML = roll.modifier !== 0 
-            ? `<span class="roll-modifier">${roll.modifier >= 0 ? '+' : ''}${roll.modifier}</span>` 
-            : '';
-        
-        return `
-            <div class="roll-entry ${typeClass}">
-                <div class="roll-entry-header">
-                    <span class="roll-icon">${typeIcon}</span>
-                    <span class="roll-title">${roll.title}</span>
-                    <span class="roll-time">${timeStr}</span>
-                </div>
-                <div class="roll-entry-body">
-                    <div class="roll-dice-container">
-                        ${diceHTML}
-                        ${modifierHTML}
-                    </div>
-                    <div class="roll-total damage-total">= ${roll.total}${roll.damageType ? ` <span class="damage-type">${roll.damageType}</span>` : ''}</div>
-                </div>
-            </div>
-        `;
-    }
+    // Build the dice display - group by die type
+    const diceGroups = groupDiceByType(roll);
+    const diceGroupsHTML = buildDiceGroupsHTML(diceGroups);
     
-    // D20 rolls (skill, attack, ability, defense)
+    // Calculate dice subtotal (sum of all dice without modifiers)
+    const diceSubtotal = diceGroups.reduce((sum, g) => sum + g.results.reduce((s, r) => s + r, 0), 0);
+    
+    // Build the result section
+    const modifier = roll.modifier || 0;
+    const total = roll.total;
+    
+    // For d20 rolls, check for crits
     const dieResultClass = roll.isCritSuccess ? 'crit-success' : (roll.isCritFail ? 'crit-fail' : '');
     const critIndicator = roll.isCritSuccess ? '<span class="crit-indicator success">NAT 20!</span>' : 
                           (roll.isCritFail ? '<span class="crit-indicator fail">NAT 1!</span>' : '');
+    
+    // Build result HTML
+    let resultHTML = '';
+    if (modifier !== 0) {
+        resultHTML = `
+            <span class="roll-subtotal">${diceSubtotal}</span>
+            <span class="roll-operator">${modifier >= 0 ? '+' : '−'}</span>
+            <span class="roll-modifier-value">${Math.abs(modifier)}</span>
+            <span class="roll-equals">=</span>
+            <span class="roll-total-value">${total}</span>
+        `;
+    } else {
+        resultHTML = `
+            <span class="roll-subtotal">${diceSubtotal}</span>
+            <span class="roll-equals">=</span>
+            <span class="roll-total-value">${total}</span>
+        `;
+    }
+    
+    // Add damage type if present
+    if (roll.damageType) {
+        resultHTML += ` <span class="damage-type">${roll.damageType}</span>`;
+    }
     
     return `
         <div class="roll-entry ${typeClass} ${dieResultClass ? 'is-crit' : ''}">
@@ -229,17 +368,100 @@ function createRollEntry(roll) {
                 <span class="roll-title">${roll.title}</span>
                 <span class="roll-time">${timeStr}</span>
             </div>
-            <div class="roll-entry-body">
-                <div class="roll-dice-container">
-                    <span class="roll-d20 ${dieResultClass}">${roll.dieResult}</span>
-                    <span class="roll-modifier">${roll.modifier >= 0 ? '+' : ''}${roll.modifier}</span>
+            <div class="roll-entry-body roll-new-format">
+                <div class="roll-dice-groups">
+                    ${diceGroupsHTML}
                 </div>
-                <div class="roll-total">= ${roll.total}</div>
+                <div class="roll-result">
+                    ${resultHTML}
+                </div>
                 ${critIndicator}
             </div>
             ${roll.critMessage ? `<div class="roll-crit-message">${roll.critMessage}</div>` : ''}
         </div>
     `;
+}
+
+/**
+ * Group dice by type from roll data
+ * @param {Object} roll - Roll data
+ * @returns {Array} Array of {die, count, results} objects
+ */
+function groupDiceByType(roll) {
+    const groups = [];
+    
+    // Handle detailed dice info (from dice pool roller)
+    if (roll.diceDetails && roll.diceDetails.length > 0) {
+        const grouped = {};
+        roll.diceDetails.forEach(d => {
+            const die = d.die.toLowerCase();
+            if (!grouped[die]) {
+                grouped[die] = { die, size: d.size, results: [] };
+            }
+            grouped[die].results.push(d.result);
+        });
+        return Object.values(grouped);
+    }
+    
+    // Handle d20 rolls (skill, attack, ability, defense)
+    if (roll.dieResult !== undefined) {
+        return [{ die: 'd20', size: 20, results: [roll.dieResult] }];
+    }
+    
+    // Handle damage rolls with diceRolls array
+    if (roll.diceRolls && roll.diceRolls.length > 0) {
+        // Try to parse dice notation from title (e.g., "2d6 + 3")
+        const diceMatch = roll.title?.match(/(\d+)d(\d+)/i);
+        if (diceMatch) {
+            const size = parseInt(diceMatch[2]);
+            return [{ die: `d${size}`, size, results: roll.diceRolls }];
+        }
+        // Default to showing as generic dice
+        return [{ die: 'd?', size: 0, results: roll.diceRolls }];
+    }
+    
+    return [];
+}
+
+/**
+ * Build HTML for dice groups (image + notation)
+ * @param {Array} groups - Array of {die, count, results} objects
+ * @returns {string} HTML string
+ */
+function buildDiceGroupsHTML(groups) {
+    if (groups.length === 0) return '';
+    
+    return groups.map(group => {
+        const imgSrc = getDiceImageSrc(group.die);
+        const count = group.results.length;
+        const notation = `${count}${group.die}`;
+        const hoverText = group.results.join(', ');
+        
+        return `
+            <div class="dice-group">
+                <img src="${imgSrc}" alt="${group.die}" class="dice-group-img">
+                <span class="dice-group-notation" title="${hoverText}">${notation}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Get the image source for a die type
+ * @param {string} die - Die type (e.g., 'd6', 'd20')
+ * @returns {string} Image path
+ */
+function getDiceImageSrc(die) {
+    const dieType = die.toLowerCase();
+    switch (dieType) {
+        case 'd4': return '/images/D4.png';
+        case 'd6': return '/images/D6.png';
+        case 'd8': return '/images/D8.png';
+        case 'd10': return '/images/D10.png';
+        case 'd12': return '/images/D12.png';
+        case 'd20': return '/images/D20_1.png';
+        default: return '/images/D20_1.png'; // Fallback
+    }
 }
 
 // Export for ES modules

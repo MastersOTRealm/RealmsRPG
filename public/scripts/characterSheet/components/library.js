@@ -51,7 +51,7 @@ export async function renderLibrary(charData) {
     const techniquesContent = createTechniquesContent(enriched._techniques || []);
     const powersContent = createPowersContent(enriched._powers || []);
     // Pass enriched inventory object with weapons, armor, equipment arrays
-    const inventoryContent = createInventoryContent(enriched._inventory || {});
+    const inventoryContent = await createInventoryContent(enriched._inventory || {});
     const proficienciesContent = await createProficienciesContent(enriched);
     // Pass full enriched data for notes (includes appearance, archetypeDesc, notes)
     const notesContent = createNotesContent(enriched);

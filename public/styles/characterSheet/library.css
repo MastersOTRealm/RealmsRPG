@@ -588,7 +588,7 @@ body:not(.edit-mode) .resource-remove-btn {
 
 .collapsible-chip:hover {
   background: var(--primary-blue);
-  color: white;
+  color: var(--bg-light, #f8fafc);
   border-color: var(--primary-blue);
 }
 

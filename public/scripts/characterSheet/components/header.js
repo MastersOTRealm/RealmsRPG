@@ -165,7 +165,7 @@ export function renderHeader(charData, calculatedData) {
     header.className = 'header';
     header.innerHTML = `
         <div class="header-left">
-            <div class="portrait" style="background-image: url('${charData.portrait || '/assets/placeholder-portrait.jpg'}');">
+            <div class="portrait" style="background-image: url('${charData.portrait || '/images/placeholder-portrait.png'}');">
                 ${!charData.portrait ? '<div class="portrait-placeholder">📷</div>' : ''}
             </div>
             <div class="character-details">
@@ -317,7 +317,7 @@ export function renderHeader(charData, calculatedData) {
     // Update the HTML to use nameHtml, xpHtml, and levelHtml
     header.innerHTML = `
         <div class="header-left">
-            <div class="portrait" style="background-image: url('${charData.portrait || '/assets/placeholder-portrait.jpg'}');">
+            <div class="portrait" style="background-image: url('${charData.portrait || '/images/placeholder-portrait.png'}');">
                 ${!charData.portrait ? '<div class="portrait-placeholder">📷</div>' : ''}
             </div>
             <div class="character-details">

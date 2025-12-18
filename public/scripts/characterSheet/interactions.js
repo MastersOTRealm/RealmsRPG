@@ -173,9 +173,11 @@ window.rollDamage = function(damageStr, bonus = 0) {
 
     let total = totalBonus;
     let rolls = [];
+    let diceDetails = [];
     for (let i = 0; i < num; i++) {
         const roll = Math.floor(Math.random() * size) + 1;
         rolls.push(roll);
+        diceDetails.push({ die: `d${size}`, size, result: roll });
         total += roll;
     }
 
@@ -184,6 +186,7 @@ window.rollDamage = function(damageStr, bonus = 0) {
         type: 'damage',
         title: `Damage Roll${dmgType ? ` (${dmgType})` : ''}`,
         diceRolls: rolls,
+        diceDetails: diceDetails,
         modifier: totalBonus,
         total,
         damageType: dmgType || null

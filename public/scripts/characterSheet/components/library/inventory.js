@@ -1,31 +1,5 @@
 import { buildPropertyChips } from './techniques.js';
-
-let _itemPropertiesCache = null;
-async function loadItemPropertiesIfNeeded() {
-    if (_itemPropertiesCache) return _itemPropertiesCache;
-    
-    try {
-        if (typeof firebase === 'undefined' || !firebase.database) return [];
-        const snap = await firebase.database().ref('properties').once('value');
-        const data = snap.val();
-        if (!data) return [];
-        _itemPropertiesCache = Object.entries(data).map(([id, p]) => ({
-            id,
-            name: p.name || '',
-            description: p.description || '',
-            base_ip: parseFloat(p.base_ip) || 0,
-            base_tp: parseFloat(p.base_tp) || 0,
-            base_c: parseFloat(p.base_c) || 0,
-            op_1_ip: parseFloat(p.op_1_ip) || 0,
-            op_1_tp: parseFloat(p.op_1_tp) || 0,
-            op_1_c: parseFloat(p.op_1_c) || 0,
-            op_1_desc: p.op_1_desc || ''
-        }));
-        return _itemPropertiesCache;
-    } catch {
-        return [];
-    }
-}
+import { fetchItemProperties } from '../../../utils/rtdb-cache.js';
 
 function computePropertyTotals(itemProps, catalog) {
     let ip = 0, tp = 0, c = 0;
@@ -83,7 +57,9 @@ function capitalizeDamageType(type) {
 }
 
 // REPLACED createInventoryContent with enriched calculations
-export function createInventoryContent(inventoryObj) {
+export async function createInventoryContent(inventoryObj) {
+    // Ensure properties cache is loaded before rendering
+    const itemPropertiesCache = await fetchItemProperties();
     const content = document.createElement('div');
     content.id = 'inventory-content';
     content.className = 'tab-content';
@@ -280,7 +256,7 @@ export function createInventoryContent(inventoryObj) {
                 ${w.proficiencies && w.proficiencies.length > 0 ? `
                   <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Properties & Proficiencies</h4>
                   <div class="part-chips">
-                    ${buildPropertyChips(w.proficiencies.map(p => ({ name: p.name, op_1_lvl: p.level || 0 })), _itemPropertiesCache || [])}
+                    ${buildPropertyChips(w.proficiencies.map(p => ({ name: p.name, op_1_lvl: p.level || 0 })), itemPropertiesCache)}
                   </div>
                 ` : ''}
               </div>
@@ -338,7 +314,7 @@ export function createInventoryContent(inventoryObj) {
                 ${a.proficiencies && a.proficiencies.length > 0 ? `
                   <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Properties & Proficiencies</h4>
                   <div class="part-chips">
-                    ${buildPropertyChips(a.proficiencies.map(p => ({ name: p.name, op_1_lvl: p.level || 0 })), _itemPropertiesCache || [])}
+                    ${buildPropertyChips(a.proficiencies.map(p => ({ name: p.name, op_1_lvl: p.level || 0 })), itemPropertiesCache)}
                   </div>
                 ` : ''}
               </div>

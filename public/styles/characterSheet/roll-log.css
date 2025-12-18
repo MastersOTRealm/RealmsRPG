@@ -16,8 +16,8 @@
 
 /* Toggle Button - circular dice button */
 .roll-log-toggle {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
     border: none;
@@ -30,11 +30,24 @@
     align-items: center;
     justify-content: center;
     z-index: 1001;
+    padding: 0;
+    overflow: hidden;
+}
+
+.roll-log-toggle .toggle-dice-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
 }
 
 .roll-log-toggle:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.roll-log-toggle:hover .toggle-dice-img {
+    transform: scale(1.15);
 }
 
 .roll-log-toggle.active {
@@ -45,7 +58,7 @@
 /* Log Panel - slides up from bottom */
 .roll-log-panel {
     position: absolute;
-    bottom: 60px;
+    bottom: 70px;
     right: 0;
     width: 360px;
     max-width: calc(100vw - 40px);
@@ -63,7 +76,7 @@
 }
 
 .roll-log-panel.open {
-    height: 75vh;
+    height: 70vh;
     opacity: 1;
     pointer-events: all;
 }
@@ -372,3 +385,207 @@
     0% { background-color: var(--bg-medium); }
     100% { background-color: white; }
 }
+
+/* =============================================================================
+   Dice Roller Section
+   ============================================================================= */
+
+.dice-roller-section {
+    padding: 12px;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, #053357 100%);
+    border-top: 2px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.dice-roller-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dice-roll-all-btn {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+}
+
+.dice-roll-all-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5);
+}
+
+.dice-buttons {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.dice-btn-wrapper {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.dice-btn-wrapper:hover {
+    transform: scale(1.15);
+}
+
+.dice-btn-wrapper.has-dice {
+    transform: scale(1.1);
+}
+
+.dice-btn-wrapper.has-dice:hover {
+    transform: scale(1.2);
+}
+
+.dice-img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    filter: brightness(0.9);
+    transition: filter 0.2s ease, drop-shadow 0.2s ease;
+}
+
+.dice-btn-wrapper:hover .dice-img {
+    filter: brightness(1.1);
+}
+
+.dice-btn-wrapper.has-dice .dice-img {
+    filter: brightness(1) drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
+}
+
+.dice-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* =============================================================================
+   New Roll Format - Dice Groups with Images and Notation
+   ============================================================================= */
+
+/* Container for the new roll format body */
+.roll-entry-body.roll-new-format {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Container for dice groups */
+.roll-dice-groups {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+/* Individual dice group (image + notation) */
+.dice-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.dice-group-img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.dice-group-notation {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-medium);
+    padding: 1px 6px;
+    border-radius: 3px;
+    cursor: help;
+}
+
+/* Result section */
+.roll-result {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 1rem;
+    flex-wrap: wrap;
+}
+
+.roll-subtotal {
+    font-weight: 700;
+    color: var(--primary-dark);
+    background: linear-gradient(135deg, #f0f4ff 0%, #e3e9ff 100%);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.roll-operator {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.roll-modifier-value {
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+.roll-equals {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.roll-total-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: white;
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+/* Damage type styling */
+.roll-entry.roll-type-damage .roll-total-value {
+    background: linear-gradient(135deg, #fd7e14 0%, #e55b00 100%);
+}
+
+/* Critical success styling */
+.roll-entry.is-crit .roll-subtotal {
+    background: linear-gradient(135deg, #d4edda 0%, #a8e6cf 100%);
+    border-color: var(--success-green);
+}
+
+.roll-entry.is-crit.roll-type-attack .roll-total-value,
+.roll-entry.is-crit.roll-type-skill .roll-total-value {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+/* Critical fail styling */
+.roll-entry.is-crit .roll-d20.crit-fail ~ .roll-result .roll-subtotal {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    border-color: var(--danger-red);
+}
+

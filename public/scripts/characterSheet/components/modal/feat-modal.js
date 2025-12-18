@@ -227,8 +227,8 @@ function renderFeatModal(container) {
     const max = featTracking?.max ?? '?';
     
     let typeFilteredFeats = allFeats.filter(f => {
-        if (selectedFeatType === 'archetype') return !f.char_feat && !f.state_feat;
-        return f.char_feat && !f.state_feat;
+        if (selectedFeatType === 'archetype') return !f.char_feat;
+        return f.char_feat;
     });
     
     const categories = Array.from(new Set(typeFilteredFeats.map(f => f.category).filter(Boolean))).sort();
@@ -295,8 +295,8 @@ function applyFeatFilters() {
     const onlyEligible = document.getElementById('modal-feat-eligible')?.checked ?? true;
     
     let typeFiltered = allFeats.filter(f => {
-        if (selectedFeatType === 'archetype') return !f.char_feat && !f.state_feat;
-        return f.char_feat && !f.state_feat;
+        if (selectedFeatType === 'archetype') return !f.char_feat;
+        return f.char_feat;
     });
     
     filteredFeats = typeFiltered.filter(f => {
