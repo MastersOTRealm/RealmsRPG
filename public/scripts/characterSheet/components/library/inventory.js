@@ -1,3 +1,5 @@
+import { buildPropertyChips } from './techniques.js';
+
 let _itemPropertiesCache = null;
 async function loadItemPropertiesIfNeeded() {
     if (_itemPropertiesCache) return _itemPropertiesCache;
@@ -10,12 +12,14 @@ async function loadItemPropertiesIfNeeded() {
         _itemPropertiesCache = Object.entries(data).map(([id, p]) => ({
             id,
             name: p.name || '',
+            description: p.description || '',
             base_ip: parseFloat(p.base_ip) || 0,
             base_tp: parseFloat(p.base_tp) || 0,
             base_c: parseFloat(p.base_c) || 0,
             op_1_ip: parseFloat(p.op_1_ip) || 0,
             op_1_tp: parseFloat(p.op_1_tp) || 0,
-            op_1_c: parseFloat(p.op_1_c) || 0
+            op_1_c: parseFloat(p.op_1_c) || 0,
+            op_1_desc: p.op_1_desc || ''
         }));
         return _itemPropertiesCache;
     } catch {
@@ -276,12 +280,7 @@ export function createInventoryContent(inventoryObj) {
                 ${w.proficiencies && w.proficiencies.length > 0 ? `
                   <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Properties & Proficiencies</h4>
                   <div class="part-chips">
-                    ${w.proficiencies.map(p => {
-                        let txt = p.name;
-                        if (p.level > 0) txt += ` (Level ${p.level})`;
-                        if (p.totalTP > 0) txt += ` | TP: ${p.baseTP}${p.optionTP > 0 ? ` + ${p.optionTP}` : ''}`;
-                        return `<span class="part-chip${p.totalTP > 0 ? ' tp-cost' : ''}" title="${p.description || ''}">${txt}</span>`;
-                    }).join('')}
+                    ${buildPropertyChips(w.proficiencies.map(p => ({ name: p.name, op_1_lvl: p.level || 0 })), _itemPropertiesCache || [])}
                   </div>
                 ` : ''}
               </div>
@@ -339,12 +338,7 @@ export function createInventoryContent(inventoryObj) {
                 ${a.proficiencies && a.proficiencies.length > 0 ? `
                   <h4 style="margin:0 0 6px;font-size:12px;color:var(--primary-dark);">Properties & Proficiencies</h4>
                   <div class="part-chips">
-                    ${a.proficiencies.map(p => {
-                        let txt = p.name;
-                        if (p.level > 0) txt += ` (Level ${p.level})`;
-                        if (p.totalTP > 0) txt += ` | TP: ${p.baseTP}${p.optionTP > 0 ? ` + ${p.optionTP}` : ''}`;
-                        return `<span class="part-chip${p.totalTP > 0 ? ' tp-cost' : ''}" title="${p.description || ''}">${txt}</span>`;
-                    }).join('')}
+                    ${buildPropertyChips(a.proficiencies.map(p => ({ name: p.name, op_1_lvl: p.level || 0 })), _itemPropertiesCache || [])}
                   </div>
                 ` : ''}
               </div>
@@ -532,36 +526,6 @@ function computeSinglePropertyTotals(ref, catalog) {
         tp: found.base_tp + found.op_1_tp * lvl,
         c: found.base_c + found.op_1_c * lvl
     };
-}
-
-function buildPropertyChips(itemProps, catalog) {
-    if (!Array.isArray(itemProps) || !itemProps.length) return '';
-    const chips = itemProps
-        .map(r => computeSinglePropertyTotals(r, catalog))
-        .filter(Boolean)
-        .map(info => {
-            const tpClass = info.tp > 0 ? 'tp-cost' : '';
-            const lvlTag = info.lvl > 0 ? ` (Lvl ${info.lvl})` : '';
-            return `<span class="part-chip ${tpClass}" title="IP:${info.ip} TP:${info.tp} C:${info.c}">${info.name}${lvlTag}${info.tp > 0 ? ` [+${info.tp} TP]` : ''}</span>`;
-        }).join('');
-    return chips ? `<div class="part-chips">${chips}</div>` : '';
-}
-
-// Minimal inline style injection (only once)
-if (!window.__propChipStylesInjected) {
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-      .part-chips { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0; }
-      .part-chip { padding:4px 10px; font-size:11px; border-radius:14px; background:var(--bg-medium); border:1px solid var(--border-color); line-height:1.2; white-space:nowrap; color:var(--text-primary);}
-      .part-chip.tp-cost {
-        background: var(--primary-blue) !important;
-        border-color: var(--primary-blue) !important;
-        color: #fff !important;
-        font-weight:600;
-      }
-    `;
-    document.head.appendChild(styleEl);
-    window.__propChipStylesInjected = true;
 }
 
 function formatAbilityReq(req) {

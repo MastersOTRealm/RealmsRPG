@@ -219,6 +219,27 @@ function createPowerRow(power, isEditMode, isInnate) {
 
     const gridCols = isEditMode ? '1.4fr 1fr 1fr 0.8fr 0.7fr 0.7fr 0.5fr' : '1.4fr 1fr 1fr 0.8fr 0.9fr 0.9fr';
 
+    // For innate powers, the "Use" button just shows energy cost but doesn't deduct energy
+    const actionButtonConfig = isInnate ? {
+        label: `Use (${power.energy || 0})`,
+        data: { name: power.name, energy: 0, innate: 'true' }, // energy 0 means no deduction
+        onClick: (e) => {
+            const name = e.target.dataset.name;
+            // Innate powers don't cost energy - just show notification
+            if (typeof window.showNotification === 'function') {
+                window.showNotification(`Used innate power: ${name}`, 'info');
+            }
+        }
+    } : {
+        label: `Use (${power.energy || 0})`,
+        data: { name: power.name, energy: power.energy || 0 },
+        onClick: (e) => {
+            const energy = parseInt(e.target.dataset.energy);
+            const name = e.target.dataset.name;
+            window.usePower(name, energy);
+        }
+    };
+
     const row = new CollapsibleRow({
         title: power.name,
         columns: [
@@ -228,15 +249,7 @@ function createPowerRow(power, isEditMode, isInnate) {
         description: power.description || '',
         className: 'collapsible-tech',
         gridColumns: gridCols,
-        actionButton: {
-            label: `Use (${power.energy || 0})`,
-            data: { name: power.name, energy: power.energy || 0 },
-            onClick: (e) => {
-                const energy = parseInt(e.target.dataset.energy);
-                const name = e.target.dataset.name;
-                window.usePower(name, energy);
-            }
-        },
+        actionButton: actionButtonConfig,
         expandedContent: expandedContent
     });
 

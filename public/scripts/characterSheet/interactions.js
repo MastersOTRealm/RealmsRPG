@@ -5,6 +5,7 @@
  */
 
 import { sanitizeId } from './utils.js';
+import { initRollLog, addRoll } from './components/roll-log.js';
 
 // ============================================================================
 // RESOURCE MANAGEMENT
@@ -72,57 +73,62 @@ window.changeEnergy = function(delta) {
 // DICE ROLLING FUNCTIONS
 // ============================================================================
 
+// Initialize roll log when the module loads
+if (typeof document !== 'undefined') {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initRollLog);
+    } else {
+        initRollLog();
+    }
+}
+
 /**
- * Internal helper to create and display a d20 roll popup.
+ * Internal helper to add a d20 roll to the roll log.
  * @private
+ * @param {string} type - Type of roll (skill, attack, ability, defense)
  * @param {string} title - Title for the roll (e.g., "Strength Check")
  * @param {number} roll - The d20 roll result (1-20)
  * @param {number} bonus - The modifier to add to the roll
  * @param {string} critSuccessMsg - Message to display on a natural 20
  * @param {string} critFailMsg - Message to display on a natural 1
  */
-function _createD20RollPopup(title, roll, bonus, critSuccessMsg = 'Critical Success!', critFailMsg = 'Critical Fail!') {
+function _addD20RollToLog(type, title, roll, bonus, critSuccessMsg = 'Critical Success!', critFailMsg = 'Critical Fail!') {
     const total = roll + bonus;
+    const isCritSuccess = roll === 20;
+    const isCritFail = roll === 1;
     
-    const popup = document.createElement('div');
-    popup.className = 'roll-popup';
-    popup.innerHTML = `
-        <div class="roll-content">
-            <h3>${title}</h3>
-            <div class="roll-details">
-                <div class="die-result ${roll === 20 ? 'crit-success' : roll === 1 ? 'crit-fail' : ''}">
-                    🎲 ${roll}
-                </div>
-                <div class="bonus-result">${bonus >= 0 ? '+' : ''}${bonus}</div>
-                <div class="total-result">= ${total}</div>
-            </div>
-            ${roll === 20 ? `<p class="crit-message">${critSuccessMsg}</p>` : ''}
-            ${roll === 1 ? `<p class="crit-message fail">${critFailMsg}</p>` : ''}
-            <button onclick="this.parentElement.parentElement.remove()">Close</button>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.classList.add('show'), 10);
+    addRoll({
+        type,
+        title,
+        dieResult: roll,
+        modifier: bonus,
+        total,
+        isCritSuccess,
+        isCritFail,
+        critMessage: isCritSuccess ? critSuccessMsg : (isCritFail ? critFailMsg : null)
+    });
 }
 
 /**
- * Rolls a skill check and displays the result in a popup.
+ * Rolls a skill check and adds the result to the roll log.
  * @param {string} skillName - Name of the skill being rolled
  * @param {number} bonus - Modifier to add to the roll
  */
 window.rollSkill = function(skillName, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    _createD20RollPopup(skillName, roll, bonus);
+    _addD20RollToLog('skill', skillName, roll, bonus);
 };
 
 /**
- * Rolls an attack with a weapon and displays the result in a popup.
+ * Rolls an attack with a weapon and adds the result to the roll log.
  * @param {string} weaponName - Name of the weapon being used
  * @param {number} attackBonus - Attack bonus to add to the roll
  */
 window.rollAttack = function(weaponName, attackBonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    _createD20RollPopup(
+    _addD20RollToLog(
+        'attack',
         `${weaponName} Attack`,
         roll,
         attackBonus,
@@ -132,13 +138,14 @@ window.rollAttack = function(weaponName, attackBonus) {
 };
 
 /**
- * Rolls a generic attack bonus and displays the result in a popup.
+ * Rolls a generic attack bonus and adds the result to the roll log.
  * @param {string} name - Name of the attack
  * @param {number} bonus - Attack bonus to add to the roll
  */
 window.rollAttackBonus = function(name, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    _createD20RollPopup(
+    _addD20RollToLog(
+        'attack',
         `${name} Attack Roll`,
         roll,
         bonus,
@@ -148,7 +155,7 @@ window.rollAttackBonus = function(name, bonus) {
 };
 
 /**
- * Rolls damage dice and displays the result in a popup.
+ * Rolls damage dice and adds the result to the roll log.
  * @param {string} damageStr - Damage string (e.g., "2d6", "1d8+2", "1d6 Slashing")
  * @param {number} bonus - Optional additional damage bonus
  */
@@ -172,48 +179,36 @@ window.rollDamage = function(damageStr, bonus = 0) {
         total += roll;
     }
 
-    // Compose the dice roll string
-    const diceStr = rolls.map(r => `<span class="die-roll">🎲 ${r}</span>`).join(' + ');
-    const bonusStr = totalBonus !== 0
-        ? `<span class="modifier bonus-result" style="background:none;padding:0;margin:0 4px;">${totalBonus >= 0 ? '+' : ''}${totalBonus}</span>`
-        : '';
-    // Modal content styled like d20 rolls
-    const popup = document.createElement('div');
-    popup.className = 'roll-popup';
-    popup.innerHTML = `
-        <div class="roll-content">
-            <h3>Damage Roll${dmgType ? ` (${dmgType})` : ''}</h3>
-            <div class="roll-details">
-                ${diceStr}
-                ${bonusStr}
-                <div class="total-result">= ${total}</div>
-            </div>
-            <button onclick="this.parentElement.parentElement.remove()">Close</button>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.classList.add('show'), 10);
+    // Add to roll log instead of popup
+    addRoll({
+        type: 'damage',
+        title: `Damage Roll${dmgType ? ` (${dmgType})` : ''}`,
+        diceRolls: rolls,
+        modifier: totalBonus,
+        total,
+        damageType: dmgType || null
+    });
 };
 
 /**
- * Rolls an ability check and displays the result in a popup.
+ * Rolls an ability check and adds the result to the roll log.
  * @param {string} abilityName - Name of the ability (e.g., "strength", "agility")
  * @param {number} bonus - Ability modifier to add to the roll
  */
 window.rollAbility = function(abilityName, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
     const title = abilityName.charAt(0).toUpperCase() + abilityName.slice(1) + ' Check';
-    _createD20RollPopup(title, roll, bonus);
+    _addD20RollToLog('ability', title, roll, bonus);
 };
 
 /**
- * Rolls a defense/saving throw and displays the result in a popup.
+ * Rolls a defense/saving throw and adds the result to the roll log.
  * @param {string} defenseName - Name of the defense (e.g., "Fortitude", "Reflex")
  * @param {number} bonus - Defense modifier to add to the roll
  */
 window.rollDefense = function(defenseName, bonus) {
     const roll = Math.floor(Math.random() * 20) + 1;
-    _createD20RollPopup(`${defenseName} Save`, roll, bonus);
+    _addD20RollToLog('defense', `${defenseName} Save`, roll, bonus);
 };
 
 // ============================================================================
