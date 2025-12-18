@@ -20,14 +20,14 @@ export function calculateDefenses(abilities, defenseVals) {
     return { defenseBonuses, defenseScores };
 }
 
-export function calculateSpeed(agility) {
-    // Speed = 6 + (agility / 2) rounded up
-    return 6 + Math.ceil(agility / 2);
+export function calculateSpeed(agility, speedBase = 6) {
+    // Speed = speedBase + (agility / 2) rounded up
+    return speedBase + Math.ceil(agility / 2);
 }
 
-export function calculateEvasion(agility, reflexDefense) {
-    // Evasion = 10 + agility
-    return 10 + agility;
+export function calculateEvasion(agility, reflexDefense, evasionBase = 10) {
+    // Evasion = evasionBase + agility
+    return evasionBase + agility;
 }
 
 export function calculateMaxHealth(healthPoints, vitality, level, archetypeAbility, abilities) {
@@ -85,6 +85,24 @@ export function calculateBonuses(martProf, powProf, abilities, powAbil) {
             unprof: unprofBonus(powerAbilityValue)
         }
     };
+}
+
+/**
+ * Get the current speed base value (default 6, or custom if modified)
+ * @param {object} charData - Character data
+ * @returns {number} Speed base value
+ */
+export function getSpeedBase(charData) {
+    return charData?.speedBase ?? 6;
+}
+
+/**
+ * Get the current evasion base value (default 10, or custom if modified)
+ * @param {object} charData - Character data
+ * @returns {number} Evasion base value
+ */
+export function getEvasionBase(charData) {
+    return charData?.evasionBase ?? 10;
 }
 
 // Returns the archetype ability score for a character (max of pow_abil or mart_abil, using abilities)

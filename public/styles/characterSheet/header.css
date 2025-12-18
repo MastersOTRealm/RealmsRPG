@@ -156,6 +156,34 @@
     opacity: 1;
 }
 
+/* Speed/Evasion stat edit icons */
+.stat-edit-icon {
+    font-size: 12px;
+    margin-left: 6px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    cursor: pointer;
+}
+
+.stat-edit-icon:hover {
+    opacity: 1;
+}
+
+.stat-edit-icon.modified {
+    color: #dc3545 !important;
+    opacity: 0.9;
+}
+
+.stat-edit-icon.modified:hover {
+    opacity: 1;
+}
+
+.stat-value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .race-class {
     font-size: 16px;
     color: var(--text-secondary);

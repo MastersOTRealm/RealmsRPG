@@ -1,6 +1,6 @@
 import { initializeFirebase, waitForAuth } from './firebase-config.js';
 import { getCharacterData, saveCharacterData } from './data.js';
-import { calculateDefenses, calculateSpeed, calculateEvasion, calculateMaxHealth, calculateMaxEnergy, calculateBonuses } from './calculations.js';
+import { calculateDefenses, calculateSpeed, calculateEvasion, calculateMaxHealth, calculateMaxEnergy, calculateBonuses, getSpeedBase, getEvasionBase } from './calculations.js';
 import { renderHeader } from './components/header.js';
 import { renderAbilities } from './components/abilities.js';
 import { renderSkills } from './components/skills.js';
@@ -881,8 +881,8 @@ window.refreshArchetypeColumn = function(options = {}) {
     if (currentCharacterData.pow_prof > 0) archetypeAbility = currentCharacterData.pow_abil;
     else if (currentCharacterData.mart_prof > 0) archetypeAbility = currentCharacterData.mart_abil;
     const defensesCalc = calculateDefenses(currentCharacterData.abilities, currentCharacterData.defenseVals);
-    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0);
-    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0);
+    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0, getSpeedBase(currentCharacterData));
+    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0, null, getEvasionBase(currentCharacterData));
     const maxHealth = calculateMaxHealth(
         currentCharacterData.health_energy_points.health || 0,
         currentCharacterData.abilities.vitality || 0,
@@ -936,8 +936,8 @@ window.getCalculatedData = function() {
     else if (currentCharacterData.mart_prof > 0) archetypeAbility = currentCharacterData.mart_abil;
     
     const defensesCalc = calculateDefenses(currentCharacterData.abilities, currentCharacterData.defenseVals);
-    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0);
-    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0);
+    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0, getSpeedBase(currentCharacterData));
+    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0, null, getEvasionBase(currentCharacterData));
     const maxHealth = calculateMaxHealth(
         currentCharacterData.health_energy_points?.health || 0,
         currentCharacterData.abilities.vitality || 0,
@@ -981,8 +981,8 @@ window.refreshCharacterSheet = async function() {
     
     // Recalculate all derived stats
     const defensesCalc = calculateDefenses(currentCharacterData.abilities, currentCharacterData.defenseVals);
-    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0);
-    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0);
+    const speed = calculateSpeed(currentCharacterData.abilities.agility || 0, getSpeedBase(currentCharacterData));
+    const evasion = calculateEvasion(currentCharacterData.abilities.agility || 0, null, getEvasionBase(currentCharacterData));
     const maxHealth = calculateMaxHealth(
         currentCharacterData.health_energy_points?.health || 0,
         currentCharacterData.abilities.vitality || 0,
@@ -1052,8 +1052,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Derived calculations
         const defensesCalc = calculateDefenses(charData.abilities, charData.defenseVals);
-        const speed = calculateSpeed(charData.abilities.agility || 0);
-        const evasion = calculateEvasion(charData.abilities.agility || 0);
+        const speed = calculateSpeed(charData.abilities.agility || 0, getSpeedBase(charData));
+        const evasion = calculateEvasion(charData.abilities.agility || 0, null, getEvasionBase(charData));
         const maxHealth = calculateMaxHealth(
             charData.health_energy_points.health || 0,
             charData.abilities.vitality || 0,

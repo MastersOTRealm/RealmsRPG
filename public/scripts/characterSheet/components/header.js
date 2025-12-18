@@ -211,11 +211,17 @@ export function renderHeader(charData, calculatedData) {
         <div class="header-middle">
             <div class="speed" title="Movement speed in spaces per turn">
                 <div class="stat-label">SPEED</div>
-                <div class="stat-value">${calculatedData.speed}</div>
+                <div class="stat-value">
+                    ${calculatedData.speed}
+                    ${isEditMode ? `<span class="edit-icon stat-edit-icon ${(charData.speedBase !== undefined && charData.speedBase !== 6) ? 'modified' : ''}" data-edit="speed" title="Edit Speed Base (Default: 6)">🖉</span>` : ''}
+                </div>
             </div>
             <div class="evasion" title="Difficulty to hit with attacks">
                 <div class="stat-label">EVASION</div>
-                <div class="stat-value">${calculatedData.evasion}</div>
+                <div class="stat-value">
+                    ${calculatedData.evasion}
+                    ${isEditMode ? `<span class="edit-icon stat-edit-icon ${(charData.evasionBase !== undefined && charData.evasionBase !== 10) ? 'modified' : ''}" data-edit="evasion" title="Edit Evasion Base (Default: 10)">🖉</span>` : ''}
+                </div>
             </div>
         </div>
         <div class="header-right">
@@ -366,11 +372,17 @@ export function renderHeader(charData, calculatedData) {
         <div class="header-middle">
             <div class="speed" title="Movement speed in spaces per turn">
                 <div class="stat-label">SPEED</div>
-                <div class="stat-value">${calculatedData.speed}</div>
+                <div class="stat-value">
+                    ${calculatedData.speed}
+                    ${isEdit ? `<span class="edit-icon stat-edit-icon ${(charData.speedBase !== undefined && charData.speedBase !== 6) ? 'modified' : ''}" data-edit="speed" title="Edit Speed Base (Default: 6)">🖉</span>` : ''}
+                </div>
             </div>
             <div class="evasion" title="Difficulty to hit with attacks">
                 <div class="stat-label">EVASION</div>
-                <div class="stat-value">${calculatedData.evasion}</div>
+                <div class="stat-value">
+                    ${calculatedData.evasion}
+                    ${isEdit ? `<span class="edit-icon stat-edit-icon ${(charData.evasionBase !== undefined && charData.evasionBase !== 10) ? 'modified' : ''}" data-edit="evasion" title="Edit Evasion Base (Default: 10)">🖉</span>` : ''}
+                </div>
             </div>
         </div>
         <div class="header-right">
@@ -519,6 +531,24 @@ export function renderHeader(charData, calculatedData) {
         if (abilityEditIcon && abilityDisplaySpan) {
             abilityEditIcon.addEventListener('click', () => {
                 showAbilityEditModal(charData, abilityDisplaySpan);
+            });
+        }
+    }
+
+    // Add event listeners for Speed and Evasion edit icons:
+    if (isEdit) {
+        const speedEditIcon = header.querySelector('.edit-icon[data-edit="speed"]');
+        const evasionEditIcon = header.querySelector('.edit-icon[data-edit="evasion"]');
+        
+        if (speedEditIcon) {
+            speedEditIcon.addEventListener('click', () => {
+                showStatEditModal(charData, 'speed', 6, 'Speed Base');
+            });
+        }
+        
+        if (evasionEditIcon) {
+            evasionEditIcon.addEventListener('click', () => {
+                showStatEditModal(charData, 'evasion', 10, 'Evasion Base');
             });
         }
     }
@@ -770,6 +800,159 @@ function showAbilityEditModal(charData, displaySpan) {
         }
     };
     document.addEventListener('keydown', handleEscape);
+}
+
+/**
+ * Show modal for editing speed or evasion base values
+ * @param {object} charData - Character data
+ * @param {string} statType - 'speed' or 'evasion'
+ * @param {number} defaultValue - Default base value (6 for speed, 10 for evasion)
+ * @param {string} displayName - Human-readable name for the modal
+ */
+function showStatEditModal(charData, statType, defaultValue, displayName) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'stat-edit-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.className = 'stat-edit-modal';
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        min-width: 350px;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    `;
+    
+    const fieldName = statType + 'Base';
+    const currentValue = charData[fieldName] ?? defaultValue;
+    const isModified = currentValue !== defaultValue;
+    
+    modal.innerHTML = `
+        <h2 style="margin: 0 0 20px 0; color: var(--primary-dark); text-align: center;">Edit ${displayName}</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">${displayName}:</label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="decrease-stat" style="width: 32px; height: 32px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 6px; cursor: pointer; font-weight: bold;">−</button>
+                <input type="number" id="stat-value-input" value="${currentValue}" min="0" max="99" style="width: 80px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; text-align: center; font-size: 16px; font-weight: bold;">
+                <button id="increase-stat" style="width: 32px; height: 32px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 6px; cursor: pointer; font-weight: bold;">+</button>
+                <button id="reset-stat" style="padding: 6px 12px; border: 1px solid #ddd; background: #fff3cd; border-radius: 6px; cursor: pointer; font-size: 12px;">Reset to ${defaultValue}</button>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px; padding: 12px; background: #f8f9fa; border-radius: 6px; font-size: 14px;">
+            <div style="color: var(--text-secondary);">Default: ${defaultValue}</div>
+            <div style="color: var(--text-primary); font-weight: 600;">Current: <span id="current-display">${currentValue}</span> ${isModified ? '<span style="color: #dc3545;">(Modified)</span>' : ''}</div>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button id="cancel-stat-edit" style="padding: 8px 16px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 6px; cursor: pointer;">Cancel</button>
+            <button id="save-stat-edit" style="padding: 8px 16px; border: none; background: var(--primary-blue); color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Save Changes</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    const input = modal.querySelector('#stat-value-input');
+    const currentDisplay = modal.querySelector('#current-display');
+    const decreaseBtn = modal.querySelector('#decrease-stat');
+    const increaseBtn = modal.querySelector('#increase-stat');
+    const resetBtn = modal.querySelector('#reset-stat');
+    
+    // Update display function
+    const updateDisplay = () => {
+        const value = parseInt(input.value) || 0;
+        currentDisplay.textContent = value;
+        currentDisplay.nextElementSibling?.remove(); // Remove previous modified indicator
+        if (value !== defaultValue) {
+            const modifiedSpan = document.createElement('span');
+            modifiedSpan.style.color = '#dc3545';
+            modifiedSpan.textContent = ' (Modified)';
+            currentDisplay.parentNode.appendChild(modifiedSpan);
+        }
+    };
+    
+    // Event listeners
+    decreaseBtn.addEventListener('click', () => {
+        const currentVal = parseInt(input.value) || 0;
+        input.value = Math.max(0, currentVal - 1);
+        updateDisplay();
+    });
+    
+    increaseBtn.addEventListener('click', () => {
+        const currentVal = parseInt(input.value) || 0;
+        input.value = Math.min(99, currentVal + 1);
+        updateDisplay();
+    });
+    
+    resetBtn.addEventListener('click', () => {
+        input.value = defaultValue;
+        updateDisplay();
+    });
+    
+    input.addEventListener('input', updateDisplay);
+    
+    // Cancel button
+    modal.querySelector('#cancel-stat-edit').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    
+    // Save button
+    modal.querySelector('#save-stat-edit').addEventListener('click', () => {
+        const newValue = parseInt(input.value) || defaultValue;
+        
+        if (newValue === defaultValue) {
+            // Reset to default - remove the custom property
+            delete charData[fieldName];
+        } else {
+            // Set custom value
+            charData[fieldName] = newValue;
+        }
+        
+        // Trigger auto-save and refresh
+        if (window.scheduleAutoSave) window.scheduleAutoSave();
+        if (window.refreshCharacterSheet) window.refreshCharacterSheet();
+        
+        document.body.removeChild(overlay);
+    });
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+        }
+    });
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            document.removeEventListener('keydown', handleEscape);
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Focus the input
+    input.focus();
+    input.select();
 }
 
 function formatArchetype(archetype) {
