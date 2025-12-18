@@ -7,24 +7,40 @@ import { createNotesContent } from './library/notes.js';
 import { sanitizeId } from '../utils.js';
 import { enrichCharacterData } from '../utils/data-enrichment.js';
 
+// Render guard to prevent overlapping renders
+let isRendering = false;
+let pendingRender = null;
+
 export async function renderLibrary(charData) {
     const container = document.getElementById('library-section');
-    container.innerHTML = '';
+    if (!container) return;
+    
+    // If already rendering, queue this render and return
+    if (isRendering) {
+        pendingRender = charData;
+        return;
+    }
+    
+    isRendering = true;
+    
+    try {
+        // Clear existing content to prevent duplicates
+        container.innerHTML = '';
 
-    const tabs = document.createElement('div');
-    tabs.className = 'tabs';
-    tabs.innerHTML = `
-        <button class="tab active" data-tab="feats">FEATS</button>
-        <button class="tab" data-tab="techniques">TECHNIQUES</button>
-        <button class="tab" data-tab="powers">POWERS</button>
-        <button class="tab" data-tab="inventory">INVENTORY</button>
-        <button class="tab" data-tab="proficiencies">PROFICIENCIES</button>
-        <button class="tab" data-tab="notes">NOTES</button>
-    `;
-    container.appendChild(tabs);
+        const tabs = document.createElement('div');
+        tabs.className = 'tabs';
+        tabs.innerHTML = `
+            <button class="tab active" data-tab="feats">FEATS</button>
+            <button class="tab" data-tab="techniques">TECHNIQUES</button>
+            <button class="tab" data-tab="powers">POWERS</button>
+            <button class="tab" data-tab="inventory">INVENTORY</button>
+            <button class="tab" data-tab="proficiencies">PROFICIENCIES</button>
+            <button class="tab" data-tab="notes">NOTES</button>
+        `;
+        container.appendChild(tabs);
 
-    // Get user ID for enrichment
-    const user = window.firebase?.auth?.()?.currentUser;
+        // Get user ID for enrichment
+        const user = window.firebase?.auth?.()?.currentUser;
     const userId = user?.uid;
 
     // Use centralized data enrichment (will use cached data if already enriched)
@@ -73,4 +89,15 @@ export async function renderLibrary(charData) {
     });
 
     showTopBoxesIfNeeded();
+    
+    } finally {
+        isRendering = false;
+        
+        // If a render was queued while we were rendering, execute it now
+        if (pendingRender) {
+            const nextData = pendingRender;
+            pendingRender = null;
+            await renderLibrary(nextData);
+        }
+    }
 }

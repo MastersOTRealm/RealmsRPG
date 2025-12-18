@@ -143,7 +143,24 @@ export function renderHeader(charData, calculatedData) {
         }
     }
     const healthEnergyToggle = isEditMode ? `<span class="edit-section-toggle resources-edit-toggle ${penClass}" onclick="window.toggleHealthEnergyEditor()" title="Edit Health/Energy allocation">🖉</span>` : '';
-    
+
+    // Calculate Innate Threshold for display (show threshold in header innate-section)
+    let innateThreshold = 0;
+    try {
+        if (typeof window.calculateArchetypeProgression === 'function') {
+            const progression = window.calculateArchetypeProgression(
+                charData.level || 1,
+                charData.mart_prof || 0,
+                charData.pow_prof || 0,
+                charData.archetypeChoices || {}
+            );
+            innateThreshold = progression.innateThreshold || 0;
+        }
+    } catch (e) {
+        console.warn('[Header] Failed to calculate innate threshold', e);
+        innateThreshold = charData.innateEnergy || 0;
+    }
+
     const header = document.createElement('div');
     header.className = 'header';
     header.innerHTML = `
@@ -202,7 +219,7 @@ export function renderHeader(charData, calculatedData) {
                 </div>
                 <div class="resource-section innate-section">
                     <span class="stat-label">INNATE ENERGY</span>
-                    <span class="stat-value">${charData.innateEnergy || 0}</span>
+                    <span class="stat-value">${innateThreshold}</span>
                 </div>
             </div>
         </div>

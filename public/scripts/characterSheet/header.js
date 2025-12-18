@@ -76,8 +76,8 @@ export function renderHeader(character) {
             const value = Math.max(0, Math.min(maxHealth, parseInt(e.target.value) || 0));
             e.target.value = value;
             character.currentHealth = value;
-            // Trigger save if needed
-            document.getElementById('save-character')?.click();
+            // Trigger auto-save
+            window.scheduleAutoSave?.();
         });
         healthInput.addEventListener('change', () => {
             window.updateResourceColors?.();
@@ -89,8 +89,8 @@ export function renderHeader(character) {
             const value = Math.max(0, Math.min(maxEnergy, parseInt(e.target.value) || 0));
             e.target.value = value;
             character.currentEnergy = value;
-            // Trigger save if needed
-            document.getElementById('save-character')?.click();
+            // Trigger auto-save
+            window.scheduleAutoSave?.();
         });
         energyInput.addEventListener('change', () => {
             window.updateResourceColors?.();

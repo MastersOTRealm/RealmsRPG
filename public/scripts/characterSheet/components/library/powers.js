@@ -9,80 +9,77 @@ export function createPowersContent(powers) {
     
     const isEditMode = document.body.classList.contains('edit-mode');
     
-    // Calculate innate values using archetype progression
+    // Calculate innate values using archetype progression (always visible)
     const charData = window.currentCharacterData ? (typeof window.currentCharacterData === 'function' ? window.currentCharacterData() : window.currentCharacterData) : null;
     let innateThreshold = 0;
     let innatePools = 0;
     let innateEnergy = 0;
     
-    if (typeof window.calculateArchetypeProgression === 'function') {
+    if (typeof window.calculateArchetypeProgression === 'function' && charData) {
         const progression = window.calculateArchetypeProgression(
-            charData?.level || 1,
-            charData?.mart_prof || 0,
-            charData?.pow_prof || 0,
-            charData?.archetypeChoices || {}
+            charData.level || 1,
+            charData.mart_prof || 0,
+            charData.pow_prof || 0,
+            charData.archetypeChoices || {}
         );
-        innateThreshold = progression.innateThreshold;
-        innatePools = progression.innatePools;
-        innateEnergy = progression.innateEnergy;
+        innateThreshold = progression.innateThreshold || 0;
+        innatePools = progression.innatePools || 0;
+        innateEnergy = progression.innateEnergy || 0;
     }
 
-    // Add innate displays at top
-    const innateDisplays = document.createElement('div');
-    innateDisplays.className = 'powers-innate-displays';
-    innateDisplays.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 12px;
-        margin-bottom: 15px;
-    `;
-
+    // Add header with "Add Power" button - always visible
+    const editHeader = document.createElement('div');
+    editHeader.className = 'library-section-header';
+    editHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;';
+    
+    // Left side: Title
+    const titleEl = document.createElement('h3');
+    titleEl.textContent = 'INNATE POWER';
+    editHeader.appendChild(titleEl);
+    
+    // Right side: Innate displays + Add button
+    const rightControls = document.createElement('div');
+    rightControls.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+    
+    // Add innate displays if any values > 0
     if (innateThreshold > 0 || innatePools > 0 || innateEnergy > 0) {
         const displays = [
-            { label: 'INNATE THRESHOLD', value: innateThreshold },
-            { label: 'INNATE POOLS', value: innatePools },
-            { label: 'INNATE ENERGY', value: innateEnergy }
+            { label: 'Threshold', value: innateThreshold },
+            { label: 'Pools', value: innatePools },
+            { label: 'Energy', value: innateEnergy }
         ].filter(item => item.value > 0);
 
         displays.forEach(item => {
             const display = document.createElement('div');
+            display.className = 'innate-stat-chip';
             display.style.cssText = `
                 background: var(--bg-medium);
                 color: var(--primary-dark);
-                border-radius: 7px;
-                padding: 6px 14px;
-                font-weight: 700;
-                font-size: 0.98em;
-                box-shadow: var(--shadow);
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-weight: 600;
+                font-size: 0.85em;
                 border: 1px solid var(--border-color);
-                letter-spacing: 0.2px;
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 6px;
             `;
             display.innerHTML = `
-                ${item.label}:
-                <span style="
-                    color: var(--primary-blue);
-                    font-weight: 700;
-                ">${item.value}</span>
+                <span style="color: var(--text-secondary); font-weight: 500;">${item.label}:</span>
+                <span style="color: var(--primary-blue); font-weight: 700;">${item.value}</span>
             `;
-            innateDisplays.appendChild(display);
+            rightControls.appendChild(display);
         });
     }
-
-    content.appendChild(innateDisplays);
     
-    // Add header with "Add Power" button in edit mode
-    const editHeader = document.createElement('div');
-    editHeader.className = 'library-section-header';
-    editHeader.innerHTML = `
-        <h3>POWERS</h3>
-        <button class="resource-add-btn" onclick="window.showPowerModal()">
-            + Add Power
-        </button>
-    `;
+    // Add Power button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'resource-add-btn';
+    addBtn.innerHTML = '+ Add Power';
+    addBtn.onclick = () => window.showPowerModal?.();
+    rightControls.appendChild(addBtn);
+    
+    editHeader.appendChild(rightControls);
     content.appendChild(editHeader);
     
     if (!powers.length) {

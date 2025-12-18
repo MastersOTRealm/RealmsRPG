@@ -166,8 +166,8 @@ export function renderArchetype(charData, calculatedData) {
     // Weapons
     renderWeapons(container, charData, calculatedData);
     
-    // Armor
-    renderArmor(container, charData);
+    // Armor - pass calculatedData for evasion
+    renderArmor(container, charData, calculatedData);
 }
 
 function renderWeapons(container, charData, calculatedData) {
@@ -296,7 +296,7 @@ function renderWeapons(container, charData, calculatedData) {
     container.appendChild(weaponsSection);
 }
 
-function renderArmor(container, charData) {
+function renderArmor(container, charData, calculatedData = {}) {
     const armorSection = document.createElement('div');
     armorSection.className = 'armor-section';
     armorSection.innerHTML = '<div class="section-title">ARMOR</div>';
@@ -321,6 +321,11 @@ function renderArmor(container, charData) {
     // If multiple equipped, show all equipped; if none, show "No armor equipped"
     const equippedArmor = (charData.armor || []).filter(a => a.equipped);
 
+    // Get evasion from calculatedData (properly calculated from agility)
+    // Fallback: calculate from agility if not in calculatedData
+    const agility = charData.abilities?.agility || 0;
+    const baseEvasion = calculatedData.evasion ?? (10 + agility);
+
     if (equippedArmor.length > 0) {
         equippedArmor.forEach(armorRef => {
             // Get full armor object from item library
@@ -329,14 +334,43 @@ function renderArmor(container, charData) {
 
             // Damage Reduction: try to extract from properties, fallback to 0
             let damageReduction = 0;
+            let critRangeBonus = 0;
+            let abilityReqParts = [];
+            
             if (Array.isArray(armor.properties)) {
-                const drProp = armor.properties.find(p => (p && (p.name === 'Damage Reduction')));
-                if (drProp) damageReduction = 1 + (drProp.op_1_lvl || 0);
+                armor.properties.forEach(prop => {
+                    if (!prop) return;
+                    const propName = typeof prop === 'string' ? prop : prop.name;
+                    const op1Lvl = (typeof prop === 'object' ? prop.op_1_lvl : 0) || 0;
+                    
+                    // Damage Reduction
+                    if (propName === 'Damage Reduction') {
+                        damageReduction = 1 + op1Lvl;
+                    }
+                    
+                    // Critical Range +1 property
+                    if (propName === 'Critical Range +1') {
+                        critRangeBonus = 1 + op1Lvl;
+                    }
+                    
+                    // Ability Requirement properties
+                    if (propName === 'Armor Strength Requirement') {
+                        abilityReqParts.push(`STR ${1 + op1Lvl}`);
+                    }
+                    if (propName === 'Armor Agility Requirement') {
+                        abilityReqParts.push(`AGI ${1 + op1Lvl}`);
+                    }
+                    if (propName === 'Armor Vitality Requirement') {
+                        abilityReqParts.push(`VIT ${1 + op1Lvl}`);
+                    }
+                });
             }
-            // Crit Range: look for property or field, fallback to 'N/A'
-            let critRange = armor.critRange || 'N/A';
-            // Ability Requirement: look for property or field, fallback to 'None'
-            let abilityReq = armor.abilityReq || null;
+            
+            // Critical Range = evasion + 10 + critRangeBonus
+            const critRange = baseEvasion + 10 + critRangeBonus;
+            
+            // Format ability requirement
+            const abilityReqStr = abilityReqParts.length > 0 ? abilityReqParts.join(', ') : 'None';
 
             const armorRow = document.createElement('tr');
             armorRow.className = 'armor-row';
@@ -344,7 +378,7 @@ function renderArmor(container, charData) {
                 <td class="armor-name">${armor.name}</td>
                 <td>${damageReduction}</td>
                 <td>${critRange}</td>
-                <td>${formatAbilityReq(abilityReq)}</td>
+                <td>${abilityReqStr}</td>
             `;
             tbody.appendChild(armorRow);
 
@@ -356,7 +390,11 @@ function renderArmor(container, charData) {
                     "Range",
                     "Shield Base",
                     "Armor Base",
-                    "Weapon Damage"
+                    "Weapon Damage",
+                    "Critical Range +1",
+                    "Armor Strength Requirement",
+                    "Armor Agility Requirement",
+                    "Armor Vitality Requirement"
                 ];
                 const propNames = armor.properties.map(p => typeof p === 'string' ? p : (p.name || ''));
                 const displayPropNames = propNames.filter(n => n && !EXCLUDED_PROP_NAMES.includes(n));
@@ -376,13 +414,6 @@ function renderArmor(container, charData) {
     
     armorSection.appendChild(armorTable);
     container.appendChild(armorSection);
-}
-
-function formatAbilityReq(req) {
-    if (!req || typeof req !== 'object') return 'None';
-    const entries = Object.entries(req);
-    if (entries.length === 0) return 'None';
-    return entries.map(([ability, value]) => `${value} ${ability.substring(0, 3).toUpperCase()}`).join(', ');
 }
 
 // Helper for capitalizing damage type (reuse from inventory.js if needed)

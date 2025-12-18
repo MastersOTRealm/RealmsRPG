@@ -379,12 +379,12 @@ window.setEditMode = async function(enabled) {
         updateEditButtonNotification();
     }
     
-    // Re-render the library to show/hide edit controls
+    // Re-render all editable sections to show/hide edit controls
     if (currentCharacterData) {
         try {
-            await renderLibrary(currentCharacterData);
+            await window.refreshCharacterSheet();
         } catch (err) {
-            console.error('[setEditMode] Error re-rendering library:', err);
+            console.error('[setEditMode] Error re-rendering:', err);
         }
     }
 };
@@ -969,7 +969,7 @@ window.getCalculatedData = function() {
  * Recalculates all derived stats and re-renders the entire character sheet.
  * Called after any character data changes.
  */
-window.refreshCharacterSheet = function() {
+window.refreshCharacterSheet = async function() {
     if (!currentCharacterData) return;
     
     // Determine archetype primary ability
@@ -1017,7 +1017,7 @@ window.refreshCharacterSheet = function() {
     renderAbilities(currentCharacterData, calculatedData);
     renderSkills(currentCharacterData);
     renderArchetype({ ...currentCharacterData, weapons: getWeaponsWithUnarmed(currentCharacterData) }, calculatedData);
-    renderLibrary({ ...currentCharacterData, weapons: getWeaponsWithUnarmed(currentCharacterData) });
+    await renderLibrary({ ...currentCharacterData, weapons: getWeaponsWithUnarmed(currentCharacterData) });
     
     // Update edit button notification dot
     updateEditButtonNotification();
@@ -1100,30 +1100,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update edit button notification dot on initial load
         updateEditButtonNotification();
 
-        document.getElementById('save-character')?.addEventListener('click', async () => {
-            if (currentCharacterId === 'placeholder') {
-                showNotification('Cannot save placeholder character', 'error');
-                return;
-            }
-            try {
-                const dataToSave = cleanForSave(currentCharacterData);
-                await saveCharacterData(currentCharacterId, dataToSave);
-                showNotification('Character saved successfully!', 'success');
-            } catch (error) {
-                showNotification('Error saving character', 'error');
-                console.error('[Manual save] Error:', error);
-            }
-        });
-
         document.getElementById('long-rest')?.addEventListener('click', longRest);
 
         window.isEditMode = false;
 
-        document.getElementById('toggle-edit-mode')?.addEventListener('click', () => {
+        document.getElementById('toggle-edit-mode')?.addEventListener('click', async () => {
             window.isEditMode = !window.isEditMode;
-            window.setEditMode(window.isEditMode);
-            // Re-render all editable sections
-            window.refreshCharacterSheet();
+            // setEditMode handles the full re-render, no need to call refreshCharacterSheet
+            await window.setEditMode(window.isEditMode);
         });
 
     } catch (error) {
