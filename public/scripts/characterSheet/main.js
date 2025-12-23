@@ -23,6 +23,10 @@ import {
     calculateArmamentProficiency
 } from './level-progression.js';
 
+// Import shared utilities
+import { sanitizeId } from '../shared/string-utils.js';
+import { capitalizeDamageType } from '../shared/string-utils.js';
+
 // Promise-based initialization guard for async data loading
 let _userItemLibraryPromise = null;
 window.userItemLibrary = []; // Array of all user's items (full objects)
@@ -256,15 +260,6 @@ function longRest() {
         scheduleAutoSave();
         showNotification('Long rest completed - all resources restored!', 'success');
     }
-}
-
-/**
- * Sanitizes a string to create a valid HTML/CSS ID.
- * @param {string} str - String to sanitize
- * @returns {string} Sanitized ID string with only alphanumeric and underscores
- */
-function sanitizeId(str) {
-    return str.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
 /**
@@ -917,12 +912,6 @@ window.refreshArchetypeColumn = function(options = {}) {
         calculatedData
     );
 };
-
-// Helper for capitalizing damage type
-function capitalizeDamageType(type) {
-    if (!type) return '';
-    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-}
 
 /**
  * Get calculated data for the current character

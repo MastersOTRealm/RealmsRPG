@@ -149,24 +149,35 @@
 }
 
 .trait-list li .add-btn {
-  background: var(--primary);
-  color: var(--bg-white);
+  background: linear-gradient(180deg, #1a5c94 0%, #0a4a7a 100%);
+  color: #ffffff;
   border: none;
-  border-radius: var(--radius-full);
-  width: 32px;
-  height: 32px;
-  font-size: 18px;
+  border-radius: var(--radius-sm);
+  min-width: 80px;
+  height: 26px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  padding: 4px 10px;
+}
+
+.trait-list li .add-btn::before {
+  content: 'Select Trait';
 }
 
 .trait-list li .add-btn:hover {
-  background: var(--primary-light);
+  background: linear-gradient(180deg, #1a6aa8 0%, #0d5a94 100%);
+  transform: translateY(-1px);
 }
 
 .trait-list li.selected .add-btn {
-  background: var(--bg-white);
-  color: var(--primary);
+  background: linear-gradient(180deg, #1a5c94 0%, #0a4a7a 100%);
+  color: #ffffff;
+}
+
+.trait-list li.selected .add-btn::before {
+  content: 'Selected ✓';
 }
 
 .trait-definition {

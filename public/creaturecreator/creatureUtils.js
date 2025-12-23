@@ -1,3 +1,6 @@
+// Import and re-export capitalize from shared module for backwards compatibility
+import { capitalize as sharedCapitalize } from '../scripts/shared/string-utils.js';
+
 // Returns the highest ability score from the UI
 export function getHighestAbility() {
     const abilities = [
@@ -99,10 +102,8 @@ export async function updateList(listId, arr, removeHandler, displayMap, allCrea
     }
 }
 
-export function capitalize(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
+// Re-export capitalize from shared module for backwards compatibility
+export const capitalize = sharedCapitalize;
 
 export function formatDamage(damageArr) {
     if (!Array.isArray(damageArr)) return '';

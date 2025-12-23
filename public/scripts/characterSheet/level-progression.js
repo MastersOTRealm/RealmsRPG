@@ -3,7 +3,22 @@
  * 
  * This module defines all the progression formulas and constraints for character leveling.
  * Use these functions to determine what resources a character should have at any given level.
+ * 
+ * Base formulas are imported from shared/game-formulas.js for consistency with creature creator.
  */
+
+// Import and re-export base formulas from shared module
+import {
+    GAME_CONSTANTS,
+    calculateAbilityPoints as sharedCalculateAbilityPoints,
+    calculateSkillPoints as sharedCalculateSkillPoints,
+    calculateHealthEnergyPool,
+    calculateProficiency,
+    calculateTrainingPoints as sharedCalculateTrainingPoints
+} from '../shared/game-formulas.js';
+
+// Re-export GAME_CONSTANTS for use in other modules
+export { GAME_CONSTANTS };
 
 /**
  * Calculate Health-Energy points based on level
@@ -13,7 +28,7 @@
  * @returns {number} Total health-energy points
  */
 export function calculateHealthEnergyPoints(level) {
-    return 18 + (12 * (level - 1));
+    return calculateHealthEnergyPool(level, 'PLAYER');
 }
 
 /**
@@ -23,11 +38,7 @@ export function calculateHealthEnergyPoints(level) {
  * @returns {number} Total ability points
  */
 export function calculateAbilityPoints(level) {
-    if (level < 1) return 0;
-    if (level < 3) return 7;
-    // At level 3, 6, 9, 12, etc. gain +1
-    const bonusPoints = Math.floor((level - 1) / 3);
-    return 7 + bonusPoints;
+    return sharedCalculateAbilityPoints(level);
 }
 
 /**
@@ -37,7 +48,7 @@ export function calculateAbilityPoints(level) {
  * @returns {number} Total skill points
  */
 export function calculateSkillPoints(level) {
-    return 2 + (level * 3);
+    return sharedCalculateSkillPoints(level);
 }
 
 /**
@@ -48,8 +59,7 @@ export function calculateSkillPoints(level) {
  * @returns {number} Total training points
  */
 export function calculateTrainingPoints(level, highestArchetypeAbility) {
-    const ability = highestArchetypeAbility || 0;
-    return 22 + ability + ((2 + ability) * (level - 1));
+    return sharedCalculateTrainingPoints(level, highestArchetypeAbility);
 }
 
 /**
@@ -60,11 +70,7 @@ export function calculateTrainingPoints(level, highestArchetypeAbility) {
  * @returns {number} Total proficiency points
  */
 export function calculateProficiencyPoints(level) {
-    if (level < 1) return 0;
-    if (level < 5) return 2;
-    // At level 5, 10, 15, 20, etc. gain +1
-    const bonusPoints = Math.floor(level / 5);
-    return 2 + bonusPoints;
+    return calculateProficiency(level);
 }
 
 /**

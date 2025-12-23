@@ -1,42 +1,46 @@
+/* ==========================================================================
+   Character Creator Variables
+   Maps to the core design system for consistency
+   ========================================================================== */
+
+/* Import core variables first */
+@import url('../core/variables.css');
+
+/* Character Creator specific overrides and aliases */
 :root {
-  --primary-dark: #001f3f;
-  --primary: #053357;
-  --primary-light: #0a4a7a;
-  --primary-lighter: #0a4a7a;
+  /* Primary colors - use core variables */
+  --primary-dark: var(--color-primary-dark);
+  --primary: var(--color-primary);
+  --primary-light: var(--color-primary-light);
+  --primary-lighter: var(--color-primary-light);
   --accent-blue: #4a9eff;
   --accent-blue-hover: #3a8eef;
   
-  --bg-main: #f7f7f7;
-  --bg-white: #fff;
-  --bg-section: #f5f5f5;
+  /* Backgrounds - map to core */
+  --bg-main: var(--color-background);
+  --bg-white: var(--color-white);
+  --bg-section: var(--color-gray-100);
   --bg-header: #e0e7ed;
   --bg-hover: #f0f8ff;
   --bg-selected: #e0f0ff;
   --bg-modal: #f8f9fa;
   
-  --text-primary: #053357;
-  --text-secondary: #555;
-  --text-muted: #888;
-  --text-light: #ddd;
+  /* Text colors - map to core */
+  --text-primary: var(--color-primary);
+  --text-secondary: var(--color-text-muted);
+  --text-muted: var(--color-gray-500);
+  --text-light: var(--color-gray-300);
   
-  --border-light: #ddd;
-  --border-primary: #053357;
+  /* Borders - map to core */
+  --border-light: var(--color-gray-300);
+  --border-primary: var(--color-primary);
   
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.05);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
-  --shadow-xl: 0 12px 40px rgba(0,0,0,0.2);
+  /* Shadows - these match our core shadows */
+  /* --shadow-sm, --shadow-md, --shadow-lg, --shadow-xl already defined in core */
   
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 50%;
+  /* Radii - these match our core radii */
+  /* --radius-sm, --radius-md, --radius-lg, --radius-xl, --radius-full already defined in core */
   
-  --spacing-xs: 6px;
-  --spacing-sm: 12px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 40px;
+  /* Spacing - these match our core spacing */
+  /* --spacing-xs, --spacing-sm, --spacing-md, --spacing-lg, --spacing-xl, --spacing-2xl already defined in core */
 }

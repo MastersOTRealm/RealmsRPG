@@ -1,431 +1,406 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Merriweather:wght@700&display=swap');
+/* ==========================================================================
+   Item Creator Styles
+   Imports shared design system and creator base, then adds item-specific styles
+   ========================================================================== */
 
-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 20px; /* Add margin to all sides */
-    padding: 0;
-    font-family: 'Nunito', sans-serif;
-    background-color: #f4f4f4;
-}
+/* Core Design System */
+@import url('../styles/core/variables.css');
+@import url('../styles/core/reset.css');
+@import url('../styles/core/typography.css');
+@import url('../styles/core/components.css');
+@import url('../styles/core/creator-base.css');
 
+/* ==========================================================================
+   Item Creator Specific Styles
+   ========================================================================== */
+
+/* Page Title */
 .page-title {
-    font-family: 'Merriweather', serif;
-    font-size: 36px;
-    font-weight: bold;
-    margin-top: 20px;
-}
-
-#addItemPropertyButton, #addShieldPropertyButton, #addArmorPropertyButton {
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    margin: 10px;
-}
-
-#addItemPropertyButton:hover, #addShieldPropertyButton:hover, #addArmorPropertyButton:hover {
-    background-color: #0056b3;
-}
-
-#itemPropertiesContainer {
-    margin-top: 20px;
-    width: 100%; /* Widen to fill the page */
-    position: relative;
-}
-
-#generalItemOptionsContainer {
-    margin-top: 20px;
-    width: 100%; /* Widen to fill the page */
-    padding: 10px; /* Reduce padding to make the boxes smaller */
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-normal);
+    margin-top: var(--spacing-lg);
+    text-align: center;
+    color: var(--color-primary);
 }
 
 .centered-title {
     text-align: center;
 }
 
+/* ==========================================================================
+   Main Layout
+   ========================================================================== */
+main {
+    max-width: var(--content-max-width, 1200px);
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-lg);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* General Item Options Container */
+#generalItemOptionsContainer {
+    margin-top: var(--spacing-lg);
+    width: 100%;
+    padding: var(--spacing-sm);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Total Costs Panel */
 #totalCosts {
     position: fixed;
-    top: 20px;
-    left: 20px; /* Adjust position to the left */
-    right: 20px; /* Adjust position to the right */
-    width: 130px; /* Adjust width to be slightly smaller */
-    padding: 10px;
-    background-color: #e6f7ff; /* Very light blue */
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000; /* Ensure it stays on top */
-    font-size: 14px; /* Smaller font size */
-    transition: transform 0.3s ease; /* Smooth transition for collapsing */
+    top: var(--spacing-lg);
+    left: var(--spacing-lg);
+    width: 160px;
+    padding: var(--spacing-sm);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: var(--z-sticky);
+    font-size: var(--font-size-xs);
+    transition: transform var(--transition-base);
 }
 
 #totalCosts h3 {
-    margin: 0 0 10px 0;
-    font-size: 16px;
+    margin: 0 0 var(--spacing-sm) 0;
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
 }
 
 #totalCosts p {
-    margin: 5px 0;
+    margin: var(--spacing-2xs) 0;
+    font-size: var(--font-size-xs);
 }
 
 #totalCosts.collapsed {
-    transform: translateX(-90%); /* Collapse to a nub */
+    transform: translateX(-90%);
 }
 
 #totalCosts .toggle-arrow {
     position: absolute;
     top: 50%;
-    right: -20px; /* Position the arrow outside the box */
-    width: 20px;
-    height: 20px;
-    background-color: #007bff;
-    color: white;
+    right: -20px;
+    width: 24px;
+    height: 24px;
+    background-color: var(--color-primary);
+    color: var(--color-white);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transform: translateY(-50%);
-    z-index: 1001; /* Ensure the arrow stays on top */
+    z-index: calc(var(--z-sticky) + 1);
+    font-weight: var(--font-weight-bold);
 }
 
+#totalCosts .toggle-arrow:hover {
+    background-color: var(--color-primary-hover);
+}
+
+/* Item Properties Container */
+#itemPropertiesContainer {
+    margin-top: var(--spacing-lg);
+    width: 100%;
+    position: relative;
+}
+
+/* Legacy class mappings to new system */
 .item-property-section {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    /* Extends .creator-section */
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
     position: relative;
 }
 
 .item-property-section h3 {
-    font-family: 'Merriweather', serif;
-    font-size: 24px;
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-lg);
     margin: 0;
+    color: var(--color-primary);
 }
 
 .item-property-section p {
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px;
-    margin: 5px 0;
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-xs);
+    margin: var(--spacing-2xs) 0;
 }
 
 .item-property-section h4 {
-    font-family: 'Nunito', sans-serif;
-    font-size: 16px;
-    margin: 10px 0 5px;
-    display: flex; /* Ensure the buttons are on the same line */
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-sm);
+    margin: var(--spacing-sm) 0 var(--spacing-xs);
+    display: flex;
     align-items: center;
 }
 
-button {
-    background-color: #007bff; /* Blue color */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 15px; /* Increase padding for larger buttons */
-    font-size: 16px; /* Increase font size */
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
-}
-
-.medium-button {
-    padding: 5px 10px; /* Medium size for specific buttons */
-    font-size: 14px;
-}
-
-.item-property-section button {
-    margin: 5px;
-}
-
 .item-property-section .delete-button {
-    background-color: #dc3545;
+    background-color: var(--color-danger);
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
 }
 
 .item-property-section .delete-button:hover {
-    background-color: #c82333;
+    background-color: var(--color-danger-hover);
 }
 
 .item-property-section select {
     display: block;
-    margin: 0 auto 10px auto;
-    padding: 5px;
-    font-size: 16px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
+    margin: 0 auto var(--spacing-sm) auto;
+    padding: var(--spacing-2xs);
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
 }
 
-.small-text {
-    font-size: 0.8em;
-    margin-left: 10px;
-}
-
-.option-container {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-}
-
-.option-box {
-    flex: 1;
-    margin: 0 5px;
-    padding: 5px; /* Reduce padding to make the boxes smaller */
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-}
-
-.range-box {
-    width: 30%; /* Make the range and area boxes smaller */
-}
-
-.button-container {
-    display: inline-flex; /* Ensure the buttons are on the same line */
-    margin-left: 10px;
-    gap: 5px; /* Add spacing between the buttons */
-}
-
-.small-button {
-    padding: 2px 5px;
-    font-size: 12px;
-}
-
-.small-button:hover {
-    background-color: #4169e1; /* Darker blue on hover */
-}
-
-.damage-box {
-    width: 100%; /* Make the damage box full width */
-    margin-top: 10px;
-}
-
-.damage-box h4 {
-    display: flex; /* Ensure the inputs and dropdowns are on the same line */
-    align-items: center;
-}
-
-.damage-box input,
-.damage-box select {
-    margin-left: 5px;
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
-}
-
-.blue-button {
-    background-color: #007bff;
-    color: white;
-}
-
-.blue-button:hover {
-    background-color: #0056b3;
-}
-
-.red-button {
-    background-color: #ff0000;
-    color: white;
-}
-
-.red-button:hover {
-    background-color: #cc0000;
-}
-
+/* ==========================================================================
+   Item Summary Panel
+   ========================================================================== */
 #itemSummary {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #e6f7ff; /* Very light blue */
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 100%; /* Widen to fill the page */
-    position: relative; /* Ensure relative positioning */
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    width: 100%;
+    position: relative;
 }
 
 #itemSummary h3 {
-    margin: 0 0 10px 0;
-    font-size: 24px;
+    margin: 0 0 var(--spacing-sm) 0;
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
 }
 
 .item-summary-top {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--spacing-sm);
 }
 
 .item-summary-top p {
-    margin: 5px 0;
+    margin: var(--spacing-2xs) 0;
     flex: 1 1 30%;
 }
 
 .item-summary-top input {
     flex: 1 1 100%;
-    padding: 5px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    margin-bottom: 10px;
+    padding: var(--spacing-2xs);
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    margin-bottom: var(--spacing-sm);
 }
 
 .item-summary-properties {
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
 }
 
 .item-summary-properties h4 {
-    margin: 0 0 5px 0;
+    margin: 0 0 var(--spacing-2xs) 0;
 }
 
 #summaryProperties {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--spacing-sm);
 }
 
 #summaryProperties div {
-    background-color: #f9f9f9;
-    border-radius: 5px;
-    padding: 5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    background-color: var(--color-gray-100);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-2xs);
+    box-shadow: var(--shadow-xs);
     flex: 1 1 30%;
 }
 
 .item-summary-description {
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
 }
 
 .item-summary-description h4 {
-    margin: 0 0 5px 0;
+    margin: 0 0 var(--spacing-2xs) 0;
 }
 
 #itemDescription {
     width: 100%;
     height: 100px;
-    padding: 5px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+    padding: var(--spacing-2xs);
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
+    resize: vertical;
 }
 
-.top-right-container {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-}
-
-.add-to-library-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 5px 10px;
-    font-size: 14px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-}
-
-.add-to-library-button:hover {
-    background-color: #0056b3;
-}
-
-main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 1200px; /* Limit the width of the main content */
-    margin: 0 auto; /* Center the main content */
-    padding: 20px; /* Add padding to ensure content is not cut off */
-}
-
-.button-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 20px;
-}
-
-.button-row button {
-    margin: 0 10px;
-    padding: 10px 20px; /* Ensure consistent padding */
-    font-size: 16px; /* Ensure consistent font size */
-    border-radius: 5px; /* Ensure consistent border radius */
-    border: none; /* Ensure consistent border */
-    background-color: #007bff; /* Ensure consistent background color */
-    color: white; /* Ensure consistent text color */
-    cursor: pointer; /* Ensure consistent cursor */
-}
-
-.button-row button:hover {
-    background-color: #0056b3; /* Ensure consistent hover color */
-}
-
-.load-save-button-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-}
-
+/* ==========================================================================
+   Item Specific: Ability Requirements
+   ========================================================================== */
 .ability-req-box {
     width: 30%;
     min-width: 200px;
-    margin: 0 5px;
-    padding: 5px;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    margin: 0 var(--spacing-2xs);
+    padding: var(--spacing-2xs);
+    background-color: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
 }
 
 .ability-req-box select {
     margin-left: 0;
     margin-right: 0;
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif;
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
 }
 
 #abilityRequirementsList > div {
     margin-top: 2px;
-    background: #e6f7ff;
-    border-radius: 5px;
-    padding: 2px 6px;
-    font-size: 13px;
+    background: var(--color-primary-light);
+    border-radius: var(--radius-sm);
+    padding: 2px var(--spacing-2xs);
+    font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--spacing-2xs);
 }
 
 #abilityRequirementsList button {
-    padding: 2px 6px;
-    font-size: 12px;
-    border-radius: 5px;
-    background-color: #ff0000;
-    color: white;
+    padding: 2px var(--spacing-2xs);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-danger);
+    color: var(--color-white);
     border: none;
     cursor: pointer;
 }
 
 #abilityRequirementsList button:hover {
-    background-color: #cc0000;
+    background-color: var(--color-danger-dark);
+}
+
+/* ==========================================================================
+   Item Main Container
+   ========================================================================== */
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: var(--container-lg);
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* ==========================================================================
+   Page Navigation
+   ========================================================================== */
+.top-right-container {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+}
+
+.add-to-library-button {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   Button Size Variants
+   ========================================================================== */
+.small-button {
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--font-size-xs);
+}
+
+.medium-button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+/* Button Color Variants */
+.blue-button {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.blue-button:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.red-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+
+.red-button:hover {
+    background-color: var(--color-danger-hover);
+}
+
+/* Delete button styling */
+.delete-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+
+.delete-button:hover {
+    background-color: var(--color-danger-hover);
+}
+
+/* Checkbox styling */
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-sm);
+    gap: var(--spacing-sm);
+}
+
+.checkbox-container label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    cursor: pointer;
+}
+
+/* Load/Save Button Container */
+.load-save-button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-sm);
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+@media (max-width: 768px) {
+    .item-summary-top {
+        flex-direction: column;
+    }
+    
+    .item-summary-top p {
+        flex: none;
+        width: 100%;
+    }
+    
+    .ability-req-box {
+        width: 100%;
+    }
 }

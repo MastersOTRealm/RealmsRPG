@@ -12,6 +12,7 @@ import {
   formatProficiencyChip,
   deriveItemDisplay
 } from '../item_calc.js';
+import { waitForAuth } from '../shared/firebase-init.js';
 
 export let selectedEquipment = [];
 export let selectedEquipmentQuantities = {}; // { id: quantity }
@@ -21,25 +22,8 @@ let itemPropertiesCache = null;
 export let weaponLibrary = [];
 export let armorLibrary = [];
 export let generalEquipment = [];
-let authReady = false;
-let currentUser = null;
 
-// Wait for auth
-function waitForAuth() {
-  return new Promise((resolve) => {
-    if (authReady && currentUser) {
-      resolve(currentUser);
-      return;
-    }
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      authReady = true;
-      currentUser = user;
-      unsubscribe();
-      resolve(user);
-    });
-  });
-}
+// waitForAuth imported from shared/firebase-init.js
 
 async function loadItemProperties(database) {
   if (itemPropertiesCache) return itemPropertiesCache;

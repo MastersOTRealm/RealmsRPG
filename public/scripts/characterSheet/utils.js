@@ -1,20 +1,15 @@
-export function formatBonus(value) {
-    return value >= 0 ? `+${value}` : `${value}`;
-}
+// Import from shared modules and re-export for backwards compatibility
+import { formatBonus as sharedFormatBonus } from '../shared/number-utils.js';
+import { sanitizeId as sharedSanitizeId } from '../shared/string-utils.js';
+import { createElement as sharedCreateElement } from '../shared/dom-utils.js';
 
-export function createElement(tag, className, content) {
-    const el = document.createElement(tag);
-    if (className) el.className = className;
-    if (content) el.innerHTML = content;
-    return el;
-}
+// Re-export from shared modules
+export const formatBonus = sharedFormatBonus;
+export const sanitizeId = sharedSanitizeId;
+export const createElement = sharedCreateElement;
 
 export function clearElement(el) {
     while (el.firstChild) {
         el.removeChild(el.firstChild);
     }
-}
-
-export function sanitizeId(str) {
-    return String(str || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }

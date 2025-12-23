@@ -1,22 +1,9 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 
-export async function initializeFirebase() {
-  const response = await fetch('/__/firebase/init.json');
-  const firebaseConfig = await response.json();
-  firebaseConfig.authDomain = 'realmsroleplaygame.com';
-  const app = initializeApp(firebaseConfig);
-
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
-    isTokenAutoRefreshEnabled: true
-  });
-
-  return { app, auth: getAuth(app), db: getFirestore(app), functions: getFunctions(app) };
-}
+// Re-export initializeFirebase from shared module for backwards compatibility
+export { initializeFirebase, auth, db, functions, rtdb, waitForAuth } from './shared/firebase-init.js';
 
 export function handleAuthStateChange(auth, db) {
   onAuthStateChanged(auth, async (user) => {

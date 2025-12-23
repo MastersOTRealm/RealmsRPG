@@ -1,678 +1,614 @@
-@import url('library.css');
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Merriweather:wght@700&display=swap');
+/* ==========================================================================
+   Creature Creator Styles
+   Imports shared design system and creator base, then adds creature-specific styles
+   ========================================================================== */
 
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0; /* Remove side margins */
-            padding: 0;
-            font-family: 'Nunito', sans-serif;
-            background-color: #f4f4f4;
-            width: 100%;
-        }
+/* Core Design System */
+@import url('./core/variables.css');
+@import url('./core/reset.css');
+@import url('./core/typography.css');
+@import url('./core/components.css');
+@import url('./core/creator-base.css');
 
-        .page-title {
-            font-family: 'Merriweather', serif;
-            font-size: 36px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-align: center;
-        }
+/* ==========================================================================
+   Page Title and Basic Elements
+   ========================================================================== */
+.page-title {
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-normal);
+    margin-top: var(--spacing-lg);
+    text-align: center;
+    color: var(--color-primary);
+}
 
-        #creatureCreatorContainer {
-            margin-top: 20px;
-            width: 75vw;
-            max-width: 1400px;
-            min-width: 340px;
-            margin-left: auto;
-            margin-right: auto;
-            padding: 20px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+.centered-title {
+    text-align: center;
+}
 
-        .basic-mechanics-section {
-            width: 100%;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
+/* ==========================================================================
+   Main Layout
+   ========================================================================== */
+main {
+    max-width: var(--content-max-width, 1200px);
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-lg);
+    width: 100%;
+    box-sizing: border-box;
+}
 
-        .mechanics-title {
-            font-family: 'Merriweather', serif;
-            font-size: 24px;
-            font-weight: bold;
-            margin: 0 0 15px 0;
-            text-align: center;
-        }
+/* ==========================================================================
+   Creature Summary Panel (collapsible sidebar)
+   ========================================================================== */
+#totalCosts,
+#creatureSummaryPanel {
+    position: fixed;
+    top: var(--spacing-lg);
+    left: var(--spacing-lg);
+    width: 160px;
+    padding: var(--spacing-sm);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: var(--z-sticky);
+    font-size: var(--font-size-xs);
+    transition: transform var(--transition-base);
+}
 
-        .mechanics-container {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+#totalCosts h3,
+#creatureSummaryPanel h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-normal);
+    color: var(--color-primary);
+}
 
-        .mechanic-box {
-            flex: 1;
-            min-width: 200px;
-            max-width: 250px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 10px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+#totalCosts p,
+#creatureSummaryPanel p {
+    margin: var(--spacing-2xs) 0;
+    font-size: var(--font-size-xs);
+}
 
-        .mechanic-box h3 {
-            font-family: 'Merriweather', serif;
-            font-size: 18px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
+#totalCosts.collapsed,
+#creatureSummaryPanel.collapsed {
+    transform: translateX(-90%);
+}
 
-        .mechanic-box label, .mechanic-box select, .mechanic-box input {
-            display: block;
-            width: 100%;
-            margin-bottom: 8px;
-            font-size: 14px;
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-family: 'Nunito', sans-serif;
-        }
+#totalCosts .toggle-arrow,
+#creatureSummaryPanel .toggle-arrow {
+    position: absolute;
+    top: 50%;
+    right: -18px;
+    width: 20px;
+    height: 20px;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transform: translateY(-50%);
+    z-index: calc(var(--z-sticky) + 1);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-xs);
+}
 
-        .mechanic-box ul {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 8px 0;
-            width: 100%;
-        }
+#totalCosts .toggle-arrow:hover,
+#creatureSummaryPanel .toggle-arrow:hover {
+    background-color: var(--color-primary-hover);
+}
 
-        .mechanic-box ul li {
-            background: #ffffff;
-            border-radius: 5px;
-            margin-bottom: 5px;
-            padding: 5px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* ==========================================================================
+   Creature Creator Container
+   ========================================================================== */
+#creatureCreatorContainer {
+    margin-top: var(--spacing-lg);
+    width: 75vw;
+    max-width: var(--container-xl);
+    min-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: var(--spacing-lg);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-        .small-button {
-            padding: 2px 5px;
-            font-size: 12px;
-            border-radius: 5px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-        }
+/* ==========================================================================
+   Basic Mechanics Section
+   ========================================================================== */
+.basic-mechanics-section {
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: #e6f7ff; /* Light blue for readability */
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+}
 
-        .small-button:hover {
-            background-color: #0056b3;
-        }
+.mechanics-title {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    margin: 0 0 var(--spacing-md) 0;
+    text-align: center;
+    color: var(--color-primary);
+}
 
-        .medium-button {
-            padding: 5px 10px;
-            font-size: 14px;
-            border-radius: 5px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            margin-top: 10px;
-        }
+.mechanics-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
 
-        .medium-button:hover {
-            background-color: #0056b3;
-        }
+.mechanic-box {
+    flex: 1;
+    min-width: 180px;
+    max-width: 300px;
+    padding: var(--spacing-sm);
+    background-color: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: visible;
+}
 
-        #featsSection {
-            width: 100%;
-            padding: 15px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
+.mechanic-box h3 {
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--spacing-sm) 0;
+    text-align: center;
+    color: var(--color-primary);
+}
 
-        #featsSection h2 {
-            font-family: 'Merriweather', serif;
-            font-size: 24px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
+.mechanic-box label,
+.mechanic-box select,
+.mechanic-box input {
+    display: block;
+    width: 100%;
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
+    box-sizing: border-box;
+}
 
-        #featsContainer .feat-row {
-            background: #e6f7ff;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+/* Fix buttons in mechanic boxes to not overflow */
+.mechanic-box button {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-1) var(--spacing-2);
+    white-space: nowrap;
+    min-width: auto;
+    width: auto;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
-        #featsContainer input, #featsContainer select {
-            font-size: 14px;
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-family: 'Nunito', sans-serif;
-        }
+.mechanic-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--spacing-xs) 0;
+    width: 100%;
+}
 
-        .summary-section {
-            width: 100%;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            font-size: 16px;
-            min-height: 180px; /* Increased minimum height for more content */
-            max-height: none;  /* Allow auto-expansion for more details */
-            overflow: visible; /* Let content expand naturally */
-        }
+.mechanic-box ul li {
+    background: var(--color-white);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-2xs);
+    padding: var(--spacing-2xs) var(--spacing-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-        .summary-section h3 {
-            font-family: 'Merriweather', serif;
-            font-size: 24px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
+/* ==========================================================================
+   Abilities Section
+   ========================================================================== */
+.abilities-section {
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+}
 
-        .summary-section div {
-            margin-bottom: 5px;
-        }
+.ability-row {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
 
-        .powers-techniques-section {
-            width: 100%;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            margin-top: 0;
-        }
+.ability-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-md);
+    background-color: var(--color-gray-100);
+}
 
-        .powers-techniques-header {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+.ability-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-xs);
+}
 
-        .powers-toggle-row {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 10px;
-            margin-top: 5px;
-        }
+.creature-ability-dropdown {
+    font-size: var(--font-size-base);
+    padding: var(--spacing-xs);
+    padding-right: var(--spacing-lg);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family-body);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 10px 8px;
+    min-width: 70px;
+}
 
-        .powers-toggle-row label {
-            font-size: 15px;
-            margin-right: 10px;
-        }
+#creature-ability-points-box {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-left: auto;
+    background: var(--color-gray-100);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-2xs) var(--spacing-sm);
+    box-shadow: var(--shadow-xs);
+}
 
-        .innate-info {
-            margin-left: auto;
-            font-weight: bold;
-            font-size: 15px;
-        }
+#remaining-points {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+}
 
-        #powersTechniquesContainer > .power-technique-row {
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+/* ==========================================================================
+   Feats Section
+   ========================================================================== */
+#featsSection {
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+}
 
-        #powersTechniquesContainer input, #powersTechniquesContainer select {
-            font-size: 15px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            padding: 2px 6px;
-        }
+#featsSection h2 {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-2xl);
+    margin: 0 0 var(--spacing-sm) 0;
+    text-align: center;
+}
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1001;
-            left: 0; top: 0; width: 100vw; height: 100vh;
-            overflow: auto;
-            background: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background: #fff;
-            margin: 60px auto;
-            padding: 24px 32px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 600px;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
-        }
-        .close-button {
-            position: absolute;
-            right: 18px;
-            top: 12px;
-            font-size: 28px;
-            font-weight: bold;
-            color: #888;
-            cursor: pointer;
-        }
-        .close-button:hover { color: #333; }
-        .power-list .power-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #e6f7ff;
-            border-radius: 6px;
-            padding: 10px 12px;
-            margin-bottom: 8px;
-            font-size: 16px;
-        }
-        .power-list .power-item button {
-            margin-left: 12px;
-        }
-        .power-technique-item {
-            background: #f9f9f9;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            padding: 10px 12px;
-            box-shadow: 0 0 4px rgba(0,0,0,0.07);
-        }
-        .power-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: bold;
-        }
-        .power-details {
-            margin-top: 8px;
-            background: #e6f7ff;
-            border-radius: 6px;
-            padding: 10px;
-        }
-        .power-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 15px;
-        }
-        .power-table th, .power-table td {
-            border: none;
-            padding: 4px 8px;
-            text-align: left;
-        }
-        .toggle-details {
-            color: #007bff;
-            cursor: pointer;
-            font-size: 18px;
-            user-select: none;
-        }
-        .toggle-details:hover {
-            text-decoration: underline;
-        }
+#featsContainer .feat-row {
+    background: var(--color-primary-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
 
-        .abilities-section {
-            width: 100%;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .ability-row {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-        }
-        .ability-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 1rem;
-            background-color: #f9f9f9;
-        }
-        .ability-name {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .creature-ability-dropdown {
-            font-size: 1rem;
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        #creature-ability-points-box {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-left: auto;
-            background: #f9f9f9;
-            border-radius: 6px;
-            padding: 4px 12px;
-            box-shadow: 0 0 4px rgba(0,0,0,0.04);
-        }
-        #remaining-points {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #007bff;
-        }
-        #sensesMovementBox {
-            min-width: 220px;
-            max-width: 260px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 10px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #sensesMovementBox h3 {
-            font-family: 'Merriweather', serif;
-            font-size: 18px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
-        #sensesMovementBox ul {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 8px 0;
-            width: 100%;
-        }
-        #sensesMovementBox ul li {
-            background: #ffffff;
-            border-radius: 5px;
-            margin-bottom: 5px;
-            padding: 5px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #healthEnergyBox {
-            min-width: 220px;
-            max-width: 260px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 10px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #healthEnergyBox h3 {
-            font-family: 'Merriweather', serif;
-            font-size: 18px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
-        #healthEnergyBox label {
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-        #healthEnergyBox input[type="number"] {
-            width: 60px;
-            padding: 3px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            text-align: center;
-            font-size: 14px;
-        }
-        #healthEnergyBox .small-button {
-            padding: 2px 8px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-        }
-        #healthEnergyBox .small-button:hover {
-            background-color: #0056b3;
-        }
+#featsContainer input,
+#featsContainer select {
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-2xs);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
+}
 
-        #armamentsSection {
-            width: 100%;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            margin-top: 0;
-        }
+/* ==========================================================================
+   Powers & Techniques Section
+   ========================================================================== */
+.powers-techniques-section {
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+    margin-top: 0;
+}
 
-        #armamentsSection h2 {
-            font-family: 'Merriweather', serif;
-            font-size: 24px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
+.powers-techniques-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
 
-        #armamentsContainer .armament-row {
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 15px;
-        }
+.powers-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    margin-top: var(--spacing-2xs);
+}
 
-        #armamentsContainer .power-technique-item {
-            background: #f9f9f9;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            padding: 10px 12px;
-            box-shadow: 0 0 4px rgba(0,0,0,0.07);
-        }
-        #armamentsContainer input,
-        #armamentsContainer select {
-            font-size: 15px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            padding: 2px 6px;
-            font-family: 'Nunito', sans-serif;
-        }
+.powers-toggle-row label {
+    font-size: var(--font-size-base);
+    margin-right: var(--spacing-sm);
+}
 
-        #addArmamentBtn {
-            padding: 5px 10px;
-            font-size: 14px;
-            border-radius: 5px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            margin-top: 10px;
-        }
+.innate-info {
+    margin-left: auto;
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-base);
+}
 
-        #addArmamentBtn:hover {
-            background-color: #0056b3;
-        }
+#powersTechniquesContainer > .power-technique-row {
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
 
-        #creatureDetailsBox {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 170px;
-            padding: 12px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            font-size: 14px;
-            transition: left 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s, background 0.3s;
-            /* Remove transform for better collapse effect */
-        }
-        #creatureDetailsBox h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-        }
-        #creatureDetailsBox p {
-            margin: 5px 0;
-        }
-        #creatureDetailsBox .toggle-arrow {
-            position: absolute;
-            top: 50%;
-            right: -20px;
-            width: 20px;
-            height: 20px;
-            background-color: #007bff;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transform: translateY(-50%);
-            z-index: 1001;
-            font-size: 18px;
-            user-select: none;
-            box-shadow: 0 0 4px rgba(0,0,0,0.12);
-        }
-        #creatureDetailsBox.collapsed {
-            left: -150px;
-            width: 0;
-            min-width: 0;
-            padding: 0;
-            background: transparent;
-            box-shadow: none;
-            overflow: visible;
-        }
-        #creatureDetailsBox.collapsed > *:not(.toggle-arrow) {
-            display: none !important;
-        }
+#powersTechniquesContainer input,
+#powersTechniquesContainer select {
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    padding: 2px var(--spacing-2xs);
+}
 
-        .equipment-table-container {
-            overflow-x: auto;
-            overflow-y: visible;
-            margin-bottom: 16px;
-        }
+/* Power/Technique Items */
+.power-technique-item {
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-sm);
+    box-shadow: var(--shadow-xs);
+}
 
-        .equipment-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: visible; /* Changed from hidden to visible to allow expanded content to show */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+.power-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-weight: var(--font-weight-bold);
+}
 
-        .equipment-table th, .equipment-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
+.power-details {
+    margin-top: var(--spacing-xs);
+    background: var(--color-accent-light);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-sm);
+}
 
-        .equipment-table th {
-            background: #e6f7ff;
-            font-weight: 600;
-            color: #333;
-        }
+.power-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-base);
+}
 
-        .equipment-table tr:hover {
-            background: #f9f9f9;
-        }
+.power-table th,
+.power-table td {
+    border: none;
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    text-align: left;
+}
 
-        .expandable {
-            position: relative;
-        }
+.toggle-details {
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: var(--font-size-lg);
+    user-select: none;
+    transition: color var(--transition-fast);
+}
 
-        .expandable .expand-icon {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.2rem;
-            color: var(--gray);
-            transition: transform 0.2s;
-            pointer-events: none; /* Prevent icon from interfering with row click */
-        }
+.toggle-details:hover {
+    text-decoration: underline;
+    color: var(--color-primary-dark);
+}
 
-        .expandable.expanded .expand-icon {
-            transform: translateY(-50%) rotate(180deg);
-        }
+/* ==========================================================================
+   Senses & Movement Box
+   ========================================================================== */
+#sensesMovementBox {
+    min-width: 220px;
+    max-width: 260px;
+    padding: var(--spacing-sm);
+    background-color: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-        .feats-section {
-          overflow: visible;
-        }
+#sensesMovementBox h3 {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-lg);
+    margin: 0 0 var(--spacing-sm) 0;
+    text-align: center;
+}
 
-        .library-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease, padding 0.3s ease;
-            padding: 0 16px;
-        }
+#sensesMovementBox ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--spacing-xs) 0;
+    width: 100%;
+}
 
-        .expanded .library-body {
-            max-height: 2000px;
-            padding: 16px;
-        }
+#sensesMovementBox ul li {
+    background: var(--color-white);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-2xs);
+    padding: var(--spacing-2xs) var(--spacing-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-        #powersSection {
-            width: 100%;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            margin-top: 0;
-        }
+/* ==========================================================================
+   Summary Section
+   ========================================================================== */
+.summary-section {
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    font-size: var(--font-size-sm);
+    min-height: 180px;
+    max-height: none;
+    overflow: visible;
+}
 
-        #powersSection h2 {
-            font-family: 'Merriweather', serif;
-            font-size: 24px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
+.summary-section h2,
+.summary-section h3 {
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-normal);
+    color: var(--color-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+}
 
-        #techniquesSection {
-            width: 100%;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            margin-top: 0;
-        }
+.summary-section h3 {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-2xl);
+    margin: 0 0 var(--spacing-sm) 0;
+    text-align: center;
+    color: var(--color-primary);
+}
 
-        #techniquesSection h2 {
-            font-family: 'Merriweather', serif;
-            font-size: 24px;
-            margin: 0 0 10px 0;
-            text-align: center;
-        }
+.summary-section div {
+    margin-bottom: var(--spacing-2xs);
+}
 
-        @media (max-width: 1200px) {
-            #creatureCreatorContainer {
-                width: 95vw;
-                min-width: unset;
-                max-width: 100vw;
-                padding: 10px;
-            }
-            .mechanics-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            .mechanic-box {
-                min-width: 100%;
-                max-width: 100%;
-            }
-        }
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+@media (max-width: 992px) {
+    #creatureCreatorContainer {
+        width: 95vw;
+        padding: var(--spacing-sm);
+    }
+    
+    .mechanics-container {
+        justify-content: center;
+    }
+    
+    .mechanic-box {
+        max-width: 45%;
+    }
+}
+
+@media (max-width: 768px) {
+    .mechanic-box {
+        max-width: 100%;
+    }
+    
+    .ability-row {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .ability-box {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    #creature-ability-points-box {
+        margin-left: 0;
+        margin-top: var(--spacing-sm);
+    }
+    
+    .powers-toggle-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .innate-info {
+        margin-left: 0;
+    }
+}
+
+/* ==========================================================================
+   Button Size Variants
+   ========================================================================== */
+.small-button {
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--font-size-xs);
+}
+
+.medium-button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+/* Button Color Variants */
+.blue-button {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.blue-button:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.red-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+
+.red-button:hover {
+    background-color: var(--color-danger-hover);
+}
+
+/* Delete button styling */
+.delete-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+
+.delete-button:hover {
+    background-color: var(--color-danger-hover);
+}
+
+/* Checkbox styling */
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-sm);
+    gap: var(--spacing-sm);
+}
+
+.checkbox-container label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    cursor: pointer;
+}
+
+/* Load/Save Button Container */
+.load-save-button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-sm);
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+}

@@ -14,6 +14,7 @@ import {
 } from './modal-core.js';
 import { getCharacterResourceTracking, validateFeatAddition } from '../../validation.js';
 import { renderAbilities } from '../abilities.js';
+import { toStrArray, toNumArray } from '../../../shared/array-utils.js';
 
 // --- Feat state ---
 let allFeats = [];
@@ -44,27 +45,6 @@ export async function showFeatModal(featType = 'archetype') {
         try {
             const snap = await getWithRetry('feats');
             const data = snap.val();
-            const toStrArray = (val) => {
-                if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
-                if (typeof val === 'string') return val.split(',').map(v => v.trim()).filter(Boolean);
-                if (val && typeof val === 'object') {
-                    return Object.keys(val).sort((a, b) => Number(a) - Number(b)).map(k => String(val[k]).trim()).filter(Boolean);
-                }
-                return [];
-            };
-            const toNumArray = (val) => {
-                if (val == null) return [];
-                if (Array.isArray(val)) return val.map(v => parseInt(String(v).trim()) || 0);
-                if (typeof val === 'number') return [val];
-                if (typeof val === 'string') {
-                    const parts = val.split(',').map(v => v.trim()).filter(Boolean);
-                    return parts.map(p => parseInt(p) || 0);
-                }
-                if (typeof val === 'object') {
-                    return Object.keys(val).sort((a, b) => Number(a) - Number(b)).map(k => parseInt(String(val[k]).trim()) || 0);
-                }
-                return [];
-            };
             allFeats = Object.values(data).map(f => ({
                 ...f,
                 ability_req: toStrArray(f.ability_req),

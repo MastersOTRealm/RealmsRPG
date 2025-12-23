@@ -1,7 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import { 
@@ -13,16 +11,12 @@ import {
 } from '/scripts/item_calc.js';
 import { fetchItemProperties } from '/scripts/utils/rtdb-cache.js';
 
-let appCheckInitialized = false;
+// Import shared utilities
+import { sanitizeId } from '/scripts/shared/string-utils.js';
+import { initializeFirebase } from '/scripts/shared/firebase-init.js';
 
 (() => {
     let itemProperties = [];
-
-    // Sanitize property name to ID (matches your script)
-    function sanitizeId(name) {
-        if (!name) return '';
-        return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-    }
 
     const selectedItemProperties = [];
     window.selectedItemProperties = selectedItemProperties; // Expose for HTML logic
@@ -720,41 +714,15 @@ let appCheckInitialized = false;
         const toggleArrow = document.querySelector('#totalCosts .toggle-arrow');
         if (toggleArrow) toggleArrow.addEventListener('click', toggleTotalCosts);
 
-        let firebaseConfig = null;
-        try {
-            const response = await fetch('/__/firebase/init.json');
-            firebaseConfig = await response.json();
-            console.log('Firebase Config:', firebaseConfig);
-            firebaseConfig.authDomain = 'realmsroleplaygame.com';
-        } catch (e) {
-            console.error('Error fetching Firebase config:', e);
-        }
-
         const addToLibraryButton = document.getElementById("add-to-library-button");
         if (addToLibraryButton) {
             addToLibraryButton.disabled = true;
             addToLibraryButton.textContent = "Loading...";
         }
 
-        if (firebaseConfig) {
-            const app = initializeApp(firebaseConfig);
-
-            // --- App Check: Only initialize once ---
-            if (!appCheckInitialized) {
-                const appCheck = initializeAppCheck(app, {
-                    provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
-                    isTokenAutoRefreshEnabled: true
-                });
-                appCheckInitialized = true;
-                
-                // Add a small delay to ensure AppCheck token is ready (like codex.js)
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            // ---------------------------------------
-
-            const auth = getAuth(app);
-            const functions = getFunctions(app);
-            const database = getDatabase(app);
+        // Use centralized Firebase initialization
+        const { auth, functions, rtdb } = await initializeFirebase();
+        const database = rtdb;
 
             // Fetch properties from Realtime Database
             // Fetch item properties from shared RTDB cache

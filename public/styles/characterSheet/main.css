@@ -1,15 +1,27 @@
+/* ==========================================================================
+   Character Sheet Styles
+   Imports shared design system for consistency
+   ========================================================================== */
+
+/* Core Design System */
+@import url('../core/variables.css');
+@import url('../core/reset.css');
+@import url('../core/typography.css');
+@import url('../core/components.css');
+
+/* Character Sheet specific variable aliases (for backwards compatibility) */
 :root {
-    --primary-blue: #1a73e8;
-    --primary-dark: #053357;
-    --bg-light: #f8f9fa;
-    --bg-medium: #e6f7ff;
-    --border-color: #d1e7f7;
-    --text-primary: #2c3e50;
-    --text-secondary: #6c757d;
-    --success-green: #28a745;
-    --danger-red: #dc3545;
-    --warning-orange: #ffc107;
-    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --primary-blue: var(--color-primary-light);
+    --primary-dark: var(--color-primary-dark);
+    --bg-light: var(--color-bg);
+    --bg-medium: var(--color-accent-light);
+    --border-color: var(--color-border);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-text-secondary);
+    --success-green: var(--color-success);
+    --danger-red: var(--color-danger);
+    --warning-orange: var(--color-warning);
+    --shadow: var(--shadow-md);
 }
 
 body {

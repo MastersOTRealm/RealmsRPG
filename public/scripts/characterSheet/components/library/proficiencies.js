@@ -2,6 +2,7 @@ import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/
 import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 import { getArchetypeAbilityScore } from '../../calculations.js';
+import { waitForAuth } from '../../../shared/firebase-init.js';
 
 let powerPartsCache = null;
 let techniquePartsCache = null;
@@ -216,16 +217,7 @@ async function extractEquipmentProficiencies(weapons, armor) {
   return profs;
 }
 
-// Add helper to wait for auth
-function waitForAuth() {
-  return new Promise((resolve) => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      resolve(user);
-    });
-  });
-}
+// waitForAuth imported from shared/firebase-init.js
 
 // Add function to fetch full powers from user's library
 async function fetchFullPowers(powerNames) {

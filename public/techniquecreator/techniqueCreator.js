@@ -14,6 +14,9 @@ import {
 } from '/scripts/technique_calc.js';
 import { fetchTechniqueParts, fetchItemProperties } from '/scripts/utils/rtdb-cache.js';
 
+// Import shared utilities
+import { sanitizeId, capitalize } from '/scripts/shared/string-utils.js';
+
 // Store Firebase objects after initialization
 let firebaseApp = null;
 let firebaseAuth = null;
@@ -35,12 +38,6 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
 
         renderTechniqueParts();
         updateTotalCosts();
-    }
-
-    // Sanitize property name to ID (matches your script)
-    function sanitizeId(name) {
-        if (!name) return '';
-        return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     }
 
     function generatePartContent(partIndex, part) {
@@ -265,10 +262,6 @@ let techniqueParts = []; // Initialize as empty array - will be populated from d
         // Update the summary proficiencies
         const summaryProficiencies = document.getElementById('summaryProficiencies');
         summaryProficiencies.innerHTML = tpSources.map(source => `<p>${source}</p>`).join('');
-    }
-
-    function capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     function toggleTotalCosts() {

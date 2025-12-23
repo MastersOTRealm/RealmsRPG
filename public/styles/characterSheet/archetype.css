@@ -340,6 +340,11 @@
     color: white;
 }
 
+.choice-btn.selected .choice-icon,
+.choice-btn.selected .choice-text {
+    color: white;
+}
+
 .choice-icon {
     font-size: 14px;
 }

@@ -1,11 +1,13 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getFirestore, getDocs, collection, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import { calculatePowerCosts, computeActionTypeFromSelection, deriveRange, deriveArea, deriveDuration } from '/scripts/power_calc.js';
 import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
+
+// Import shared utilities
+import { capitalize } from '/scripts/shared/string-utils.js';
+import { initializeFirebase, auth as sharedAuth, db as sharedDb, rtdb as sharedRtdb, functions as sharedFunctions } from '/scripts/shared/firebase-init.js';
 
 (() => {
     // const powerParts = powerPartsData;
@@ -516,10 +518,6 @@ import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
         summaryProficiencies.innerHTML = tpSources.map(source => `<p>${source}</p>`).join('');
     }
 
-    function capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
     function toggleTotalCosts() {
         const totalCosts = document.getElementById('totalCosts');
         totalCosts.classList.toggle('collapsed');
@@ -618,18 +616,26 @@ import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
                     parts.forEach(part => {
                         const chip = document.createElement('span');
                         chip.className = 'chip ' + classMap[cat];
-                        chip.textContent = part.name;
+                        
+                        // Create header wrapper for name and button
+                        const header = document.createElement('div');
+                        header.className = 'chip-header';
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'chip-name';
+                        nameSpan.textContent = part.name;
+                        header.appendChild(nameSpan);
 
                         // Add + button with matching color
                         const addBtn = document.createElement('button');
                         addBtn.className = 'chip-add-button';
                         addBtn.textContent = '+';
-                        addBtn.style.color = colorMap[cat] || 'black'; // Set color to match chip
                         addBtn.onclick = (e) => {
                             e.stopPropagation();
                             addAdvancedPart(part);
                         };
-                        chip.appendChild(addBtn);
+                        header.appendChild(addBtn);
+                        chip.appendChild(header);
 
                         // Create expandable description div
                         const descDiv = document.createElement('div');
@@ -684,7 +690,15 @@ import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
             const part = partData.part;
             const chip = document.createElement('span');
             chip.className = 'chip ' + (classMap[part.category] || 'special');
-            chip.textContent = part.name;
+            
+            // Create header wrapper for name and button
+            const header = document.createElement('div');
+            header.className = 'chip-header';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'chip-name';
+            nameSpan.textContent = part.name;
+            header.appendChild(nameSpan);
 
             // Add remove button
             const removeBtn = document.createElement('button');
@@ -694,7 +708,8 @@ import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
                 e.stopPropagation();
                 removeAdvancedPart(idx);
             };
-            chip.appendChild(removeBtn);
+            header.appendChild(removeBtn);
+            chip.appendChild(header);
 
             // Create expandable description div with options
             const descDiv = document.createElement('div');
@@ -1309,20 +1324,10 @@ import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
         });
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        fetch('/__/firebase/init.json').then(response => response.json()).then(async firebaseConfig => {
-            firebaseConfig.authDomain = 'realmsroleplaygame.com';
-            const app = initializeApp(firebaseConfig);
-
-            const appCheck = initializeAppCheck(app, {
-                provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
-                isTokenAutoRefreshEnabled: true
-            });
-
-            const auth = getAuth(app);
-            const functions = getFunctions(app);
-            const db = getFirestore(app);
-            const database = getDatabase(app);
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Use centralized Firebase initialization
+        const { auth, functions, db, rtdb } = await initializeFirebase();
+        const database = rtdb;
 
             // Fetch power parts from shared RTDB cache
             powerParts = await fetchPowerParts(database);
@@ -1351,9 +1356,6 @@ import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
                     });
                 }
             });
-        }).catch(error => {
-            console.error('Error fetching Firebase config:', error);
-        });
     });
 
 // Expose functions to global scope for inline event handlers

@@ -1,705 +1,543 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Merriweather:wght@700&display=swap');
+/* ==========================================================================
+   Power Creator Styles
+   Imports shared design system and creator base, then adds power-specific styles
+   ========================================================================== */
 
-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 0; /* Remove side margins */
-    padding: 0;
-    font-family: 'Nunito', sans-serif;
-    background-color: #f4f4f4;
-    width: 100%;
-}
+/* Core Design System */
+@import url('./core/variables.css');
+@import url('./core/reset.css');
+@import url('./core/typography.css');
+@import url('./core/components.css');
+@import url('./core/creator-base.css');
 
+/* ==========================================================================
+   Power Creator Specific Styles
+   ========================================================================== */
+
+/* Page Title */
 .page-title {
-    font-family: 'Merriweather', serif;
-    font-size: 36px;
-    font-weight: bold;
-    margin-top: 20px;
-}
-
-#addPowerPartButton {
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    align-self: flex-start;
-
-}
-
-#addPowerPartButton:hover {
-    background-color: #0056b3;
-}
-
-#powerPartsContainer {
-    margin-top: 20px;
-    width: 100%; /* Widen to fill the page */
-    position: relative;
-}
-
-#generalPowerOptionsContainer {
-    margin-top: 20px;
-    width: 100%; /* Widen to fill the page */
-    padding: 10px; /* Reduce padding to make the boxes smaller */
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-normal);
+    margin-top: var(--spacing-lg);
+    text-align: center;
+    color: var(--color-primary);
 }
 
 .centered-title {
     text-align: center;
 }
 
+/* ==========================================================================
+   Main Layout
+   ========================================================================== */
+main {
+    max-width: var(--content-max-width, 1200px);
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-lg);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Option Container - Flexbox layout for basic mechanics */
+.option-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--spacing-md);
+    align-items: stretch;
+    justify-content: center;
+    margin: var(--spacing-md) 0;
+}
+
+.option-box {
+    flex: 1 1 auto;
+    min-width: 150px;
+    max-width: 250px;
+    padding: var(--spacing-sm);
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+}
+
+.option-box h4 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-2xs);
+}
+
+.option-box select {
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    padding-right: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    background: var(--color-white);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    min-width: 60px;
+}
+
+.range-button-container,
+.area-effect-button-container {
+    display: inline-flex;
+    gap: var(--spacing-2xs);
+    margin-left: var(--spacing-xs);
+}
+
+.small-button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: var(--font-size-base);
+    line-height: 1;
+    border-radius: var(--radius-sm);
+}
+
+/* Area of Effect Container */
+.area-effect-container {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border-light);
+    font-size: var(--font-size-sm);
+}
+
+.area-effect-container label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2xs);
+    margin-top: var(--spacing-xs);
+    cursor: pointer;
+}
+
+/* General Power Options Container */
+#generalPowerOptionsContainer {
+    margin-top: var(--spacing-lg);
+    width: 100%;
+    padding: var(--spacing-sm);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Total Costs Panel */
 #totalCosts {
     position: fixed;
-    top: 20px;
-    left: 20px; /* Adjust position to the left */
-    right: 20px; /* Adjust position to the right */
-    width: 130px; /* Adjust width to be slightly smaller */
-    padding: 10px;
-    background-color: #e6f7ff; /* Very light blue */
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000; /* Ensure it stays on top */
-    font-size: 14px; /* Smaller font size */
-    transition: transform 0.3s ease; /* Smooth transition for collapsing */
+    top: var(--spacing-lg);
+    left: var(--spacing-lg);
+    width: 160px;
+    padding: var(--spacing-sm);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: var(--z-sticky);
+    font-size: var(--font-size-xs);
+    transition: transform var(--transition-base);
 }
 
 #totalCosts h3 {
-    margin: 0 0 10px 0;
-    font-size: 16px;
+    margin: 0 0 var(--spacing-sm) 0;
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
 }
 
 #totalCosts p {
-    margin: 5px 0;
+    margin: var(--spacing-2xs) 0;
+    font-size: var(--font-size-xs);
 }
 
 #totalCosts.collapsed {
-    transform: translateX(-90%); /* Collapse to a nub */
+    transform: translateX(-90%);
 }
 
 #totalCosts .toggle-arrow {
     position: absolute;
     top: 50%;
-    right: -20px; /* Position the arrow outside the box */
+    right: -18px;
     width: 20px;
     height: 20px;
-    background-color: #007bff;
-    color: white;
+    background-color: var(--color-primary);
+    color: var(--color-white);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transform: translateY(-50%);
-    z-index: 1001; /* Ensure the arrow stays on top */
+    z-index: calc(var(--z-sticky) + 1);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-xs);
 }
 
+#totalCosts .toggle-arrow:hover {
+    background-color: var(--color-primary-hover);
+}
+
+/* Power Parts Container */
+#powerPartsContainer {
+    margin-top: var(--spacing-lg);
+    width: 100%;
+    position: relative;
+}
+
+/* Add Power Part Button */
+#addPowerPartButton {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Legacy class mappings to new system */
 .power-part-section {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    /* Extends .creator-section */
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
     position: relative;
 }
 
 .power-part-section h3 {
-    font-family: 'American Typewriter', serif;
-    font-size: 24px;
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-lg);
     margin: 0;
+    color: var(--color-primary);
 }
 
 .power-part-section p {
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px;
-    margin: 5px 0;
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-xs);
+    margin: var(--spacing-2xs) 0;
 }
 
 .power-part-section h4 {
-    font-family: 'Nunito', sans-serif;
-    font-size: 16px;
-    margin: 10px 0 5px;
-    display: flex; /* Ensure the buttons are on the same line */
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-sm);
+    margin: var(--spacing-sm) 0 var(--spacing-xs);
+    display: flex;
     align-items: center;
 }
 
-button {
-    background-color: #007bff; /* Blue color */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 15px; /* Increase padding for larger buttons */
-    font-size: 16px; /* Increase font size */
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
-}
-
-.medium-button {
-    padding: 5px 10px; /* Medium size for specific buttons */
-    font-size: 14px;
-}
-
-.power-part-section button {
-    margin: 5px;
-}
-
 .power-part-section .delete-button {
-    background-color: #dc3545;
+    background-color: var(--color-danger);
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
 }
 
 .power-part-section .delete-button:hover {
-    background-color: #c82333;
+    background-color: var(--color-danger-dark);
 }
 
 .power-part-section select {
     display: block;
-    margin: 0 auto 10px auto;
-    padding: 5px;
-    font-size: 16px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
+    margin: 0 auto var(--spacing-sm) auto;
+    padding: var(--spacing-2xs);
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
 }
 
-.small-text {
-    font-size: 0.8em;
-    margin-left: 10px;
-}
-
-.option-container {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-}
-
-.option-box {
-    flex: 1;
-    margin: 0 5px;
-    padding: 5px; /* Reduce padding to make the boxes smaller */
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-}
-
-.range-box, .area-box {
-    width: 30%; /* Make the range and area boxes smaller */
-}
-
-.duration-box {
-    width: 60%; /* Make the duration box larger */
-}
-
-.small-button {
-    padding: 2px 5px;
-    font-size: 12px;
-}
-
-.small-button:hover {
-    background-color: #4169e1; /* Darker blue on hover */
-}
-
-.checkbox-container {
-    display: flex;
-    flex-wrap: wrap; /* Wrap text for checkboxes */
-    margin-top: 10px;
-}
-
-.checkbox-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.left-column {
-    align-items: flex-start; /* Align left column items to the start */
-}
-
-.right-column {
-    align-items: flex-end; /* Align right column items to the end */
-}
-
-.checkbox-container label {
-    margin-bottom: 5px;
-}
-
-.sustain-container {
-    margin-top: 10px;
-}
-
-.sustain-container label {
-    margin-right: 5px;
-}
-
-.sustain-container select {
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
-}
-
-.area-effect-container {
-    margin-top: 10px;
-}
-
-.area-effect-container label {
-    margin-right: 5px;
-}
-
-.area-effect-container select {
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
-}
-
-.area-effect-container .button-container {
-    display: inline-flex; /* Ensure the buttons are on the same line */
-    margin-left: 10px;
-    gap: 5px; /* Add spacing between the buttons */
-}
-
-.range-button-container {
-    display: inline-flex; /* Ensure the buttons are on the same line */
-    margin-left: 10px;
-    gap: 5px; /* Add spacing between the buttons */
-}
-
-.area-effect-button-container {
-    display: inline-flex; /* Ensure the buttons are on the same line */
-    margin-left: 10px;
-    gap: 5px; /* Add spacing between the buttons */
-}
-
-.load-save-button-container {
-    display: flex;
-    flex-direction: column; /* Stack buttons vertically */
-    align-items: flex-end; /* Align buttons to the right */
-    gap: 10px; /* Adjust spacing */
-    position: absolute; /* Position absolutely within #powerSummary */
-    top: 10px; /* Adjust as needed */
-    right: 10px; /* Align to the right */
-}
-
-.action-type-box {
-    margin-top: 10px;
-}
-
-.action-type-box h4 {
-    display: inline-block;
-    margin-right: 10px;
-}
-
-.action-type-box select {
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
-    margin-right: 10px;
-}
-
-.action-type-box label {
-    display: inline-block;
-    margin-left: 10px;
-}
-
-.action-type-box #actionTypeDescription {
-    margin-top: 10px;
-}
-
-.alt-energy-button {
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
-    padding: 5px 10px;
-    font-size: 14px;
-}
-
-.alt-energy-button.toggled {
-    background-color: #0056b3; /* Darker blue to indicate toggled state */
-}
-
-.damage-box {
-    width: 100%; /* Make the damage box full width */
-    margin-top: 10px;
-}
-
-.damage-box h4 {
-    display: flex; /* Ensure the inputs and dropdowns are on the same line */
-    align-items: center;
-}
-
-.damage-box input,
-.damage-box select {
-    margin-left: 5px;
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
-}
-
-.blue-button {
-    background-color: #007bff;
-    color: white;
-}
-
-.blue-button:hover {
-    background-color: #0056b3;
-}
-
-.red-button {
-    background-color: #ff0000;
-    color: white;
-}
-
-.red-button:hover {
-    background-color: #cc0000;
-}
-
+/* ==========================================================================
+   Power Summary Panel
+   ========================================================================== */
 #powerSummary {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #e6f7ff; /* Very light blue */
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 100%; /* Widen to fill the page */
-    position: relative; /* Ensure relative positioning */
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: #e6f7ff; /* Light blue for readability */
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    width: 100%;
+    position: relative;
 }
 
 #powerSummary h3 {
-    margin: 0 0 10px 0;
-    font-size: 24px;
+    margin: 0 0 var(--spacing-sm) 0;
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
 }
 
 .power-summary-top {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--spacing-sm);
     align-items: center;
-    position: relative; /* Add relative positioning */
+    position: relative;
 }
 
 .power-summary-top p {
-    margin: 5px 0;
+    margin: var(--spacing-2xs) 0;
     flex: 1 1 30%;
+    font-size: var(--font-size-sm);
 }
 
 .power-summary-top input {
     flex: 1 1 100%;
-    padding: 5px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    margin-bottom: 10px;
-}
-
-.power-summary-top button {
-    padding: 5px 10px;
-    font-size: 14px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-}
-
-.power-summary-top button:hover {
-    background-color: #0056b3;
+    padding: var(--spacing-2xs);
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    margin-bottom: var(--spacing-sm);
 }
 
 .power-summary-parts {
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
 }
 
 .power-summary-parts h4 {
-    margin: 0 0 5px 0;
+    margin: 0 0 var(--spacing-2xs) 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
 }
 
 #summaryParts {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--spacing-sm);
 }
 
 #summaryParts div {
-    background-color: #f9f9f9;
-    border-radius: 5px;
-    padding: 5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    background-color: var(--color-gray-100);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-2xs);
+    box-shadow: var(--shadow-xs);
     flex: 1 1 30%;
-    margin-bottom: 5px; /* Reduced spacing by 75% from typical default */
+    margin-bottom: var(--spacing-2xs);
 }
 
-#summaryParts div h4 {
-    margin-bottom: 4px; /* Reduced from default ~16px */
-}
-
-#summaryParts div p {
-    margin-bottom: 4px; /* Reduced from default ~16px */
-}
-
+#summaryParts div h4,
+#summaryParts div p,
 #summaryProficiencies p {
-    margin-bottom: 4px; /* Reduced from default ~16px */
+    margin-bottom: var(--spacing-2xs);
 }
 
 .power-summary-description {
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
 }
 
 .power-summary-description h4 {
-    margin: 0 0 5px 0;
+    margin: 0 0 var(--spacing-2xs) 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
 }
 
 #powerDescription {
     width: 100%;
     height: 100px;
-    padding: 5px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+    padding: var(--spacing-2xs);
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
+    resize: vertical;
 }
 
+/* ==========================================================================
+   Duration Controls
+   ========================================================================== */
 .linger-container {
-    margin-top: 10px;
-}
-
-.linger-container label {
-    margin-right: 5px;
+    margin-top: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
 }
 
 .duration-type-container {
     display: flex;
     align-items: center;
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
+    gap: var(--spacing-sm);
 }
 
 .duration-type-container select {
-    margin-left: 10px;
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif;
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-300);
+    font-family: var(--font-family-body);
 }
 
 .duration-type-container select:disabled {
-    background-color: #e9ecef;
+    background-color: var(--color-gray-200);
     cursor: not-allowed;
 }
 
-.duration-type-container select,
-.duration-box select {
-    padding: 2px 5px;
-    font-size: 14px;
-    border-radius: 5px; /* Rounded edges */
-    border: 1px solid #ccc;
-    font-family: 'Nunito', sans-serif; /* Better font */
-}
-
+/* ==========================================================================
+   Page Navigation
+   ========================================================================== */
 .top-right-container {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
 }
 
 .switch-page-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 5px 10px;
-    font-size: 14px;
+    display: inline-block;
     text-decoration: none;
-    cursor: pointer;
-}
-
-.switch-page-button:hover {
-    background-color: #0056b3;
 }
 
 .add-to-library-button {
-    padding: 5px 10px;
-    font-size: 14px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    margin-bottom: 5px; /* Add some space between buttons */
+    margin-bottom: var(--spacing-2xs);
 }
 
-.button-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 20px;
-}
-
-.button-row button {
-    margin: 0 10px;
-    padding: 10px 20px; /* Ensure consistent padding */
-    font-size: 16px; /* Ensure consistent font size */
-    border-radius: 5px; /* Ensure consistent border radius */
-    border: none; /* Ensure consistent border */
-    background-color: #007bff; /* Ensure consistent background color */
-    color: white; /* Ensure consistent text color */
-    cursor: pointer; /* Ensure consistent cursor */
-}
-
-.button-row button:hover {
-    background-color: #0056b3; /* Ensure consistent hover color */
-}
-
-.modal {
+/* ==========================================================================
+   Advanced Mechanics Section
+   ========================================================================== */
+.advanced-mechanics {
     display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 600px;
-    border-radius: 10px;
-}
-
-.close-button {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
 }
 
 #generalPowerOptionsContainer.show-advanced .advanced-mechanics {
     display: block;
 }
-.advanced-mechanics {
-    display: none;
-    margin-top: 10px;
-    padding: 10px;
-    background: #f9f9f9;
-    border-radius: 8px;
-}
+
 .advanced-mechanics h4 {
-    margin: 6px 0;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
+    margin: var(--spacing-2xs) 0;
+    font-family: var(--font-family-body);
+    font-weight: var(--font-weight-bold);
 }
+
 .advanced-toggle {
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-weight: 700;
-    padding: 6px 10px;
-    background: #e6f7ff;
-    border-radius: 6px;
+    gap: var(--spacing-xs);
+    font-weight: var(--font-weight-bold);
+    padding: var(--spacing-2xs) var(--spacing-sm);
+    background: var(--color-accent-light);
+    color: var(--color-primary);
+    border-radius: var(--radius-sm);
     user-select: none;
+    transition: background-color var(--transition-fast);
 }
+
+.advanced-toggle:hover {
+    background: var(--color-accent-medium);
+}
+
 .advanced-toggle .arrow {
-    transition: transform .2s ease;
-    font-size: 14px;
+    transition: transform var(--transition-fast);
+    font-size: var(--font-size-sm);
 }
+
 #generalPowerOptionsContainer.show-advanced .advanced-toggle .arrow {
     transform: rotate(180deg);
 }
+
 .advanced-mechanics-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr; /* Restriction reserved on the far right */
-    gap: 12px;
-    margin-top: 10px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
 }
+
 .adv-col {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--spacing-sm);
 }
+
 .adv-group h4 {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--spacing-2xs) 0;
 }
+
 .adv-group .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-}
-.chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between; /* Position text left, button right */
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-size: 14px; /* Increased from 12px */
-    line-height: 1;
-    border: 1px solid transparent;
-    user-select: none;
-    cursor: pointer; /* Indicate clickable */
-    overflow-wrap: break-word; /* Allow text to wrap */
-    max-width: 100%; /* Prevent expansion beyond column */
+    gap: var(--spacing-2xs);
 }
 
-/* Category colors */
+/* ==========================================================================
+   Power Mechanic Chips
+   ========================================================================== */
+.chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    line-height: 1.3;
+    border: 1px solid transparent;
+    user-select: none;
+    cursor: pointer;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 280px;
+    transition: opacity var(--transition-fast);
+}
+
+.chip-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2xs);
+    width: 100%;
+    flex-wrap: nowrap;
+}
+
+.chip-name {
+    white-space: nowrap;
+}
+
+.chip:hover {
+    opacity: 0.85;
+}
+
+/* Chip category colors */
 .chip.action {
     background: #e7f0ff;
     color: #0b5ed7;
     border-color: #bcd4ff;
 }
+
 .chip.activation {
     background: #e6fffa;
     color: #0f766e;
     border-color: #b3f0e7;
 }
+
 .chip.area {
     background: #eafbe7;
     color: #166534;
     border-color: #c7efc1;
 }
+
 .chip.duration {
     background: #f3e8ff;
     color: #6b21a8;
     border-color: #e3d0ff;
 }
+
 .chip.target {
     background: #fff4e5;
     color: #9a3412;
     border-color: #ffd8a8;
 }
+
 .chip.special {
     background: #fffbe6;
     color: #854d0e;
     border-color: #ffe58f;
 }
+
 .chip.restriction {
     background: #ffe5e5;
     color: #b91c1c;
@@ -707,200 +545,261 @@ button:hover {
 }
 
 .chip-description {
-    margin-top: 5px;
-    padding: 5px;
-    border-radius: 1px; /* Reduced from 4px for minor corner curving */
-    font-size: 12px;
+    margin-top: var(--spacing-2xs);
+    padding: var(--spacing-2xs);
+    border-radius: 1px;
+    font-size: var(--font-size-xs);
     line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
 }
 
-/* New styles for advanced mechanics layout */
-.advanced-mechanics-content {
-    gap: 20px;
+/* Chip add button - inherits chip color, not blue */
+.chip-add-button {
+    margin-left: var(--spacing-2xs);
+    padding: 2px 6px;
+    font-size: var(--font-size-xs);
+    background-color: rgba(0, 0, 0, 0.1);
+    color: inherit;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
 }
 
-.chips-section {
-    flex: 1;
+.chip-add-button:hover {
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
+.chip-description button {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: inherit;
+    border: 1px solid currentColor;
+    padding: 1px 4px;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-xs);
+}
+
+.chip-description .option-box {
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    padding: var(--spacing-2xs) 0;
+}
+
+.chip-description .option-container {
+    border-top: 1px solid currentColor;
+    margin-top: var(--spacing-2xs);
+    padding-top: var(--spacing-2xs);
+}
+
+.chip-description label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2xs);
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Added Advanced Parts Section
+   ========================================================================== */
 .added-advanced-parts {
-    margin-bottom: 10px; /* Space above the chips */
-    background: #f9f9f9;
-    border-radius: 8px;
-    padding: 10px;
+    margin-bottom: var(--spacing-sm);
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
 }
 
 .added-advanced-parts h4 {
-    margin: 0 0 10px 0;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
+    margin: 0 0 var(--spacing-sm) 0;
+    font-family: var(--font-family-body);
+    font-weight: var(--font-weight-bold);
 }
 
 .added-advanced-parts .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--spacing-2xs);
 }
 
 .added-advanced-parts .chip {
-    /* Same as regular chips */
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between; /* Position text left, button right */
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-size: 14px; /* Increased from 12px */
-    line-height: 1;
-    border: 1px solid #ccc; /* Default border to ensure visibility */
-    user-select: none;
-    cursor: pointer;
-    overflow-wrap: break-word;
-    max-width: 100%;
-    position: relative; /* For positioning remove button */
+    position: relative;
 }
 
 .added-advanced-parts .chip .remove-advanced-part {
-    margin-left: 5px;
+    margin-left: var(--spacing-2xs);
     padding: 2px 4px;
-    font-size: 15px; /* Increased by 1.5x from 10px */
+    font-size: var(--font-size-base);
     background-color: transparent;
-    color: inherit; /* Match chip color */
+    color: inherit;
     border: none;
     cursor: pointer;
 }
 
-.chip-add-button {
-    margin-left: 5px;
-    padding: 2px 4px;
-    font-size: 15px; /* Increased by 1.5x from 10px */
-    background-color: transparent; /* Remove green background */
-    color: inherit; /* Will be set dynamically */
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
-.chip-add-button:hover {
-    background-color: rgba(0, 0, 0, 0.05); /* Very light shade for hover */
-}
-
-/* Style option buttons in chip descriptions */
-.chip-description button {
-    background-color: transparent;
-    color: inherit; /* Match chip color */
-    border: 1px solid currentColor; /* Faint border matching chip color */
-    padding: 2px 5px;
-    cursor: pointer;
-    font-size: 18px; /* Increased by 1.5x from 12px */
-}
-
-/* Remove white background from option boxes */
-.chip-description .option-box {
-    background-color: transparent;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 5px 0;
-}
-
-/* Add aesthetic horizontal lines */
-.chip-description .option-container {
-    border-top: 1px solid currentColor; /* Matches chip color */
-    margin-top: 5px;
-    padding-top: 5px;
-}
-
-.chip-description .option-container + .option-container {
-    border-top: 1px solid currentColor; /* Separate options */
-    margin-top: 5px;
-    padding-top: 5px;
-}
-
-/* Update chip-description for added parts to match chip colors */
-.added-advanced-parts .chip-description {
-    /* Same as before */
-    margin-top: 5px;
-    padding: 5px;
-    border-radius: 1px;
-    font-size: 14px; /* Increased font size */
-    line-height: 1.4;
-}
-
-/* Ensure option-container in added parts matches */
-.added-advanced-parts .option-container {
-    margin-top: 8px;
-}
-
-/* Style for Apply Duration checkbox in chip descriptions */
-.chip-description label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 8px;
-    font-size: 13px;
-    cursor: pointer;
-}
-
-.chip-description label input[type="checkbox"] {
-    cursor: pointer;
-    width: 14px;
-    height: 14px;
-}
-
-/* Category colors for added parts */
-.added-advanced-parts .chip.action {
-    background: #e7f0ff;
-    color: #0b5ed7;
-    border-color: #bcd4ff;
-}
-.added-advanced-parts .chip.activation {
-    background: #e6fffa;
-    color: #0f766e;
-    border-color: #b3f0e7;
-}
-.added-advanced-parts .chip.area {
-    background: #eafbe7;
-    color: #166534;
-    border-color: #c7efc1;
-}
-.added-advanced-parts .chip.duration {
-    background: #f3e8ff;
-    color: #6b21a8;
-    border-color: #e3d0ff;
-}
-.added-advanced-parts .chip.target {
-    background: #fff4e5;
-    color: #9a3412;
-    border-color: #ffd8a8;
-}
-.added-advanced-parts .chip.special {
-    background: #fffbe6;
-    color: #854d0e;
-    border-color: #ffe58f;
-}
-.added-advanced-parts .chip.restriction {
-    background: #ffe5e5;
-    color: #b91c1c;
-    border-color: #ffb3b3;
-}
+/* Inherit chip colors for added parts */
+.added-advanced-parts .chip.action { background: #e7f0ff; color: #0b5ed7; border-color: #bcd4ff; }
+.added-advanced-parts .chip.activation { background: #e6fffa; color: #0f766e; border-color: #b3f0e7; }
+.added-advanced-parts .chip.area { background: #eafbe7; color: #166534; border-color: #c7efc1; }
+.added-advanced-parts .chip.duration { background: #f3e8ff; color: #6b21a8; border-color: #e3d0ff; }
+.added-advanced-parts .chip.target { background: #fff4e5; color: #9a3412; border-color: #ffd8a8; }
+.added-advanced-parts .chip.special { background: #fffbe6; color: #854d0e; border-color: #ffe58f; }
+.added-advanced-parts .chip.restriction { background: #ffe5e5; color: #b91c1c; border-color: #ffb3b3; }
 
 .collapsed-added-chips {
     display: none;
-    margin-left: 10px;
+    margin-left: var(--spacing-sm);
 }
 
 .collapsed-added-chips .chip {
-    font-size: 12px; /* Smaller for collapsed view */
-    margin-right: 5px;
+    font-size: var(--font-size-xs);
+    margin-right: var(--spacing-2xs);
 }
 
-/* Responsive layout */
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
 @media (max-width: 1000px) {
     .advanced-mechanics-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 }
+
 @media (max-width: 640px) {
     .advanced-mechanics-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* ==========================================================================
+   Button Size Variants
+   ========================================================================== */
+.small-button {
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--font-size-xs);
+}
+
+.medium-button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+/* Button Color Variants */
+.blue-button {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.blue-button:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.red-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+
+.red-button:hover {
+    background-color: var(--color-danger-hover);
+}
+
+/* Delete button styling */
+.delete-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+
+.delete-button:hover {
+    background-color: var(--color-danger-hover);
+}
+
+/* ==========================================================================
+   Checkbox Container Layout
+   ========================================================================== */
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-sm);
+    gap: var(--spacing-sm);
+}
+
+.checkbox-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.left-column {
+    align-items: flex-start;
+}
+
+.right-column {
+    align-items: flex-end;
+}
+
+.checkbox-container label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Sustain Container
+   ========================================================================== */
+.sustain-container {
+    margin-top: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.sustain-container label {
+    margin-right: var(--spacing-xs);
+}
+
+.sustain-container select {
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* ==========================================================================
+   Area Effect Container
+   ========================================================================== */
+.area-effect-container {
+    margin-top: var(--spacing-sm);
+}
+
+.area-effect-container label {
+    margin-right: var(--spacing-xs);
+}
+
+.area-effect-container select {
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+.area-effect-button-container,
+.range-button-container {
+    display: inline-flex;
+    margin-left: var(--spacing-sm);
+    gap: var(--spacing-2xs);
+}
+
+/* ==========================================================================
+   Load/Save Button Container
+   ========================================================================== */
+.load-save-button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-sm);
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
 }

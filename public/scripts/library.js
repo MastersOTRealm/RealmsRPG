@@ -1,7 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import {
   calculateItemCosts,
@@ -23,6 +21,10 @@ import {
   calculatePowerCosts, derivePowerDisplay, formatPowerDamage,
   deriveRange, deriveArea, deriveDuration
 } from './power_calc.js';
+
+// Import shared utilities
+import { capitalize } from './shared/string-utils.js';
+import { initializeFirebase } from './shared/firebase-init.js';
 
 // Cache for database data (now using rtdb-cache.js)
 let creatureFeatsCache = null;
@@ -127,16 +129,6 @@ function openTab(event, tabName) {
 
 // Expose the function to the global scope
 window.openTab = openTab;
-
-// Helper function for capitalizing strings
-function capitalize(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-
-
-
 
 async function showSavedPowers(db, userId) {
     const powersList = document.getElementById('powersList');
@@ -980,25 +972,14 @@ function formatDamage(damageArray) {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
-    const response = await fetch('/__/firebase/init.json');
-    const firebaseConfig = await response.json();
-    firebaseConfig.authDomain = 'realmsroleplaygame.com';
-    const app = initializeApp(firebaseConfig);
-
-    initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
-        isTokenAutoRefreshEnabled: true
-    });
-
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const database = getDatabase(app); // Add Realtime Database instance
+    const { auth, db, rtdb } = await initializeFirebase();
+    const database = rtdb; // Alias for compatibility
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
             console.log('User is signed in:', user);
             showSavedPowers(db, user.uid);
-            showSavedItems(db, user.uid, database); // Pass database instance
+            showSavedItems(db, user.uid, database);
             showSavedTechniques(db, user.uid);
             showSavedCreatures(db, user.uid, database);
         } else {

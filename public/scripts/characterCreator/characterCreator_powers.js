@@ -5,6 +5,7 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 import { getDefaultTrainingPoints } from './characterCreator_utils.js';
 import { calculateTechniqueCosts, deriveTechniqueDisplay } from '../technique_calc.js';
 import { calculatePowerCosts, derivePowerDisplay } from '../power_calc.js';
+import { waitForAuth } from '../shared/firebase-init.js';
 
 export let selectedPowersTechniques = [];
 let powersInitialized = false;
@@ -12,25 +13,8 @@ let powerPartsCache = null;
 let techniquePartsCache = null;
 export let powersLibrary = [];
 export let techniquesLibrary = [];
-let authReady = false;
-let currentUser = null;
 
-// Wait for auth
-function waitForAuth() {
-  return new Promise((resolve) => {
-    if (authReady && currentUser) {
-      resolve(currentUser);
-      return;
-    }
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      authReady = true;
-      currentUser = user;
-      unsubscribe();
-      resolve(user);
-    });
-  });
-}
+// waitForAuth imported from shared/firebase-init.js
 
 // Load power parts from Realtime Database
 async function loadPowerParts(database) {

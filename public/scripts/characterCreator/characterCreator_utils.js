@@ -1,57 +1,18 @@
 // Shared utility functions for the character creator
+// NOTE: Many of these are now re-exported from the shared modules for consistency
 
-/**
- * Sanitize a name into a valid ID
- */
-export function sanitizeId(name) {
-  if (!name) return '';
-  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-}
+// Import from shared modules
+import { sanitizeId as sharedSanitizeId } from '../shared/string-utils.js';
+import { formatBonus as sharedFormatBonus } from '../shared/number-utils.js';
+import { toStrArray as sharedToStrArray, toNumArray as sharedToNumArray } from '../shared/array-utils.js';
+import { debounce as sharedDebounce } from '../shared/dom-utils.js';
 
-/**
- * Convert array-like data from Firebase to proper array
- */
-export function toStrArray(val) {
-  if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
-  if (typeof val === 'string') return val.split(',').map(v => v.trim()).filter(Boolean);
-  if (val && typeof val === 'object') {
-    return Object.keys(val)
-      .sort((a, b) => Number(a) - Number(b))
-      .map(k => String(val[k]).trim())
-      .filter(Boolean);
-  }
-  return [];
-}
-
-/**
- * Convert numeric data from Firebase to array
- */
-export function toNumArray(val) {
-  if (val == null) return [];
-  if (Array.isArray(val)) return val.map(v => parseInt(String(v).trim()) || 0);
-  if (typeof val === 'number') return [val];
-  if (typeof val === 'string') {
-    const parts = val.split(',').map(v => v.trim()).filter(Boolean);
-    if (parts.length === 0) return [];
-    return parts.map(p => parseInt(p) || 0);
-  }
-  if (typeof val === 'object') {
-    return Object.keys(val)
-      .sort((a, b) => Number(a) - Number(b))
-      .map(k => {
-        const v = val[k];
-        return typeof v === 'number' ? v : parseInt(String(v).trim()) || 0;
-      });
-  }
-  return [];
-}
-
-/**
- * Format a number with + or - prefix
- */
-export function formatBonus(n) {
-  return (n >= 0 ? `+${n}` : `${n}`);
-}
+// Re-export from shared modules for backwards compatibility
+export const sanitizeId = sharedSanitizeId;
+export const formatBonus = sharedFormatBonus;
+export const toStrArray = sharedToStrArray;
+export const toNumArray = sharedToNumArray;
+export const debounce = sharedDebounce;
 
 /**
  * Convert centimeters to feet and inches
@@ -77,21 +38,6 @@ export function kgToLb(kg) {
  */
 export function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
-}
-
-/**
- * Debounce function for search inputs
- */
-export function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
 }
 
 /**

@@ -1,3 +1,5 @@
+import { toStrArray, toNumArray } from '../shared/array-utils.js';
+
 let firebaseInitialized = false;
 let auth, db, rtdb; // Add rtdb for Realtime Database
 
@@ -85,39 +87,6 @@ export async function loadFeatsFromDatabase() {
             console.warn('No feats found in database');
             return [];
         }
-
-        // Helper to normalize arrays from Firebase
-        const toStrArray = (val) => {
-            if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
-            if (typeof val === 'string') return val.split(',').map(v => v.trim()).filter(Boolean);
-            if (val && typeof val === 'object') {
-                return Object.keys(val)
-                    .sort((a, b) => Number(a) - Number(b))
-                    .map(k => String(val[k]).trim())
-                    .filter(Boolean);
-            }
-            return [];
-        };
-
-        const toNumArray = (val) => {
-            if (val == null) return [];
-            if (Array.isArray(val)) return val.map(v => parseInt(String(v).trim()) || 0);
-            if (typeof val === 'number') return [val];
-            if (typeof val === 'string') {
-                const parts = val.split(',').map(v => v.trim()).filter(Boolean);
-                if (parts.length === 0) return [];
-                return parts.map(p => parseInt(p) || 0);
-            }
-            if (typeof val === 'object') {
-                return Object.keys(val)
-                    .sort((a, b) => Number(a) - Number(b))
-                    .map(k => {
-                        const v = val[k];
-                        return typeof v === 'number' ? v : parseInt(String(v).trim()) || 0;
-                    });
-            }
-            return [];
-        };
 
         const feats = Object.values(data).map(f => ({
             ...f,

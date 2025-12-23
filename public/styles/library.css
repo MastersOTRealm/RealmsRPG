@@ -1,703 +1,855 @@
-/* Library styles matching Codex design */
+/* ==========================================================================
+   Library Styles
+   Imports shared design system and adds library-specific styles
+   ========================================================================== */
+
+/* Core Design System */
+@import url('./core/variables.css');
+@import url('./core/reset.css');
+@import url('./core/typography.css');
+@import url('./core/components.css');
+
+/* ==========================================================================
+   Library-Specific Variables
+   ========================================================================== */
 :root {
-  --primary: #1a73e8;
-  --primary-dark: #0d47a1;
-  --gray: #5f6368;
-  --light-gray: #f1f3f4;
-  --border: #dadce0;
-  --bg: #ffffff;
-  --text: #202124;
-  --card-bg: #fafafa;
+    --library-card-bg: #fafafa;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
+/* ==========================================================================
+   Layout
+   ========================================================================== */
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px;
+    max-width: var(--container-lg);
+    margin: 0 auto;
+    padding: var(--spacing-md);
 }
 
-/* Tabs styles */
+/* ==========================================================================
+   Tabs
+   ========================================================================== */
 .tabs {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+    gap: var(--spacing-xs);
 }
 
 .tab-button {
-  background-color: var(--primary);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  cursor: pointer;
-  font-size: 16px;
-  margin: 0 5px;
-  border-radius: 5px;
-  transition: background-color 0.2s;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    font-family: var(--font-family-body);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
 }
 
 .tab-button:hover {
-  background-color: var(--primary-dark);
+    background-color: var(--color-primary-dark);
 }
 
 .tab-button.active,
 .tab-button:focus {
-  background-color: var(--primary-dark);
-  color: #fff;
-  outline: none;
-  box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+    background-color: var(--color-primary-dark);
+    color: var(--color-white);
+    outline: none;
+    box-shadow: 0 2px 8px rgba(5, 51, 87, 0.15);
 }
 
 .tab-content {
-  display: none;
+    display: none;
 }
 
 .active-tab {
-  display: block;
+    display: block;
 }
 
-/* Headers */
+/* ==========================================================================
+   Library Headers
+   ========================================================================== */
 .library-headers {
-  display: grid;
-  grid-template-columns: 1.5fr 0.8fr 1fr 1fr 0.8fr 1fr 1fr;
-  gap: 8px;
-  padding: 12px;
-  background: var(--card-bg);
-  border-radius: 8px 8px 0 0;
-  font-weight: 500;
-  margin-bottom: 4px;
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr 1fr 1fr 0.8fr 1fr 1fr;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm);
+    background: var(--library-card-bg);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-xs);
+    margin-bottom: var(--spacing-2xs);
+    white-space: nowrap;
 }
 
 .technique-headers {
-  grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;
+    grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;
 }
 
 .library-headers .col {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-2xs);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sort-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
 }
 
 .library-headers .sort {
-  font-size: 0.75rem;
-  color: var(--gray);
-  cursor: pointer;
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    cursor: pointer;
+    transition: color var(--transition-fast);
 }
 
 .library-headers .sort:hover {
-  color: var(--primary);
+    color: var(--color-primary);
 }
 
-/* Item Lists */
+/* ==========================================================================
+   Library List & Cards
+   ========================================================================== */
 .library-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xs);
 }
 
 .library-card {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: all 0.2s ease;
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-fast);
 }
 
 .library-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-lg);
 }
 
 .library-header {
-  display: grid;
-  grid-template-columns: 1.5fr 0.8fr 1fr 1fr 0.8fr 1fr 1fr;
-  gap: 8px;
-  padding: 12px;
-  cursor: pointer;
-  align-items: center;
-  position: relative;
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr 1fr 1fr 0.8fr 1fr 1fr;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm);
+    cursor: pointer;
+    align-items: center;
+    position: relative;
 }
 
 .library-header.technique-header {
-  grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;
+    grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;
 }
 
 .library-header .col {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .expand-icon {
-  position: absolute;
-  right: 12px;
-  font-size: 1.2rem;
-  color: var(--gray);
-  transition: transform 0.2s;
+    position: absolute;
+    right: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-500);
+    transition: transform var(--transition-fast);
 }
 
 .expanded .expand-icon {
-  transform: rotate(180deg);
+    transform: rotate(180deg);
 }
 
 .library-body {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease, padding 0.3s ease;
-  padding: 0 16px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-base), padding var(--transition-base);
+    padding: 0 var(--spacing-md);
+    font-size: var(--font-size-sm);
 }
 
 .expanded .library-body {
-  max-height: 2000px;
-  padding: 16px;
+    max-height: 2000px;
+    padding: var(--spacing-md);
 }
 
 .library-description {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--light-gray);
-  border-radius: 8px;
-  font-style: italic;
-  color: #000;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    font-style: italic;
+    color: var(--color-text);
 }
 
 .library-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
 }
 
 .library-details .detail-field {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font-size-base);
 }
 
 .library-details .detail-field label {
-  font-weight: 500;
-  color: var(--gray);
-  margin-bottom: 4px;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-gray-500);
+    margin-bottom: var(--spacing-2xs);
 }
 
 .library-details .detail-field span {
-  color: var(--text);
+    color: var(--color-text);
 }
 
 .library-parts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
 }
 
-.library-parts .part-chip {
-  background: var(--light-gray);
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 0.85rem;
-  color: var(--gray);
+/* ==========================================================================
+   Library Part Chips (Expandable)
+   ========================================================================== */
+.part-chip {
+    display: inline-flex;
+    flex-direction: column;
+    background: var(--color-accent-chip);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: var(--transition-all);
+    max-width: 200px;
 }
 
-.library-parts .proficiency-chip {
-  background: #e3f2fd;
-  color: var(--primary);
-  font-weight: 500;
+.part-chip.has-tp {
+    background: var(--color-primary);
+    color: var(--color-white);
 }
 
-.delete-button {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  border-radius: 5px;
-  transition: background-color 0.2s;
+.part-chip .chip-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
 }
 
-.delete-button:hover {
-  background-color: #c82333;
+.part-chip .chip-name {
+    font-weight: var(--font-weight-semibold);
 }
 
+.part-chip .chip-cost {
+    font-size: var(--font-size-2xs);
+    opacity: 0.8;
+}
+
+.part-chip .chip-expand {
+    margin-left: auto;
+    font-size: var(--font-size-2xs);
+    transition: transform var(--transition-fast);
+}
+
+.part-chip.expanded .chip-expand {
+    transform: rotate(180deg);
+}
+
+.part-chip .chip-details {
+    display: none;
+    margin-top: var(--spacing-1);
+    padding-top: var(--spacing-1);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: var(--font-size-2xs);
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.part-chip.expanded .chip-details {
+    display: block;
+}
+
+.part-chip.has-tp .chip-details {
+    border-top-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ==========================================================================
+   Library Part Cards (Legacy support)
+   ========================================================================== */
+.part-card {
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    flex: 1 1 300px;
+}
+
+.part-card h4 {
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-primary);
+}
+
+.part-card .part-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+.part-card .part-detail {
+    display: flex;
+    flex-direction: column;
+}
+
+.part-card .part-detail label {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-gray-500);
+    font-size: var(--font-size-xs);
+}
+
+/* ==========================================================================
+   Search & Filters
+   ========================================================================== */
+.search-bar {
+    margin-bottom: var(--spacing-md);
+}
+
+.search-bar input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-family: var(--font-family-body);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(5, 51, 87, 0.1);
+}
+
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-group {
+    flex: 1 1 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-500);
+    margin-bottom: var(--spacing-2xs);
+}
+
+.filter-group select,
+.filter-group input {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-family: var(--font-family-body);
+}
+
+/* ==========================================================================
+   No Results
+   ========================================================================== */
 .no-results {
-  text-align: center;
-  padding: 40px;
-  color: var(--gray);
-  font-style: italic;
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: var(--color-gray-500);
+    font-style: italic;
 }
 
-/* Creature-specific styles */
-/* Creature Stat Block Styling (Site-Matched Design) */
+/* ==========================================================================
+   Creature Stat Block (Library Creature Tab)
+   ========================================================================== */
+.creature-stat-block {
+    background: var(--color-accent-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.creature-stat-block .creature-name {
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
+    margin: 0 0 var(--spacing-xs) 0;
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: var(--spacing-xs);
+}
+
+.creature-stat-block .creature-type {
+    font-size: var(--font-size-sm);
+    font-style: italic;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.creature-stat-block .stat-row {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-sm);
+}
+
+.creature-stat-block .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+}
+
+.creature-stat-block .stat-label {
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    text-transform: uppercase;
+}
+
+.creature-stat-block .stat-value {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+}
+
+.creature-stat-block .stat-section {
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.creature-stat-block .stat-section-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-2xs);
+}
+
+.creature-stat-block .abilities-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--spacing-xs);
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.creature-stat-block .ability-item {
+    background: var(--color-white);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-1);
+}
+
+.creature-stat-block .ability-name {
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+}
+
+.creature-stat-block .ability-score {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+}
+
+.creature-stat-block .ability-mod {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
+   Creature Cards (Grid Display)
+   ========================================================================== */
 .creatures-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--spacing-md);
 }
 
-/* Creature card - collapsible line item */
 .creature-card {
-  background: #ffffff;
-  border: 2px solid #e8eaed;
-  border-radius: 8px;
-  font-family: 'Nunito', sans-serif;
-  color: #333;
-  overflow: hidden;
-  transition: border-color 0.2s;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-fast);
 }
 
 .creature-card:hover {
-  border-color: #1a73e8;
-}
-
-.creature-card.expanded {
-  border-color: #1a73e8;
-}
-
-/* Collapsed header (always visible) */
-.creature-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.2s;
-}
-
-.creature-header:hover {
-  background: #f7faff;
-}
-
-.creature-header-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-}
-
-.creature-name {
-  font-size: 1.1em;
-  font-weight: 700;
-  color: #1a73e8;
-}
-
-.creature-info {
-  font-size: 0.9em;
-  color: #5f6368;
-}
-
-.creature-header .expand-toggle {
-  color: #1a73e8;
-  font-size: 0.8em;
-  transition: transform 0.3s;
-  margin-left: 8px;
-}
-
-.creature-card.expanded .creature-header .expand-toggle {
-  transform: rotate(180deg);
-}
-
-/* Full stat block content (hidden by default) */
-.creature-statblock-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease-out;
-  padding: 0 16px;
+    box-shadow: var(--shadow-md);
 }
 
 .creature-card.expanded .creature-statblock-content {
-  max-height: 5000px;
-  transition: max-height 0.6s ease-in;
-  padding: 0 16px 16px 16px;
+    display: block;
 }
 
-.creature-statblock {
-  background: #ffffff;
-  border: 2px solid #1a73e8;
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  font-family: 'Nunito', sans-serif;
-  color: #333;
-  page-break-inside: avoid;
+.creature-card .creature-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: var(--color-white);
+    cursor: pointer;
+    user-select: none;
 }
 
-.statblock-header {
-  margin-bottom: 8px;
+.creature-card .creature-header:hover {
+    background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
 }
 
-.statblock-title h2 {
-  color: #1a73e8;
-  font-size: 1.6em;
-  margin: 0 0 4px 0;
-  font-weight: 700;
-  font-family: 'Nunito', sans-serif;
+.creature-card .creature-header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.statblock-subtitle {
-  color: #5f6368;
-  font-size: 0.9em;
-  font-style: italic;
-  margin-bottom: 6px;
+.creature-card .creature-name {
+    font-family: var(--font-family-title);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
 }
 
-.statblock-separator {
-  height: 2px;
-  background: linear-gradient(to right, #1a73e8, #4a90e2, #1a73e8);
-  margin: 10px 0;
+.creature-card .creature-info {
+    font-size: var(--font-size-sm);
+    opacity: 0.9;
 }
 
-.statblock-section {
-  margin: 8px 0;
-  font-size: 0.9em;
-  line-height: 1.6;
+.creature-card .expand-toggle {
+    font-size: var(--font-size-sm);
+    transition: transform var(--transition-fast);
 }
 
-.statblock-attribute {
-  display: inline-block;
-  margin-right: 20px;
-  margin-bottom: 4px;
+.creature-card.expanded .expand-toggle {
+    transform: rotate(180deg);
 }
 
-.attr-label {
-  font-weight: 600;
-  color: #1a73e8;
+.creature-card .creature-statblock-content {
+    display: none;
+    padding: var(--spacing-md);
 }
 
-.attr-value {
-  margin-left: 6px;
-  font-weight: 400;
+.creature-card .statblock-separator {
+    height: 1px;
+    background: var(--color-border-light);
+    margin: var(--spacing-sm) 0;
 }
 
-.statblock-abilities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-around;
+.creature-card .statblock-section {
+    margin-bottom: var(--spacing-sm);
 }
 
-.ability-score {
-  text-align: center;
-  min-width: 50px;
-  padding: 4px 8px;
-  background: #f7f7f7;
-  border-radius: 5px;
+.creature-card .statblock-section:last-child {
+    margin-bottom: 0;
 }
 
-.ability-score strong {
-  display: block;
-  color: #1a73e8;
-  font-size: 0.75em;
-  font-weight: 600;
+/* Core stats row */
+.creature-card .statblock-section:first-child {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
 }
 
-.statblock-defenses {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  font-size: 0.85em;
+.creature-card .statblock-attribute {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.statblock-defenses div {
-  text-align: center;
-  padding: 4px;
-  background: #f7faff;
-  border-radius: 4px;
+.creature-card .attr-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    text-transform: uppercase;
 }
 
-.statblock-trait {
-  margin: 6px 0;
-  text-indent: -1em;
-  padding-left: 1em;
+.creature-card .attr-value {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
 }
 
-.statblock-trait strong {
-  color: #1a73e8;
-  font-weight: 600;
+/* Abilities grid */
+.creature-card .statblock-abilities {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--spacing-xs);
+    text-align: center;
 }
 
-/* Two-column layout for traits and equipment */
-.statblock-two-column {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 8px 0;
-  font-size: 0.9em;
-  line-height: 1.6;
+.creature-card .ability-score {
+    background: var(--color-accent-light);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
 }
 
-.statblock-column-left,
-.statblock-column-right {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.creature-card .ability-score strong {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-primary);
+    margin-bottom: 2px;
 }
 
-.statblock-equipment-section {
-  margin-bottom: 12px;
+/* Defenses grid */
+.creature-card .statblock-defenses {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xs);
+    text-align: center;
 }
 
-.statblock-armor,
-.statblock-weapon {
-  margin: 4px 0;
-  line-height: 1.5;
+.creature-card .statblock-defenses > div {
+    background: var(--color-gray-100);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
 }
 
-.statblock-armor strong,
-.statblock-weapon strong {
-  color: #1a73e8;
-  font-weight: 600;
+.creature-card .statblock-defenses strong {
+    display: block;
+    font-size: var(--font-size-2xs);
+    color: var(--color-primary);
+    margin-bottom: 2px;
 }
 
-.properties-list {
-  margin-top: 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+/* Info rows (skills, languages, etc.) */
+.creature-card .statblock-info-row {
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
 }
 
-.property-chip {
-  display: inline-block;
-  background: #e8f0fe;
-  color: #1a73e8;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.8em;
-  font-weight: 500;
-  cursor: help;
-  transition: background 0.2s;
+.creature-card .statblock-info-row strong {
+    color: var(--color-primary);
 }
 
-.property-chip:hover {
-  background: #d2e3fc;
+/* Sections like Powers, Techniques, etc. */
+.creature-card .statblock-subsection {
+    margin-top: var(--spacing-sm);
 }
 
-/* Expandable sections for features */
-.statblock-expandable-section {
-  margin: 8px 0;
-  border-left: 3px solid #4a90e2;
-  padding-left: 10px;
-  background: #f7faff;
-  border-radius: 4px;
+.creature-card .statblock-subsection-title {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: var(--spacing-2xs);
+    margin-bottom: var(--spacing-xs);
 }
 
-.statblock-expandable-header {
-  cursor: pointer;
-  padding: 8px 4px;
-  color: #1a73e8;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  user-select: none;
-  transition: background 0.2s;
-  font-weight: 600;
+.creature-card .statblock-item {
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-xs);
+    background: var(--color-gray-100);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--color-primary);
 }
 
-.statblock-expandable-header:hover {
-  background: rgba(26, 115, 232, 0.08);
+.creature-card .statblock-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--spacing-2xs);
 }
 
-.expand-count {
-  font-size: 0.85em;
-  color: #5f6368;
-  font-weight: normal;
+.creature-card .statblock-item-name {
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary-dark);
 }
 
-.expand-toggle {
-  font-size: 0.8em;
-  transition: transform 0.3s;
-  color: #1a73e8;
+.creature-card .statblock-item-meta {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
 }
 
-.statblock-expandable-section.expanded .expand-toggle {
-  transform: rotate(180deg);
+.creature-card .statblock-item-stats {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-2xs);
 }
 
-.statblock-expandable-body {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-  margin-top: 4px;
+.creature-card .statblock-item-desc {
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
 }
 
-.statblock-expandable-section.expanded .statblock-expandable-body {
-  max-height: 2000px;
-  transition: max-height 0.5s ease-in;
+/* Feats display */
+.creature-card .statblock-feats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2xs);
 }
 
-.statblock-feature-item {
-  padding: 6px 8px;
-  font-size: 0.9em;
-  line-height: 1.5;
-  border-bottom: 1px solid #e8eaed;
+.creature-card .feat-chip {
+    display: inline-block;
+    padding: var(--spacing-2xs) var(--spacing-xs);
+    background: var(--color-accent-light);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: var(--color-primary-dark);
 }
 
-.statblock-feature-item:last-child {
-  border-bottom: none;
+/* Action buttons for creature cards */
+.creature-card .creature-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-gray-100);
+    border-top: 1px solid var(--color-border-light);
 }
 
-.statblock-feature-item strong {
-  color: #1a73e8;
-  font-weight: 600;
+.creature-card .creature-actions button {
+    flex: 1;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-body);
+    transition: background-color var(--transition-fast);
 }
 
-.statblock-feature-name {
-  color: #1a73e8;
-  font-weight: 600;
-  display: block;
-  margin-bottom: 4px;
-  cursor: pointer;
+.creature-card .edit-creature-btn {
+    background-color: var(--color-primary);
+    color: var(--color-white);
 }
 
-.statblock-feature-name:hover {
-  text-decoration: underline;
+.creature-card .edit-creature-btn:hover {
+    background-color: var(--color-primary-dark);
 }
 
-.statblock-feature-details {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-  padding-left: 12px;
-  color: #5f6368;
-  font-size: 0.85em;
+.creature-card .delete-creature-btn {
+    background-color: var(--color-danger);
+    color: var(--color-white);
 }
 
-.statblock-feature-item.expanded .statblock-feature-details {
-  max-height: 500px;
-  transition: max-height 0.4s ease-in;
-  margin-top: 4px;
+.creature-card .delete-creature-btn:hover {
+    background-color: var(--color-danger-dark);
 }
 
-.statblock-feature-detail-line {
-  margin: 2px 0;
+/* ==========================================================================
+   Action Buttons
+   ========================================================================== */
+.library-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
 }
 
-.statblock-description {
-  font-style: italic;
-  color: #5f6368;
-  padding: 8px;
-  background: #f7f7f7;
-  border-radius: 5px;
-  border-left: 3px solid #4a90e2;
+.edit-btn,
+.delete-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-body);
+    transition: background-color var(--transition-fast);
 }
 
-/* Legacy creature styles (keep for backward compatibility) */
-.creature-headers {
-  grid-template-columns: 1.5fr 0.8fr 1fr 1fr;
+.edit-btn {
+    background-color: var(--color-primary);
+    color: var(--color-white);
 }
 
-.creature-header {
-  grid-template-columns: 1.5fr 0.8fr 1fr 1fr;
+.edit-btn:hover {
+    background-color: var(--color-primary-dark);
 }
 
-.creature-expanded-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  padding: 16px;
+.delete-btn {
+    background-color: var(--color-danger);
+    color: var(--color-white);
 }
 
-.creature-section {
-  background: var(--light-gray);
-  border-radius: 8px;
-  padding: 12px;
-  min-width: 200px;
-  flex: 1 1 250px;
+.delete-btn:hover {
+    background-color: var(--color-danger-dark);
 }
 
-.creature-section h4 {
-  color: var(--primary);
-  margin-bottom: 8px;
-  font-size: 1rem;
-}
-
-.creature-section p {
-  margin: 4px 0;
-  font-size: 0.9em;
-}
-
-.creature-section .library-parts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.creature-abilities-box, .creature-defenses-box {
-  background: #f7faff;
-  border-radius: 8px;
-  box-shadow: 0 0 3px rgba(0,0,0,0.04);
-  padding: 8px;
-  border: 1px solid #e3e8f0;
-}
-
-.creature-abilities table, .creature-defenses table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95em;
-}
-
-.creature-abilities th, .creature-defenses th {
-  text-align: left;
-  color: var(--primary);
-  padding: 4px 6px;
-  background: none;
-  border: none;
-}
-
-.creature-abilities td, .creature-defenses td {
-  text-align: left;
-  padding: 4px 6px;
-  border: none;
-}
-
-/* Weakness chip styling */
-.weakness-chip {
-  background: #ffe0e0 !important;
-  border-color: #c44 !important;
-  color: #a33 !important;
-}
-
-/* No data placeholder */
-.no-data {
-  color: var(--gray);
-  font-style: italic;
-  font-size: 0.85em;
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+@media (max-width: 992px) {
+    .library-headers,
+    .library-header {
+        grid-template-columns: 1.5fr 0.8fr 1fr 1fr 1fr;
+    }
+    
+    .library-headers .col:nth-child(5),
+    .library-headers .col:nth-child(7),
+    .library-header .col:nth-child(5),
+    .library-header .col:nth-child(7) {
+        display: none;
+    }
 }
 
 @media (max-width: 768px) {
-  .creatures-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .library-headers, .library-header {
-    grid-template-columns: 1.5fr 0.8fr 1fr;
-  }
-  
-  .library-header .col:nth-child(n+4) {
-    display: none;
-  }
-  
-  .library-headers .col:nth-child(n+4) {
-    display: none;
-  }
-  
-  .creature-expanded-content {
-    flex-direction: column;
-  }
-  
-  .statblock-defenses {
-    grid-template-columns: repeat(2, 1fr);
-  }
+    .filters {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        flex: 1 1 100%;
+    }
+    
+    .library-headers,
+    .library-header {
+        grid-template-columns: 1.5fr 1fr 1fr;
+    }
+    
+    .library-headers .col:nth-child(n+4),
+    .library-header .col:nth-child(n+4) {
+        display: none;
+    }
+    
+    .tabs {
+        flex-wrap: wrap;
+    }
+    
+    .tab-button {
+        flex: 1 1 auto;
+        min-width: 100px;
+    }
+    
+    .part-card .part-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: var(--spacing-xs);
+    }
+    
+    .library-headers,
+    .library-header {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .library-headers .col:nth-child(n+3),
+    .library-header .col:nth-child(n+3) {
+        display: none;
+    }
+    
+    .library-details {
+        grid-template-columns: 1fr;
+    }
 }
