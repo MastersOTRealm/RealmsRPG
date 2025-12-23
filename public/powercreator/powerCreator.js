@@ -944,6 +944,74 @@ import { fetchPowerParts } from '/scripts/utils/rtdb-cache.js';
         const damageApplyDuration2 = document.getElementById('damageApplyDuration2')?.checked;
         if (!isNaN(dieAmount2) && !isNaN(dieSize2) && damageType2 && damageType2 !== "none") addDamagePart(damageType2, dieAmount2, dieSize2, damageApplyDuration2);
 
+        // Duration mechanic parts (from database)
+        const focusChecked = document.getElementById('focusCheckbox')?.checked;
+        const noHarmChecked = document.getElementById('noHarmCheckbox')?.checked;
+        const endsOnceChecked = document.getElementById('endsOnceCheckbox')?.checked;
+        const sustainValue = parseInt(document.getElementById('sustainValue')?.value, 10) || 0;
+
+        const durationType = document.getElementById('durationType')?.value;
+        const durationValue = parseInt(document.getElementById('durationValue')?.value, 10) || 1;
+        const idx = durationValue - 1; // 0-based index of the selected entry
+
+        // Helper to find a mechanic part by name
+        // Allow duration parts even if mechanic flag is incorrect in DB
+        const getMechanicPart = (name) => powerParts.find(p => p.name === name && (p.mechanic || p.duration));
+
+        // Add toggle-driven duration modifiers
+        if (focusChecked) {
+            const p = getMechanicPart('Focus for Duration');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        }
+        if (noHarmChecked) {
+            const p = getMechanicPart('No Harm or Adaptation for Duration');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        }
+        if (endsOnceChecked) {
+            const p = getMechanicPart('Duration Ends On Activation');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        }
+        if (sustainValue > 0) {
+            const p = getMechanicPart('Sustain for Duration');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, sustainValue - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        }
+
+        // Duration base type selection
+        if (durationType === 'permanent') {
+            const p = getMechanicPart('Duration (Permanent)');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: 0, op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        } else if (durationType === 'days') {
+            const p = getMechanicPart('Duration (Days)');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        } else if (durationType === 'hours') {
+            const p = getMechanicPart('Duration (Hour)');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        } else if (durationType === 'minutes') {
+            const p = getMechanicPart('Duration (Minute)');
+            if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+        } else if (durationType === 'rounds') {
+            // Only add when > 1 round. For 2 rounds (idx=1) => op1 = 0; 3 rounds (idx=2) => op1 = 1, etc.
+            if (durationValue > 1) {
+                const p = getMechanicPart('Duration (Round)');
+                if (p) mechanicParts.push({ part: p, op_1_lvl: Math.max(0, idx - 1), op_2_lvl: 0, op_3_lvl: 0, applyDuration: false });
+            }
+        }
+
+        // Range as a mechanic part ("Power Range")
+        const rangeSteps = range; // range 0 = melee; range 1+ = steps beyond melee
+        if (rangeSteps > 0) {
+            const rangePart = powerParts.find(p => p.name === 'Power Range' && p.mechanic);
+            if (rangePart) {
+                mechanicParts.push({
+                    part: rangePart,
+                    op_1_lvl: Math.max(0, rangeSteps - 1),
+                    op_2_lvl: 0,
+                    op_3_lvl: 0,
+                    applyDuration: false
+                });
+            }
+        }
+
         return mechanicParts;
     }
 
