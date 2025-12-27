@@ -5,6 +5,7 @@
 @import './base.css';
 @import './layout.css';
 @import './utils.css';
+@import '../core/chips.css';
 
 /* Components – load in order of appearance */
 @import './components/tabs.css';

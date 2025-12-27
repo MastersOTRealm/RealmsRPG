@@ -9,6 +9,7 @@
 @import url('./core/typography.css');
 @import url('./core/components.css');
 @import url('./core/creator-base.css');
+@import url('./core/chips.css');
 
 /* ==========================================================================
    Technique Creator Specific Styles

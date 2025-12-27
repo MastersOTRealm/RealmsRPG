@@ -8,6 +8,7 @@
 @import url('./core/reset.css');
 @import url('./core/typography.css');
 @import url('./core/components.css');
+@import url('./core/chips.css');
 
 /* ==========================================================================
    Codex-Specific Variables
