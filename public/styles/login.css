@@ -271,11 +271,18 @@
     height: 100%;
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.4);
+    align-items: center;
+    justify-content: center;
+}
+
+/* Force flex display when modal is shown */
+.modal[style*="display: block"],
+.modal[style*="display:block"] {
+    display: flex !important;
 }
 
 .modal-content {
     background-color: #fefefe;
-    margin: 10% auto;
     padding: 30px;
     border: none;
     border-radius: 10px;

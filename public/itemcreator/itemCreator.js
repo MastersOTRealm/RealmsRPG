@@ -761,7 +761,6 @@ import { initializeFirebase } from '/scripts/shared/firebase-init.js';
                     }, 500);
                 }
             });
-        }
 
         // --- Damage Reduction UI logic ---
         const damageReductionContainer = document.getElementById('damageReductionContainer');

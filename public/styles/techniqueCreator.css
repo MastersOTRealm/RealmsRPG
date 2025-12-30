@@ -53,14 +53,14 @@ main {
 /* Total Costs Panel */
 #totalCosts {
     position: fixed;
-    top: var(--spacing-lg);
+    top: calc(var(--header-height, 80px) + var(--spacing-lg));
     left: var(--spacing-lg);
     width: 160px;
     padding: var(--spacing-sm);
     background-color: var(--color-accent-light);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
-    z-index: var(--z-sticky);
+    z-index: 1001;
     font-size: var(--font-size-xs);
     transition: transform var(--transition-base);
 }
@@ -95,7 +95,7 @@ main {
     justify-content: center;
     cursor: pointer;
     transform: translateY(-50%);
-    z-index: calc(var(--z-sticky) + 1);
+    z-index: 1002;
     font-weight: var(--font-weight-bold);
     font-size: var(--font-size-xs);
 }

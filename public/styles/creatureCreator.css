@@ -65,14 +65,14 @@ main {
 #creatureSummaryPanel,
 #creatureDetailsBox {
     position: fixed;
-    top: var(--spacing-lg);
+    top: calc(var(--header-height, 80px) + var(--spacing-lg));
     left: var(--spacing-lg);
     width: 180px;
     padding: var(--spacing-sm);
     background-color: var(--color-accent-light);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
-    z-index: var(--z-sticky);
+    z-index: 1001;
     font-size: var(--font-size-xs);
     transition: left 0.3s cubic-bezier(.4,0,.2,1), 
                 box-shadow 0.3s, 
@@ -126,7 +126,7 @@ main {
     justify-content: center;
     cursor: pointer;
     transform: translateY(-50%);
-    z-index: calc(var(--z-sticky) + 1);
+    z-index: 1002;
     font-weight: var(--font-weight-bold);
     font-size: var(--font-size-xs);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);

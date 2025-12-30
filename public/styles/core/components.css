@@ -56,9 +56,9 @@ button.small-button {
     height: 20px;
     padding: 0;
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-normal);
     line-height: 1;
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-md);
 }
 
 /* ============================================
@@ -513,23 +513,25 @@ input[type="radio"] {
 
 .modal-overlay {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-color: var(--color-bg-modal-overlay);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
-    z-index: var(--z-modal-backdrop);
+    z-index: var(--z-modal);
     padding: var(--spacing-4);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity var(--transition-base), visibility var(--transition-base);
 }
 
 .modal-overlay.active,
+.modal-overlay.show,
+.modal-overlay[style*="display: flex"],
+.modal-overlay[style*="display:flex"],
 .modal-overlay[style*="display: block"],
 .modal-overlay[style*="display:block"] {
-    opacity: 1;
-    visibility: visible;
+    display: flex !important;
 }
 
 .modal-container {
@@ -627,18 +629,25 @@ input[type="radio"] {
    Used by power creator, technique creator, etc. */
 .modal {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.6);
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: var(--z-modal-backdrop);
+    z-index: var(--z-modal);
 }
 
+/* When modal is shown via JS (display: block or display: flex), 
+   ensure it uses flexbox for centering */
 .modal.active,
 .modal[style*="display: flex"],
-.modal[style*="display:flex"] {
-    display: flex;
+.modal[style*="display:flex"],
+.modal[style*="display: block"],
+.modal[style*="display:block"] {
+    display: flex !important;
 }
 
 .modal-content {
