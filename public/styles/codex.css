@@ -9,6 +9,7 @@
 @import url('./core/typography.css');
 @import url('./core/components.css');
 @import url('./core/chips.css');
+@import url('./core/listing-shared.css');
 
 /* ==========================================================================
    Codex-Specific Variables
@@ -62,117 +63,29 @@ header h1 {
 }
 
 /* ==========================================================================
-   Filters
+   Search Bar
    ========================================================================== */
-.filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    padding: var(--spacing-md);
-    background: var(--color-white);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
+.search-bar {
+    margin-bottom: var(--spacing-md);
 }
 
-.filter-group {
-    flex: 1 1 180px;
-    min-width: 140px;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-2xs);
-}
-
-#tagsFilterGroup {
-    flex: 1 1 200px;
-    min-width: 180px;
-}
-
-.tag-controls {
-    display: flex;
-    gap: var(--spacing-sm);
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.switch {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-2xs);
-    font-size: var(--font-size-xs);
-    color: var(--color-gray-500);
-    white-space: nowrap;
-}
-
-.switch input[type="checkbox"] {
-    width: 12px;
-    height: 12px;
-    accent-color: var(--color-primary);
-}
-
-.filter-group.multi .input-group {
-    display: flex;
-    gap: var(--spacing-xs);
-    align-items: center;
-}
-
-.filter-group.multi .input-group input {
-    width: 50px;
-    min-width: 40px;
-}
-
-.filter-group.multi .input-group button {
-    padding: var(--spacing-1) var(--spacing-2);
-    font-size: var(--font-size-xs);
-    white-space: nowrap;
-}
-
-.filters label {
-    font-size: var(--font-size-xs);
-    color: var(--color-gray-500);
-    margin-bottom: var(--spacing-1);
-}
-
-.filters select,
-.filters input {
-    padding: var(--spacing-1) var(--spacing-2);
+.search-bar input {
+    width: 100%;
+    padding: var(--spacing-sm);
     border: 1px solid var(--color-gray-300);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
     font-family: var(--font-family-body);
-    min-width: 80px;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-/* ==========================================================================
-   Filter Chips
-   ========================================================================== */
-.chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-2xs);
-    margin-top: var(--spacing-xs);
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(5, 51, 87, 0.1);
 }
 
-.chip {
-    background: var(--color-gray-100);
-    color: var(--color-gray-600);
-    font-size: var(--font-size-sm);
-    padding: var(--spacing-2xs) var(--spacing-sm);
-    border-radius: var(--radius-full);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-2xs);
-}
-
-.chip .remove {
-    cursor: pointer;
-    font-weight: var(--font-weight-bold);
-    transition: color var(--transition-fast);
-}
-
-.chip .remove:hover {
-    color: var(--color-danger);
-}
+/* Filters, sort labels and shared listing controls are in core/listing-shared.css */
 
 /* ==========================================================================
    Tabs
@@ -230,12 +143,58 @@ header h1 {
     margin-bottom: var(--spacing-2xs);
 }
 
+/* Skills Headers */
+.skill-headers {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.skill-headers .col:nth-child(1) {
+    justify-content: flex-start;
+}
+
+.skill-headers .col:nth-child(2) {
+    justify-content: center;
+}
+
+.skill-headers .col:nth-child(3) {
+    justify-content: flex-end;
+}
+
+/* Species Headers */
+.species-headers {
+    grid-template-columns: 1.5fr 1fr 1fr 3.5fr;
+}
+
+/* Parts Headers */
+.part-headers {
+    grid-template-columns: 2fr 1fr 1fr 0.8fr 1.2fr;
+}
+
+/* Properties Headers */
+.property-headers {
+    grid-template-columns: 1.5fr 1fr 1fr;
+}
+
+/* Equipment Headers */
+.equipment-headers {
+    grid-template-columns: 1.5fr 3fr 1fr 1fr 1fr;
+}
+
 .feat-headers .col {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-2xs);
     cursor: pointer;
+}
+
+.feat-headers .col:nth-child(1) {
+    justify-content: flex-start;
+}
+
+.feat-headers .col:nth-child(6) {
+    justify-content: flex-end;
 }
 
 .sort-group {
@@ -284,6 +243,47 @@ header h1 {
     position: relative;
 }
 
+.skill-header {
+    grid-template-columns: 1fr 1fr 1fr;
+    padding-right: 40px;
+}
+
+.skill-header .col:nth-child(1) {
+    text-align: left;
+}
+
+.skill-header .col:nth-child(2) {
+    text-align: center;
+}
+
+.skill-header .col:nth-child(3) {
+    text-align: right;
+}
+
+.species-header {
+    grid-template-columns: 1.5fr 1fr 1fr 3.5fr;
+}
+
+.species-header .col:nth-child(4) {
+    white-space: normal;
+}
+
+.part-header {
+    grid-template-columns: 2fr 1fr 1fr 0.8fr 1.2fr;
+}
+
+.property-header {
+    grid-template-columns: 1.5fr 1fr 1fr;
+}
+
+.equipment-header {
+    grid-template-columns: 1.5fr 3fr 1fr 1fr 1fr;
+}
+
+.equipment-header .col:nth-child(2) {
+    white-space: normal;
+}
+
 .feat-header .col {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -298,7 +298,7 @@ header h1 {
     position: absolute;
     right: var(--spacing-sm);
     font-size: var(--font-size-lg);
-    color: var(--color-gray-500);
+    color: var(--color-gray-700);
     transition: transform var(--transition-fast);
 }
 
@@ -349,7 +349,7 @@ header h1 {
 
 .requirements .req-field label {
     font-weight: var(--font-weight-medium);
-    color: var(--color-gray-500);
+    color: var(--color-gray-700);
     width: 200px;
     flex-shrink: 0;
 }
@@ -361,7 +361,7 @@ header h1 {
 .no-results {
     text-align: center;
     padding: var(--spacing-2xl);
-    color: var(--color-gray-500);
+    color: var(--color-gray-700);
     font-style: italic;
 }
 
@@ -382,7 +382,7 @@ header h1 {
 .feat-type-options label,
 .skill-type-options label {
     font-size: var(--font-size-sm);
-    color: var(--color-gray-500);
+    color: var(--color-gray-700);
 }
 
 /* ==========================================================================
@@ -528,8 +528,27 @@ header h1 {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-2xs);
     cursor: pointer;
+}
+
+.species-headers .col:nth-child(1) {
+    justify-content: flex-start;
+}
+
+.species-headers .col:nth-child(4) {
+    justify-content: flex-end;
+}
+
+.species-headers .sort {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    cursor: pointer;
+}
+
+.species-headers .sort:hover {
+    color: var(--color-primary);
 }
 
 .species-list {
@@ -570,6 +589,96 @@ header h1 {
 .expanded .species-body {
     max-height: 2000px;
     padding: var(--spacing-md);
+}
+
+/* ==========================================================================
+   Parts Headers & List
+   ========================================================================== */
+.part-headers .col {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2xs);
+    cursor: pointer;
+}
+
+.part-headers .col:nth-child(1) {
+    justify-content: flex-start;
+}
+
+.part-headers .col:nth-child(5) {
+    justify-content: flex-end;
+}
+
+.part-headers .sort {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    cursor: pointer;
+}
+
+.part-headers .sort:hover {
+    color: var(--color-primary);
+}
+
+/* ==========================================================================
+   Properties Headers & List
+   ========================================================================== */
+.property-headers .col {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2xs);
+    cursor: pointer;
+}
+
+.property-headers .col:nth-child(1) {
+    justify-content: flex-start;
+}
+
+.property-headers .col:nth-child(3) {
+    justify-content: flex-end;
+}
+
+.property-headers .sort {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    cursor: pointer;
+}
+
+.property-headers .sort:hover {
+    color: var(--color-primary);
+}
+
+/* ==========================================================================
+   Equipment Headers & List
+   ========================================================================== */
+.equipment-headers .col {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2xs);
+    cursor: pointer;
+}
+
+.equipment-headers .col:nth-child(1) {
+    justify-content: flex-start;
+}
+
+.equipment-headers .col:nth-child(5) {
+    justify-content: flex-end;
+}
+
+.equipment-headers .sort {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    cursor: pointer;
+}
+
+.equipment-headers .sort:hover {
+    color: var(--color-primary);
 }
 
 /* ==========================================================================

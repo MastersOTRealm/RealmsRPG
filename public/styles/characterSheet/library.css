@@ -97,7 +97,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--font-size-sm, 14px);
     font-weight: 600;
 }
 
@@ -107,7 +107,7 @@
 }
 
 .recovery-text {
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     color: var(--text-secondary);
     margin-left: 8px;
     text-transform: uppercase;
@@ -314,7 +314,7 @@
     background:#f1f6fa;
     border:1px solid var(--border-color);
     padding:4px 8px;
-    font-size:11px;
+    font-size: var(--font-size-xs, 12px);
     border-radius:14px;
 }
 .proficiency-chip {
@@ -333,7 +333,7 @@
 .tech-detail-grid div label {
     display:block;
     font-weight:600;
-    font-size:11px;
+    font-size: var(--font-size-xs, 12px);
     color: var(--text-secondary);
     margin-bottom:2px;
 }
@@ -352,7 +352,7 @@
 .proficiency-chip {
   display: inline-block;
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--font-size-xs, 12px);
   border-radius: 14px;
   background: var(--bg-medium);
   border: 1px solid var(--border-color);
@@ -495,7 +495,7 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: var(--font-size-xs, 12px);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -609,7 +609,7 @@ body:not(.edit-mode) .resource-remove-btn {
 .collapsible-chip .chip-description {
   display: none;
   width: 100%;
-  font-size: 11px;
+  font-size: var(--font-size-xs, 12px);
   font-weight: 400;
   color: var(--text-primary);
   background: var(--bg-light);

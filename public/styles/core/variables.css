@@ -96,38 +96,50 @@
     
     /* ============================================
        TYPOGRAPHY
-       ============================================ */
+       ============================================
+       
+       Font Usage Guide:
+       - Nova Flat: Page titles (h1), section headers (h2), panel titles
+       - Nunito: Body text, buttons, labels, h3-h6, form inputs, everything else
+       
+       Weight Guide (use only 2 levels for consistency):
+       - Normal (400): Body text, paragraphs, descriptions
+       - Semibold (600): Buttons, labels, headers, emphasis
+    */
     
     /* Font Families */
     --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-heading: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-title: 'Nova Flat', cursive, sans-serif;  /* For page/section titles */
+    --font-title: 'Nova Flat', cursive, sans-serif;  /* For h1, h2, page titles, section headers */
     --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
     
     /* Font Family Aliases (for backwards compatibility) */
     --font-family-body: var(--font-body);
-    --font-family-heading: var(--font-heading);
-    --font-family-title: var(--font-title);
+    --font-family-heading: var(--font-body);  /* h3-h6 use Nunito */
+    --font-family-title: var(--font-title);   /* h1, h2 use Nova Flat */
     --font-family-mono: var(--font-mono);
     
-    /* Font Sizes - Using rem for accessibility (slightly smaller for compact UI) */
-    --font-size-2xs: 0.625rem;  /* 10px */
-    --font-size-xs: 0.6875rem;  /* 11px */
-    --font-size-sm: 0.75rem;    /* 12px */
-    --font-size-base: 0.875rem; /* 14px */
-    --font-size-lg: 1rem;       /* 16px */
-    --font-size-xl: 1.125rem;   /* 18px */
-    --font-size-2xl: 1.25rem;   /* 20px */
-    --font-size-3xl: 1.5rem;    /* 24px */
-    --font-size-4xl: 1.875rem;  /* 30px */
-    --font-size-5xl: 2.25rem;   /* 36px */
+    /* Font Sizes - Consolidated scale (8 sizes) */
+    --font-size-xs: 0.75rem;    /* 12px - captions, chips, helper text */
+    --font-size-sm: 0.875rem;   /* 14px - buttons, labels, small text */
+    --font-size-base: 1rem;     /* 16px - body text, paragraphs */
+    --font-size-lg: 1.125rem;   /* 18px - large body, nav links */
+    --font-size-xl: 1.25rem;    /* 20px - h4, subsection headers */
+    --font-size-2xl: 1.5rem;    /* 24px - h3, card headers */
+    --font-size-3xl: 2rem;      /* 32px - h2, section headers */
+    --font-size-4xl: 2.25rem;   /* 36px - h1, page titles */
     
-    /* Font Weights */
-    --font-weight-light: 300;
-    --font-weight-normal: 400;
-    --font-weight-medium: 500;
-    --font-weight-semibold: 600;
-    --font-weight-bold: 700;
+    /* Legacy size aliases (for backwards compatibility) */
+    --font-size-2xs: 0.625rem;  /* 10px - deprecated, use --font-size-xs */
+    --font-size-5xl: 2.5rem;    /* 40px - deprecated, use --font-size-4xl */
+    
+    /* Font Weights - Standardized to 2 primary levels */
+    --font-weight-normal: 400;   /* Regular text, paragraphs */
+    --font-weight-semibold: 600; /* Buttons, labels, headers, emphasis */
+    
+    /* Legacy weight aliases (for backwards compatibility - maps to standard weights) */
+    --font-weight-light: 400;    /* Deprecated: use --font-weight-normal */
+    --font-weight-medium: 600;   /* Deprecated: use --font-weight-semibold */
+    --font-weight-bold: 600;     /* Deprecated: use --font-weight-semibold */
     
     /* Line Heights */
     --line-height-tight: 1.25;

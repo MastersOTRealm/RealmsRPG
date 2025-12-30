@@ -41,53 +41,53 @@ header .back-button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    padding: var(--spacing-5);
 }
 
 .initiative-list {
     width: 80%;
     max-width: 1200px;
-    background-color: white;
-    border: 1px solid #CCC;
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 20px;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-400);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-3);
+    margin-bottom: var(--spacing-5);
     overflow-y: auto;
     max-height: 60vh;
 }
 
 .initiative-entry {
-    padding: 10px;
-    margin: 5px 0;
-    background-color: #fff;
-    border: 1px solid #ddd;
+    padding: var(--spacing-3);
+    margin: var(--spacing-1) 0;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
     cursor: move;
     user-select: none;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--spacing-3);
     flex-wrap: wrap;
 }
 
 .initiative-entry.dragging {
     opacity: 0.5;
-    background-color: #e0e0e0;
+    background-color: var(--color-gray-200);
 }
 
 .initiative-entry:hover {
-    background-color: #f0f0f0;
+    background-color: var(--color-bg-hover);
 }
 
 .initiative-entry.active-turn {
-    background-color: #d0e8ff;
-    border-color: #007bff;
+    background-color: var(--color-bg-selected);
+    border-color: var(--color-primary-accent);
 }
 
 .initiative-entry input,
 .initiative-entry select {
-    margin-right: 10px;
-    padding: 5px;
-    font-size: 14px;
+    margin-right: var(--spacing-3);
+    padding: var(--spacing-1);
+    font-size: var(--font-size-sm);
 }
 
 .initiative-entry .creature-name {
@@ -131,17 +131,17 @@ header .back-button {
 
 .initiative-entry button {
     flex: 0.5;
-    padding: 5px;
-    font-size: 14px;
+    padding: var(--spacing-1);
+    font-size: var(--font-size-sm);
     border: none;
     cursor: pointer;
 }
 
 .initiative-entry .remove-entry {
-    background-color: #C0392B;
-    color: white;
-    border-radius: 3px;
-    padding: 5px;
+    background-color: var(--color-danger);
+    color: var(--color-white);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-1);
     cursor: pointer;
 }
 
@@ -160,13 +160,13 @@ header .back-button {
 .initiative-entry .ap-tracker button {
     width: 20px;
     height: 20px;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
     border: none;
     cursor: pointer;
-    border-radius: 3px;
-    background-color: #3498DB;
-    color: white;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary);
+    color: var(--color-white);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -184,15 +184,14 @@ header .back-button {
 .initiative-entry .hp-input {
     width: 50px;
     text-align: center;
-    font-size: 12px;
-    margin-bottom: 2px; /* Add spacing between current and max HP inputs */
+    font-size: var(--font-size-xs);
+    margin-bottom: var(--spacing-1);
     width: 80px;
-    padding: 5px;
+    padding: var(--spacing-1);
 }
 
 .initiative-entry.enemy-zero-hp {
-    background-color: rgba(192, 57, 43, 0.2); /* Highlight enemies with 0 HP in red */
-    background-color: #ffd0d0;
+    background-color: var(--color-danger-light);
 }
 
 .initiative-entry .drag-handle {
@@ -201,19 +200,19 @@ header .back-button {
     align-items: center;
     justify-content: center;
     cursor: grab;
-    margin-left: 10px;
-    font-size: 16px;
-    color: #7F8C8D;
+    margin-left: var(--spacing-3);
+    font-size: var(--font-size-base);
+    color: var(--color-gray-600);
 }
 
 .initiative-entry .drag-handle:hover {
-    color: #2C3E50;
+    color: var(--color-gray-900);
 }
 
 .initiative-entry .ap-tracker .ap-label {
-    font-size: 14px;
-    font-weight: bold;
-    margin-right: 5px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    margin-right: var(--spacing-1);
 }
 
 .initiative-entry .conditions {
@@ -224,11 +223,11 @@ header .back-button {
 }
 
 .initiative-entry .condition {
-    padding: 2px 5px;
-    font-size: 12px;
-    border-radius: 3px;
-    background-color: #7F8C8D;
-    color: white;
+    padding: var(--spacing-1) var(--spacing-1);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-gray-600);
+    color: var(--color-white);
     cursor: pointer;
     position: relative;
 }
@@ -238,9 +237,9 @@ header .back-button {
     position: absolute;
     top: -5px;
     right: -5px;
-    background-color: #C0392B;
-    color: white;
-    font-size: 10px;
+    background-color: var(--color-danger);
+    color: var(--color-white);
+    font-size: var(--font-size-xs);
     width: 16px;
     height: 16px;
     display: flex;
@@ -316,77 +315,77 @@ header .back-button {
 }
 
 .control-panel button {
-    padding: 10px 20px;
-    font-size: 14px;
+    padding: var(--spacing-3) var(--spacing-5);
+    font-size: var(--font-size-sm);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
 }
 
 .control-panel .green-button {
-    background-color: #27AE60;
-    color: white;
+    background-color: var(--color-success);
+    color: var(--color-white);
     /* Button text will now display "Add Creature" */
 }
 
 .control-panel .blue-button {
-    background-color: #3498DB;
-    color: white;
+    background-color: var(--color-primary);
+    color: var(--color-white);
 }
 
 .control-panel .gray-button {
-    background-color: #7F8C8D;
-    color: white;
+    background-color: var(--color-gray-600);
+    color: var(--color-white);
 }
 
 .control-panel .red-button {
-    background-color: #C0392B;
-    color: white;
+    background-color: var(--color-danger);
+    color: var(--color-white);
 }
 
 .control-panel .surprise-toggle {
     display: flex;
     align-items: center;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
 }
 
 .round-number {
-    margin-top: 10px;
-    font-size: 16px;
-    font-weight: bold;
+    margin-top: var(--spacing-3);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
     text-align: center;
-    color: #2C3E50;
+    color: var(--color-gray-900);
 }
 
 .tooltip {
     position: relative;
-    margin-top: 20px; /* Add vertical margin between tracker and tooltip */
-    width: 80%; /* Match the width of the tracker */
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 15px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    font-size: 14px;
-    line-height: 1.5;
-    text-align: left; /* Align text to the left */
+    margin-top: var(--spacing-5);
+    width: 80%;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-gray-400);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-4);
+    box-shadow: var(--shadow-sm);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+    text-align: left;
 }
 
 .tooltip h3 {
-    margin: 0 0 10px;
-    font-size: 16px;
-    color: #2C3E50;
+    margin: 0 0 var(--spacing-3);
+    font-size: var(--font-size-base);
+    color: var(--color-gray-900);
 }
 
 .tooltip p {
-    margin: 5px 0;
+    margin: var(--spacing-1) 0;
 }
 
 .tooltip ul {
-    margin: 5px 0;
-    padding-left: 20px;
+    margin: var(--spacing-1) 0;
+    padding-left: var(--spacing-5);
 }
 
 .tooltip strong {
-    color: #2C3E50;
+    color: var(--color-gray-900);
 }

@@ -3,10 +3,7 @@
    Imports shared design system and creator base, then adds creature-specific styles
    ========================================================================== */
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Merriweather:wght@700&display=swap');
-
-/* Core Design System */
+/* Core Design System - fonts are imported via typography.css */
 @import url('./core/variables.css');
 @import url('./core/reset.css');
 @import url('./core/typography.css');
@@ -23,8 +20,8 @@ body {
     align-items: center;
     margin: 0;
     padding: 0;
-    font-family: 'Nunito', sans-serif;
-    background-color: #f4f4f4;
+    font-family: var(--font-body);
+    background-color: var(--color-bg);
     width: 100%;
 }
 
@@ -32,12 +29,12 @@ body {
    Page Title and Basic Elements
    ========================================================================== */
 .page-title {
-    font-family: 'Merriweather', serif;
-    font-size: 36px;
-    font-weight: bold;
-    margin: 20px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-normal);
+    margin: var(--spacing-5) 0;
     text-align: center;
-    color: #333;
+    color: var(--color-primary);
 }
 
 .centered-title {
@@ -53,8 +50,8 @@ main {
     align-items: center;
     margin: 0;
     padding: 0;
-    font-family: 'Nunito', sans-serif;
-    background-color: #f4f4f4;
+    font-family: var(--font-body);
+    background-color: var(--color-bg);
     width: 100%;
 }
 
@@ -169,19 +166,20 @@ main {
    ========================================================================== */
 .basic-mechanics-section {
     width: 100%;
-    padding: 15px;
-    background-color: #e6f7ff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: var(--spacing-4);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-5);
 }
 
 .mechanics-title {
-    font-family: 'Merriweather', serif;
-    font-size: 24px;
-    font-weight: bold;
-    margin: 0 0 15px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-normal);
+    margin: 0 0 var(--spacing-4) 0;
     text-align: center;
+    color: var(--color-primary);
 }
 
 .mechanics-container {
@@ -327,18 +325,20 @@ main {
    ========================================================================== */
 #featsSection {
     width: 100%;
-    padding: 15px;
-    background-color: #e6f7ff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: var(--spacing-4);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-5);
 }
 
 #featsSection h2 {
-    font-family: 'Merriweather', serif;
-    font-size: 24px;
-    margin: 0 0 10px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-normal);
+    margin: 0 0 var(--spacing-3) 0;
     text-align: center;
+    color: var(--color-primary);
 }
 
 #featsContainer .feat-row {
@@ -470,19 +470,21 @@ main {
    ========================================================================== */
 #powersSection {
     width: 100%;
-    padding: 15px;
-    background-color: #e6f7ff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: var(--spacing-4);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-5);
     margin-top: 0;
 }
 
 #powersSection h2 {
-    font-family: 'Merriweather', serif;
-    font-size: 24px;
-    margin: 0 0 10px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-normal);
+    margin: 0 0 var(--spacing-3) 0;
     text-align: center;
+    color: var(--color-primary);
 }
 
 /* ==========================================================================
@@ -490,19 +492,21 @@ main {
    ========================================================================== */
 #techniquesSection {
     width: 100%;
-    padding: 15px;
-    background-color: #e6f7ff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: var(--spacing-4);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-5);
     margin-top: 0;
 }
 
 #techniquesSection h2 {
-    font-family: 'Merriweather', serif;
-    font-size: 24px;
-    margin: 0 0 10px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-normal);
+    margin: 0 0 var(--spacing-3) 0;
     text-align: center;
+    color: var(--color-primary);
 }
 
 /* ==========================================================================
@@ -510,19 +514,21 @@ main {
    ========================================================================== */
 #armamentsSection {
     width: 100%;
-    padding: 15px;
-    background-color: #e6f7ff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: var(--spacing-4);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-5);
     margin-top: 0;
 }
 
 #armamentsSection h2 {
-    font-family: 'Merriweather', serif;
-    font-size: 24px;
-    margin: 0 0 10px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-normal);
+    margin: 0 0 var(--spacing-3) 0;
     text-align: center;
+    color: var(--color-primary);
 }
 
 #armamentsContainer .armament-row {
@@ -678,11 +684,11 @@ main {
    ========================================================================== */
 .summary-section {
     width: 100%;
-    padding: 15px;
-    background-color: #e6f7ff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    font-size: 16px;
+    padding: var(--spacing-4);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    font-size: var(--font-size-base);
     min-height: 180px;
     max-height: none;
     overflow: visible;
@@ -690,19 +696,19 @@ main {
 
 .summary-section h2,
 .summary-section h3 {
-    font-family: 'Merriweather', serif;
-    font-size: 18px;
-    font-weight: normal;
-    color: #007bff;
-    margin: 0 0 10px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-normal);
+    color: var(--color-primary);
+    margin: 0 0 var(--spacing-3) 0;
 }
 
 .summary-section h3 {
-    font-family: 'Merriweather', serif;
-    font-size: 24px;
-    margin: 0 0 10px 0;
+    font-family: var(--font-title);
+    font-size: var(--font-size-2xl);
+    margin: 0 0 var(--spacing-3) 0;
     text-align: center;
-    color: #007bff;
+    color: var(--color-primary);
 }
 
 .summary-section div {

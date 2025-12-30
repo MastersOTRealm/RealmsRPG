@@ -80,11 +80,11 @@
 
 .tagline,
 .description {
-    font-family: 'Nunito', sans-serif;
-    font-weight: 900;
-    font-size: 25px;
-    line-height: 34px;
-    color: #40464a;
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-xl);
+    line-height: var(--line-height-normal);
+    color: var(--color-gray-800);
     margin: 0;
     text-align: left;
 }
@@ -148,16 +148,16 @@
     justify-content: center;
     width: 100%;
     height: 48px;
-    background: #e3e3e3;
+    background: var(--color-gray-200);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 300;
-    font-size: 18px;
-    color: #053357;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-    transition: all 0.2s ease;
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-normal);
+    font-size: var(--font-size-lg);
+    color: var(--color-primary-dark);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-all);
     position: relative;
 }
 
@@ -232,27 +232,27 @@
 .create-account-button {
     width: 100%;
     height: 48px;
-    background: #407bb5;
+    background: var(--color-primary);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 18px;
-    color: #f6f6f6;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-    transition: all 0.2s ease;
-    padding: 18px 252px;
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-lg);
+    color: var(--color-white);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-all);
+    padding: var(--spacing-4) var(--spacing-8);
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 25px;
+    line-height: var(--line-height-normal);
 }
 
 .create-account-button:hover {
-    background: #356a9a;
+    background: var(--color-primary-dark);
     transform: translateY(-1px);
-    box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .create-account-button:active {
@@ -311,56 +311,56 @@
 
 .modal-content h2 {
     text-align: center;
-    margin-bottom: 20px;
-    color: #053357;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
+    margin-bottom: var(--spacing-5);
+    color: var(--color-primary-dark);
+    font-family: var(--font-title);
+    font-weight: var(--font-weight-normal);
 }
 
 .modal-content form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: var(--spacing-4);
 }
 
 .modal-content input {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 16px;
-    font-family: 'Nunito', sans-serif;
+    padding: var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    font-family: var(--font-body);
 }
 
 .modal-content button {
-    padding: 12px;
-    background-color: #407bb5;
-    color: white;
+    padding: var(--spacing-3);
+    background-color: var(--color-primary);
+    color: var(--color-white);
     border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--transition-fast);
 }
 
 .modal-content button:hover {
-    background-color: #356a9a;
+    background-color: var(--color-primary-dark);
 }
 
 .modal-links {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
+    gap: var(--spacing-3);
+    margin-top: var(--spacing-4);
     text-align: center;
 }
 
 .modal-links a {
-    color: #407bb5;
+    color: var(--color-primary);
     text-decoration: none;
-    font-size: 14px;
-    font-family: 'Nunito', sans-serif;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-body);
 }
 
 .modal-links a:hover {
@@ -398,22 +398,22 @@
 }
 
 .footer-link {
-    font-family: 'Nunito', sans-serif;
-    font-weight: 600;
-    font-size: 18px;
-    line-height: 25px;
-    color: #323e4e;
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-normal);
+    color: var(--color-gray-800);
     text-decoration: none;
     text-align: center;
     vertical-align: center;
-    transition: color 0.2s ease;
+    transition: color var(--transition-fast);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .footer-link:hover {
-    color: #1a2530;
+    color: var(--color-gray-900);
 }
 
 /* Responsive Design */

@@ -65,33 +65,33 @@ body {
 .character-sheet {
     max-width: 1400px;
     margin: 0 auto;
-    background-color: white;
-    border-radius: 16px;
-    padding: 32px;
+    background-color: var(--color-white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-8);
     box-shadow: var(--shadow);
 }
 
 .sheet-actions {
     display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-5);
     justify-content: flex-end;
 }
 
 .action-button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--spacing-2);
     background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
-    color: white;
+    color: var(--color-white);
     border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-weight: 600;
-    font-size: 14px;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-3) var(--spacing-5);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: var(--transition-all);
+    box-shadow: var(--shadow-sm);
     position: relative;
 }
 
@@ -229,7 +229,7 @@ th {
     background-color: var(--bg-medium);
     font-weight: 600;
     color: var(--text-primary);
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
@@ -386,7 +386,7 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
 }
 
 .resource-constraint {
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     color: var(--text-secondary);
     font-style: italic;
 }
@@ -418,7 +418,7 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
 
 .he-title {
     font-weight: 700;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     color: #2e7d32;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -426,7 +426,7 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
 
 .he-remaining {
     font-weight: 600;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     color: #388e3c;
     background: white;
     padding: 3px 10px;
@@ -466,7 +466,7 @@ body.edit-mode .action-button#toggle-edit-mode:hover {
 
 .he-label {
     font-weight: 600;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     color: var(--text-primary);
     min-width: 70px;
 }

@@ -44,14 +44,14 @@
 }
 
 .tracker-label {
-    font-size: 12px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
 }
 
 .tracker-value {
-    font-size: 14px;
+    font-size: var(--font-size-sm, 14px);
     font-weight: 700;
     color: var(--primary-dark);
 }
@@ -75,7 +75,7 @@
     border: none;
     border-radius: 6px;
     padding: 6px 14px;
-    font-size: 12px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -98,7 +98,7 @@
     padding: 6px 12px;
     font-weight: 600;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-sm, 14px);
     transition: all 0.2s;
 }
 
@@ -120,7 +120,7 @@
 .ability-abbr {
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
 }
 
 /* Skills Edit Mode */
@@ -155,7 +155,7 @@
     min-width: 32px;
     text-align: center;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--font-size-sm, 14px);
     color: var(--primary-dark);
 }
 
@@ -200,7 +200,7 @@
 
 /* Ability select dropdown for multi-ability skills */
 .ability-select {
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 600;
     padding: 2px 4px;
     border: 1px solid var(--border-color);
@@ -218,7 +218,7 @@
 
 /* Species skill tag */
 .species-skill-tag {
-    font-size: 10px;
+    font-size: var(--font-size-xs, 12px);
     color: #0a4a7a;
     font-weight: normal;
     margin-left: 4px;

@@ -2,6 +2,21 @@
  * RealmsRPG Design System - Components
  * =====================================
  * Reusable UI component styles used across the site.
+ * 
+ * Button Hierarchy (4 types):
+ * 1. .btn-primary   - Main actions (Save, Submit, Confirm) - Blue gradient
+ * 2. .btn-secondary - Secondary actions (Cancel, Back) - White with border
+ * 3. .btn-danger    - Destructive actions (Delete, Remove) - Red
+ * 4. .btn-ghost     - Tertiary/subtle actions (Edit, View) - Transparent
+ * 
+ * Button Sizes:
+ * - Default: 14px font, 4px 8px padding
+ * - .btn-sm: 12px font, 4px 12px padding
+ * - .btn-lg: 16px font, 12px 24px padding
+ * 
+ * Special Buttons:
+ * - .btn-icon: Square icon-only button
+ * - .btn-increment/.btn-decrement: Small +/- buttons (20x20px)
  */
 
 /* ============================================
