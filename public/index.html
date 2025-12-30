@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Welcome to Realms</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="/css/layouts/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&family=Nova+Flat:wght@400&family=Pecita&display=swap" rel="stylesheet">
@@ -89,16 +89,16 @@
     </main>
     <footer id="footer"></footer>
     <script type="module">
-      import { initializeFirebase, handleAuthStateChange } from '/scripts/auth.js';
+      import { initializeFirebase, handleAuthStateChange } from '/js/core/auth.js';
 
       async function loadHeaderFooter() {
         const header = document.getElementById('header');
         const footer = document.getElementById('footer');
         if (header) {
-          header.innerHTML = await fetch('/header.html').then(response => response.text());
+          header.innerHTML = await fetch('/partials/header.html').then(response => response.text());
         }
         if (footer) {
-          footer.innerHTML = await fetch('/footer.html').then(response => response.text());
+          footer.innerHTML = await fetch('/partials/footer.html').then(response => response.text());
         }
       }
       loadHeaderFooter();
