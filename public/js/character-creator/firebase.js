@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
 import { sanitizeId } from '../shared/string-utils.js';
+import { AUTH_DOMAIN, RECAPTCHA_SITE_KEY } from '../core/environment.js';
 
 let db;
 export { db };
@@ -9,12 +10,12 @@ export { db };
 export async function initializeFirebase() {
   const response = await fetch('/__/firebase/init.json');
   const firebaseConfig = await response.json();
-  firebaseConfig.authDomain = 'realmsroleplaygame.com';
+  firebaseConfig.authDomain = AUTH_DOMAIN;
   const app = initializeApp(firebaseConfig);
   // NEW: expose app for other modules (auth/functions binding)
   window.firebaseApp = app;
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
+    provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
     isTokenAutoRefreshEnabled: true
   });
   await new Promise(r => setTimeout(r, 500));

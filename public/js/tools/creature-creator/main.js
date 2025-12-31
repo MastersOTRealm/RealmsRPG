@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+import { AUTH_DOMAIN, RECAPTCHA_SITE_KEY } from '../../core/environment.js';
 //import skills from '../scripts/skillsData.js';
 //import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 
@@ -18,11 +19,11 @@ let authReadyPromise = new Promise(resolve => {
     document.addEventListener('DOMContentLoaded', async function() {
         const response = await fetch('/__/firebase/init.json');
         const firebaseConfig = await response.json();
-        firebaseConfig.authDomain = 'realmsroleplaygame.com';
+        firebaseConfig.authDomain = AUTH_DOMAIN;
         firebaseApp = initializeApp(firebaseConfig);
 
         initializeAppCheck(firebaseApp, {
-            provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
+            provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
             isTokenAutoRefreshEnabled: true
         });
 

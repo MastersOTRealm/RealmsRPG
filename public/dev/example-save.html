@@ -10,17 +10,18 @@
       import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
       import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
       import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+      import { AUTH_DOMAIN, RECAPTCHA_SITE_KEY } from "/js/core/environment.js";
 
       document.addEventListener('DOMContentLoaded', function() {
         // Fetch the Firebase config from the environment
         fetch('/__/firebase/init.json').then(response => response.json()).then(firebaseConfig => {
-          // Update the authDomain to use your custom domain
-          firebaseConfig.authDomain = 'realmsroleplaygame.com';
+          // Update the authDomain from centralized environment config
+          firebaseConfig.authDomain = AUTH_DOMAIN;
           const app = initializeApp(firebaseConfig);
 
-          // Initialize App Check
+          // Initialize App Check with site key from environment config
           const appCheck = initializeAppCheck(app, {
-            provider: new ReCaptchaV3Provider('6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA'),
+            provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
             isTokenAutoRefreshEnabled: true
           });
 

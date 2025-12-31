@@ -11,6 +11,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+import { RECAPTCHA_SITE_KEY, AUTH_DOMAIN } from './environment.js';
 
 // Singleton instances
 let app = null;
@@ -20,9 +21,6 @@ let rtdb = null;
 let functions = null;
 let initialized = false;
 let initPromise = null;
-
-// reCAPTCHA site key for App Check
-const RECAPTCHA_SITE_KEY = '6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA';
 
 /**
  * Get the Firebase configuration from the hosting environment.
@@ -64,6 +62,8 @@ export async function initializeFirebase() {
                 console.debug('Firebase already initialized, reusing existing app');
             } else {
                 const config = await getFirebaseConfig();
+                // Override authDomain with centralized environment config
+                config.authDomain = AUTH_DOMAIN;
                 try {
                     app = initializeApp(config);
                 } catch (initError) {

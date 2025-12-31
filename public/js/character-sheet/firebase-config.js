@@ -1,4 +1,7 @@
 import { toStrArray, toNumArray } from '../shared/array-utils.js';
+// Note: This file uses Firebase compat SDK loaded via script tags.
+// Environment config is loaded globally as window.RealmsEnv from environment.js
+// which must be imported in the HTML page before this script runs.
 
 let firebaseInitialized = false;
 let auth, db, rtdb; // Add rtdb for Realtime Database
@@ -15,13 +18,16 @@ export async function initializeFirebase() {
                 db = firebase.firestore();
                 rtdb = firebase.database(); // Initialize Realtime Database
                 
+                // Get reCAPTCHA site key from global environment config
+                const recaptchaSiteKey = window.RealmsEnv?.RECAPTCHA_SITE_KEY || '6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA';
+                
                 // NEW: Activate App Check BEFORE waiting for auth
                 let appCheckReady = Promise.resolve();
                 if (firebase.appCheck) {
                     appCheckReady = new Promise((resolveAppCheck) => {
                         try {
                             firebase.appCheck().activate(
-                                '6Ld4CaAqAAAAAMXFsM-yr1eNlQGV2itSASCC7SmA',
+                                recaptchaSiteKey,
                                 true
                             );
                             console.log('[CharacterSheet] App Check activated');
