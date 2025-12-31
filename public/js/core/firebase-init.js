@@ -36,17 +36,6 @@ async function getFirebaseConfig() {
         }
     } catch (e) {
         console.warn('Could not fetch Firebase config from hosting, using fallback');
-    }
-    
-    // Fallback config if init.json is not available
-    return {
-        authDomain: "realmsroleplaygame.firebaseapp.com",
-        databaseURL: "https://realmsroleplaygame-default-rtdb.firebaseio.com",
-        projectId: "realmsroleplaygame",
-        storageBucket: "realmsroleplaygame.appspot.com",
-        messagingSenderId: "183526818498",
-        appId: "1:183526818498:web:b3f3a2dd0025e3c51e0200",
-        measurementId: "G-7P2LDPX5YX"
     };
 }
 
