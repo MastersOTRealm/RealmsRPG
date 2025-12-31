@@ -5,12 +5,12 @@
  * Import this module instead of initializing Firebase in each file.
  */
 
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
-import { getFunctions } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+import { getFunctions } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-functions.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app-check.js";
 import { RECAPTCHA_SITE_KEY, AUTH_DOMAIN } from './environment.js';
 
 // Singleton instances
@@ -227,12 +227,12 @@ export { auth, db, rtdb, functions };
 // Re-export commonly used Firebase functions for convenience
 export { 
     onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 
 export {
     ref,
     get
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
 export {
     collection,
@@ -246,11 +246,11 @@ export {
     where,
     orderBy,
     limit
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 export {
     httpsCallable
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-functions.js";
 
 export {
     signInWithEmailAndPassword,
@@ -259,4 +259,4 @@ export {
     sendPasswordResetEmail,
     updateEmail,
     updatePassword
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";

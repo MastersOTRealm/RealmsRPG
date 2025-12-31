@@ -17,7 +17,7 @@ import {
 } from '/js/core/rtdb-cache.js';
 
 // Firebase database will be auto-detected by rtdb-cache
-import { getDatabase } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
 let skills = []; // Will be set in initCreatureCreator
 let allCreatureFeats = []; // Will be loaded from Realtime Database

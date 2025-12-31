@@ -95,7 +95,7 @@ export async function getWithRetry(database, path, attempts = 3) {
         return await fetchWithRetry(fetchFn, attempts);
     } else {
         // Modular SDK (getDatabase)
-        const { ref, get } = await import('https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js');
+        const { ref, get } = await import('https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js');
         const dbRef = ref(database, path);
         const fetchFn = () => get(dbRef);
         return await fetchWithRetry(fetchFn, attempts);

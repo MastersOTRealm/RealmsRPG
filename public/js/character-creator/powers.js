@@ -1,7 +1,7 @@
 import { saveCharacter } from './storage.js';
-import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
-import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
 import { getDefaultTrainingPoints } from './utils.js';
 import { calculateTechniqueCosts, deriveTechniqueDisplay } from '../calculators/technique-calc.js';
 import { calculatePowerCosts, derivePowerDisplay } from '../calculators/power-calc.js';

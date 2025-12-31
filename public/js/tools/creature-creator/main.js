@@ -1,10 +1,10 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app-check.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app-check.js";
 import { AUTH_DOMAIN, RECAPTCHA_SITE_KEY } from '../../core/environment.js';
 //import skills from '../scripts/skillsData.js';
-//import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-functions.js";
+//import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-functions.js";
 
 // Import from modules
 import * as creatureState from './state.js';
@@ -31,7 +31,7 @@ let authReadyPromise = new Promise(resolve => {
         firebaseDb = getFirestore(firebaseApp);
 
         // Add Realtime Database
-        const { getDatabase } = await import("https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js");
+        const { getDatabase } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js");
         firebaseRTDB = getDatabase(firebaseApp);
 
         onAuthStateChanged(firebaseAuth, (user) => {
@@ -45,7 +45,7 @@ let authReadyPromise = new Promise(resolve => {
 // --- Skills Loader ---
 async function loadSkillsFromFirebase() {
     if (!firebaseRTDB) return [];
-    const { get, ref } = await import("https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js");
+    const { get, ref } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js");
     try {
         const snapshot = await get(ref(firebaseRTDB, 'skills'));
         if (snapshot.exists()) {

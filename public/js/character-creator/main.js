@@ -10,7 +10,7 @@ import './feats.js';
 import './equipment.js';
 import './powers.js';
 import { getArchetypeAbilityScore, getBaseHealth, getBaseEnergy, getDefaultTrainingPoints } from './utils.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
 
 // Global character object
 window.character = {};

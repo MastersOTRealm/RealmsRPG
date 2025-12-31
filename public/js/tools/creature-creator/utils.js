@@ -23,7 +23,7 @@ import {
     calcHitEnergyTotal,
     calcCreatureCurrency
 } from './calc.js';
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
 // --- Archetype Proficiency Logic ---
 export function getMaxArchetypeProficiency(level) {

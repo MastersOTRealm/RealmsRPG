@@ -1,5 +1,5 @@
 import { powersTechniques, armaments } from './state.js';
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 import { addArmament } from './interactions.js';
 import { addPower } from './interactions.js';
 import { addTechnique } from './interactions.js';

@@ -4,7 +4,7 @@ import {
 } from './state.js';
 import { getAbilityValue, getSkillBonus, getBaseDefenseValue } from './utils.js';
 import { authReadyPromise, currentUser, firebaseDb } from './main.js';
-import { collection, doc, setDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { collection, doc, setDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 // Utility: Get IDs from array of objects
 function extractIds(arr) {

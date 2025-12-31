@@ -11,8 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;600;700;900&display=swap" rel="stylesheet">
     <script type="module">
       import { initializeFirebase, handleAuthStateChange } from '/js/core/auth.js';
-      import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-      import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+      import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+      import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
       document.addEventListener('DOMContentLoaded', async function() {
         const { auth, db } = await initializeFirebase();
