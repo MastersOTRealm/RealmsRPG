@@ -40,7 +40,6 @@ async function getFirebaseConfig() {
     
     // Fallback config if init.json is not available
     return {
-        apiKey: "AIzaSyAd1GXQE8NpPBn9X9RnDfcS15hhUBM0-Ms",
         authDomain: "realmsroleplaygame.firebaseapp.com",
         databaseURL: "https://realmsroleplaygame-default-rtdb.firebaseio.com",
         projectId: "realmsroleplaygame",
