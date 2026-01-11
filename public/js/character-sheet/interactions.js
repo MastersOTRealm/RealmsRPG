@@ -282,26 +282,26 @@ window.changeFeatUses = function(featName, delta) {
 /**
  * Adjusts the usage counter for a trait.
  * Converts string-based traits to objects with currentUses tracking.
- * @param {string} traitName - Name of the trait
+ * @param {string} traitIdOrName - ID or name of the trait
  * @param {number} delta - Amount to change uses by (positive or negative)
  * @param {object} charData - Character data object
  * @param {number} maxUses - Maximum uses for the trait
  */
-window.changeTraitUses = function(traitName, delta, charData, maxUses) {
+window.changeTraitUses = function(traitIdOrName, delta, charData, maxUses) {
     if (!charData || !Array.isArray(charData.traits)) return;
     
-    // Find the trait in the array
+    // Find the trait in the array - match by ID, name, or the value itself
     let trait = charData.traits.find(t =>
-        (typeof t === 'string' && t === traitName) ||
-        (typeof t === 'object' && t.name === traitName)
+        (typeof t === 'string' && (t === traitIdOrName || sanitizeId(t) === sanitizeId(traitIdOrName))) ||
+        (typeof t === 'object' && (t.id === traitIdOrName || t.name === traitIdOrName))
     );
     if (!trait) return;
     
-    // If trait is a string, convert to object
+    // If trait is a string (ID), convert to object
     if (typeof trait === 'string') {
         const idx = charData.traits.indexOf(trait);
         charData.traits[idx] = {
-            name: trait,
+            id: trait,
             currentUses: Math.max(0, Math.min(maxUses, (maxUses || 0) + delta))
         };
         trait = charData.traits[idx];
@@ -310,8 +310,9 @@ window.changeTraitUses = function(traitName, delta, charData, maxUses) {
         trait.currentUses = Math.max(0, Math.min(maxUses, trait.currentUses + delta));
     }
     
-    // Update display
-    const usesSpan = document.getElementById(`uses-${sanitizeId(traitName)}`);
+    // Update display - use sanitized ID for the element lookup
+    const traitId = typeof trait === 'object' ? (trait.id || trait.name) : trait;
+    const usesSpan = document.getElementById(`uses-${sanitizeId(traitId)}`);
     if (usesSpan) usesSpan.textContent = trait.currentUses ?? 0;
     
     // Trigger auto-save

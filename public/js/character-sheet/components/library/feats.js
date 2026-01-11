@@ -4,26 +4,27 @@ import { getCharacterResourceTracking } from '../../validation.js';
 
 /**
  * Creates a collapsible row for a trait.
- * @param {object|string} trait - Trait data or trait name/ID
+ * @param {object|string} trait - Trait data object with id/name property, or trait ID string
  * @param {string} type - Type of trait ('ancestry', 'flaw', 'characteristic', etc.)
  * @param {object} allTraits - Global traits data object
  * @param {object} charData - Character data
  * @returns {HTMLElement} The trait row element
  */
 function createTraitRow(trait, type, allTraits, charData) {
-    // Resolve trait ID or name to full trait object
-    let traitObj = trait;
-    if (allTraits && trait.name) {
-        // Use resolveTraitId to properly handle both IDs and names
-        const resolved = resolveTraitId(trait.name, allTraits);
-        const tObj = allTraits[trait.name] || allTraits[sanitizeId(trait.name)];
-        traitObj = { 
-            ...trait,
-            name: resolved.name,
-            desc: resolved.desc,
-            ...(tObj || {})
-        };
-    }
+    // Get the trait ID - could be a string or an object with id/name property
+    const traitId = typeof trait === 'string' ? trait : (trait.id || trait.name);
+    
+    // Resolve trait ID to full trait object with name and description
+    const resolved = resolveTraitId(traitId, allTraits);
+    const tObj = allTraits[traitId] || allTraits[sanitizeId(traitId)] || {};
+    
+    const traitObj = { 
+        id: traitId,
+        name: resolved.name,
+        desc: resolved.desc,
+        ...tObj,
+        ...(typeof trait === 'object' ? trait : {})
+    };
 
     // Determine subtext/type
     let subtext = '';
@@ -41,11 +42,11 @@ function createTraitRow(trait, type, allTraits, charData) {
     const maxUses = traitObj.uses_per_rec || 0;
     const recPeriod = traitObj.rec_period || '';
     
-    // Find currentUses for this trait in charData
+    // Find currentUses for this trait in charData - match by ID or name
     let currentUses = maxUses;
     if (charData && Array.isArray(charData.traits)) {
         const found = charData.traits.find(t =>
-            (typeof t === 'object' && t.name === traitObj.name && typeof t.currentUses === 'number')
+            (typeof t === 'object' && (t.id === traitObj.id || t.name === traitObj.name) && typeof t.currentUses === 'number')
         );
         if (found) currentUses = found.currentUses;
     }
@@ -56,7 +57,7 @@ function createTraitRow(trait, type, allTraits, charData) {
         description: desc,
         className: 'collapsible-feat',
         uses: maxUses ? { current: currentUses, max: maxUses, recovery: recPeriod || 'Full Recovery' } : null,
-        onUse: maxUses ? (delta) => window.changeTraitUses(traitObj.name, delta, charData, maxUses) : null
+        onUse: maxUses ? (delta) => window.changeTraitUses(traitObj.id, delta, charData, maxUses) : null
     });
 
     return row.element;
@@ -206,34 +207,35 @@ export function createFeatsContent(feats, charData = {}) {
 
     // --- Traits Section ---
     // Collect all traits with their type
+    // Traits are now stored as IDs (e.g., "night-vision") and need to be resolved to names
     const traitRows = [];
     let allTraits = (window.allTraits && typeof window.allTraits === 'object') ? window.allTraits : (charData.allTraits || {});
 
-    // Ancestry traits
+    // Traits from charData.traits array (could be IDs or names for backwards compatibility)
     if (Array.isArray(charData.traits)) {
-        charData.traits.forEach(nameOrObj => {
-            let name = typeof nameOrObj === 'string' ? nameOrObj : nameOrObj.name;
+        charData.traits.forEach(idOrObj => {
+            let traitId = typeof idOrObj === 'string' ? idOrObj : (idOrObj.id || idOrObj.name);
             // Try to infer type from charData fields
             let type = '';
-            if (charData.ancestryTraits && charData.ancestryTraits.includes(name)) type = 'ancestry';
-            else if (charData.flawTrait && charData.flawTrait === name) type = 'flaw';
-            else if (charData.characteristicTrait && charData.characteristicTrait === name) type = 'characteristic';
+            if (charData.ancestryTraits && charData.ancestryTraits.includes(traitId)) type = 'ancestry';
+            else if (charData.flawTrait && charData.flawTrait === traitId) type = 'flaw';
+            else if (charData.characteristicTrait && charData.characteristicTrait === traitId) type = 'characteristic';
             // No subtext for species traits
-            traitRows.push(createTraitRow({ name }, type, allTraits, charData));
+            traitRows.push(createTraitRow(traitId, type, allTraits, charData));
         });
     }
     // If not present, try ancestryTraits, flawTrait, characteristicTrait, speciesTraits
     if (!traitRows.length) {
-        const tryAddTrait = (name, type) => {
-            if (name) traitRows.push(createTraitRow({ name }, type, allTraits, charData));
+        const tryAddTrait = (traitId, type) => {
+            if (traitId) traitRows.push(createTraitRow(traitId, type, allTraits, charData));
         };
         tryAddTrait(charData.flawTrait, 'flaw');
         tryAddTrait(charData.characteristicTrait, 'characteristic');
         if (Array.isArray(charData.ancestryTraits)) {
-            charData.ancestryTraits.forEach(name => tryAddTrait(name, 'ancestry'));
+            charData.ancestryTraits.forEach(traitId => tryAddTrait(traitId, 'ancestry'));
         }
         if (Array.isArray(charData.speciesTraits)) {
-            charData.speciesTraits.forEach(name => tryAddTrait(name, ''));
+            charData.speciesTraits.forEach(traitId => tryAddTrait(traitId, ''));
         }
     }
 

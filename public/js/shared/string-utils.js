@@ -213,34 +213,38 @@ export function formatCount(count, singular, plural) {
 }
 
 /**
- * Resolve a trait ID or name to a full trait object with name and description.
+ * Resolve a trait ID or name to a full trait object with id, name and description.
  * Species data stores trait IDs (e.g., "night-vision"), but we need to display
  * the actual trait name (e.g., "Night Vision") and description.
  * 
  * @param {string} traitIdOrName - The trait ID (e.g., "night-vision") or name
  * @param {object} allTraits - Object of all traits keyed by their sanitized ID
- * @returns {object} Object with { name, desc } properties
+ * @returns {object} Object with { id, name, desc } properties
  * 
  * @example
- * resolveTraitId('night-vision', allTraits) // returns { name: 'Night Vision', desc: '...' }
+ * resolveTraitId('night-vision', allTraits) // returns { id: 'night-vision', name: 'Night Vision', desc: '...' }
  * resolveTraitId('Night Vision', allTraits) // also works, falls back to sanitizeId lookup
  */
 export function resolveTraitId(traitIdOrName, allTraits) {
     if (!traitIdOrName || !allTraits) {
-        return { name: traitIdOrName || 'Unknown', desc: 'No description' };
+        return { id: traitIdOrName || '', name: traitIdOrName || 'Unknown', desc: 'No description' };
     }
     
     // First, try direct lookup (if the value is already a sanitized ID)
     let trait = allTraits[traitIdOrName];
+    let foundId = trait ? traitIdOrName : null;
     
     // If not found, try sanitizing (in case it's a human-readable name)
     if (!trait) {
-        trait = allTraits[sanitizeId(traitIdOrName)];
+        const sanitized = sanitizeId(traitIdOrName);
+        trait = allTraits[sanitized];
+        foundId = trait ? sanitized : null;
     }
     
     if (trait) {
-        // Return the trait's actual name and description
+        // Return the trait's ID, actual name, and description
         return {
+            id: foundId,
             name: trait.name || capitalizeWords(traitIdOrName.replace(/-/g, ' ')),
             desc: trait.description || 'No description'
         };
@@ -248,6 +252,7 @@ export function resolveTraitId(traitIdOrName, allTraits) {
     
     // Fallback: convert the ID to a readable name
     return {
+        id: sanitizeId(traitIdOrName),
         name: capitalizeWords(String(traitIdOrName).replace(/-/g, ' ')),
         desc: 'No description'
     };

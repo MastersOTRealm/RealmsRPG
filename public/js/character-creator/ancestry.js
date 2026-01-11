@@ -1,5 +1,18 @@
 import { allSpecies } from './firebase.js';
 import { saveCharacter } from './storage.js';
+import { sanitizeId } from '../shared/string-utils.js';
+
+// Helper to check if a saved trait value matches a trait object (handles both ID and name formats)
+function traitMatches(savedValue, trait) {
+  if (!savedValue || !trait) return false;
+  // Direct ID match
+  if (savedValue === trait.id) return true;
+  // Direct name match (old format)
+  if (savedValue === trait.name) return true;
+  // Sanitized name matches ID (old format converted)
+  if (sanitizeId(savedValue) === trait.id) return true;
+  return false;
+}
 
 // Populate ancestry grid dynamically
 export function populateAncestryGrid() {
@@ -137,6 +150,7 @@ function fillTraitSection(type, traitArray, showDefinition, selectable, hasLimit
 
   traitArray.forEach(t => {
     const li = document.createElement('li');
+    li.dataset.traitId = t.id; // Store trait ID for selection/restore
     li.innerHTML = `
       <div class="trait-content">
         <div class="trait-name">${t.name}</div>
@@ -175,32 +189,35 @@ function fillTraitSection(type, traitArray, showDefinition, selectable, hasLimit
 
 function selectTrait(type, trait, li, hasLimit) {
   const char = window.character || {};
+  const traitId = trait.id; // Use trait ID for saving
   let isCurrentlySelected;
 
   if (type === 'ancestry') {
-    isCurrentlySelected = char.ancestryTraits ? char.ancestryTraits.includes(trait.name) : false;
+    // Check if any saved value matches this trait (handles both old names and new IDs)
+    isCurrentlySelected = char.ancestryTraits ? char.ancestryTraits.some(saved => traitMatches(saved, trait)) : false;
   } else if (type === 'characteristic') {
-    isCurrentlySelected = char.characteristicTrait === trait.name;
+    isCurrentlySelected = traitMatches(char.characteristicTrait, trait);
   } else if (type === 'flaw') {
-    isCurrentlySelected = char.flawTrait === trait.name;
+    isCurrentlySelected = traitMatches(char.flawTrait, trait);
   }
 
   // If clicking on already-selected trait, deselect it
   if (isCurrentlySelected) {
     li.classList.remove('selected');
     if (type === 'ancestry') {
-      char.ancestryTraits = char.ancestryTraits.filter(name => name !== trait.name);
+      // Filter out matching trait (handles both old names and new IDs)
+      char.ancestryTraits = char.ancestryTraits.filter(saved => !traitMatches(saved, trait));
     } else if (type === 'characteristic') {
       delete char.characteristicTrait;
     } else if (type === 'flaw') {
       delete char.flawTrait;
       // If a flaw is deselected and there are 2 ancestry traits, remove the extra one
       if (char.ancestryTraits && char.ancestryTraits.length > 1) {
-        const removed = char.ancestryTraits.pop();
+        const removedId = char.ancestryTraits.pop();
         // Also update the UI to deselect the removed ancestry trait
         const ancestryItems = document.querySelectorAll('#ancestry-section-body .trait-list li');
         ancestryItems.forEach(item => {
-          if (item.querySelector('.trait-name')?.textContent === removed) {
+          if (item.dataset.traitId === removedId) {
             item.classList.remove('selected');
           }
         });
@@ -231,11 +248,11 @@ function selectTrait(type, trait, li, hasLimit) {
     li.classList.add('selected');
     if (type === 'ancestry') {
       if (!char.ancestryTraits) char.ancestryTraits = [];
-      char.ancestryTraits.push(trait.name);
+      char.ancestryTraits.push(traitId);
     } else if (type === 'characteristic') {
-      char.characteristicTrait = trait.name;
+      char.characteristicTrait = traitId;
     } else if (type === 'flaw') {
-      char.flawTrait = trait.name;
+      char.flawTrait = traitId;
     }
   }
 
@@ -311,26 +328,33 @@ function restoreTraitSelections() {
   const char = window.character;
   if (!char) return;
   
+  // Helper to find matching list item - supports both old name format and new ID format
+  const findMatchingLi = (selector, savedValue) => {
+    if (!savedValue) return null;
+    return Array.from(document.querySelectorAll(selector)).find(item => {
+      const itemId = item.dataset.traitId;
+      const itemName = item.querySelector('.trait-name')?.textContent;
+      // Match by ID, name, or sanitized name
+      return itemId === savedValue || 
+             itemName === savedValue || 
+             itemId === sanitizeId(savedValue);
+    });
+  };
+  
   if (char.ancestryTraits && char.ancestryTraits.length > 0) {
-    char.ancestryTraits.forEach(traitName => {
-      const li = Array.from(document.querySelectorAll('#ancestry-section-body .trait-list li')).find(
-        item => item.querySelector('.trait-name').textContent === traitName
-      );
+    char.ancestryTraits.forEach(savedValue => {
+      const li = findMatchingLi('#ancestry-section-body .trait-list li', savedValue);
       if (li) li.classList.add('selected');
     });
   }
   
   if (char.characteristicTrait) {
-    const li = Array.from(document.querySelectorAll('#characteristic-section-body .trait-list li')).find(
-      item => item.querySelector('.trait-name').textContent === char.characteristicTrait
-    );
+    const li = findMatchingLi('#characteristic-section-body .trait-list li', char.characteristicTrait);
     if (li) li.classList.add('selected');
   }
   
   if (char.flawTrait) {
-    const li = Array.from(document.querySelectorAll('#flaw-section-body .trait-list li')).find(
-      item => item.querySelector('.trait-name').textContent === char.flawTrait
-    );
+    const li = findMatchingLi('#flaw-section-body .trait-list li', char.flawTrait);
     if (li) li.classList.add('selected');
   }
 }
