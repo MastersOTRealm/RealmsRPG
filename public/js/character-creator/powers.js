@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 import { getDefaultTrainingPoints } from './utils.js';
 import { calculateTechniqueCosts, deriveTechniqueDisplay } from '../calculators/technique-calc.js';
 import { calculatePowerCosts, derivePowerDisplay } from '../calculators/power-calc.js';
-import { waitForAuth } from '../shared/firebase-init.js';
+import { waitForAuth } from '../core/firebase-init.js';
 
 export let selectedPowersTechniques = [];
 let powersInitialized = false;
@@ -13,8 +13,6 @@ let powerPartsCache = null;
 let techniquePartsCache = null;
 export let powersLibrary = [];
 export let techniquesLibrary = [];
-
-// waitForAuth imported from shared/firebase-init.js
 
 // Load power parts from Realtime Database
 async function loadPowerParts(database) {

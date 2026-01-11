@@ -12,7 +12,7 @@ import {
   formatProficiencyChip,
   deriveItemDisplay
 } from '../calculators/item-calc.js';
-import { waitForAuth } from '../shared/firebase-init.js';
+import { waitForAuth } from '../core/firebase-init.js';
 
 export let selectedEquipment = [];
 export let selectedEquipmentQuantities = {}; // { id: quantity }
@@ -22,8 +22,6 @@ let itemPropertiesCache = null;
 export let weaponLibrary = [];
 export let armorLibrary = [];
 export let generalEquipment = [];
-
-// waitForAuth imported from shared/firebase-init.js
 
 async function loadItemProperties(database) {
   if (itemPropertiesCache) return itemPropertiesCache;

@@ -1,21 +1,28 @@
-import { sanitizeId } from '../../utils.js';
+import { sanitizeId, resolveTraitId } from '../../utils.js';
 import { CollapsibleRow, createCollapsibleSection } from '../shared/collapsible-row.js';
 import { getCharacterResourceTracking } from '../../validation.js';
 
 /**
  * Creates a collapsible row for a trait.
- * @param {object|string} trait - Trait data or trait name
+ * @param {object|string} trait - Trait data or trait name/ID
  * @param {string} type - Type of trait ('ancestry', 'flaw', 'characteristic', etc.)
  * @param {object} allTraits - Global traits data object
  * @param {object} charData - Character data
  * @returns {HTMLElement} The trait row element
  */
 function createTraitRow(trait, type, allTraits, charData) {
-    // Get trait object from allTraits if available
+    // Resolve trait ID or name to full trait object
     let traitObj = trait;
     if (allTraits && trait.name) {
-        const tObj = allTraits[sanitizeId(trait.name)];
-        if (tObj) traitObj = { ...tObj, ...trait };
+        // Use resolveTraitId to properly handle both IDs and names
+        const resolved = resolveTraitId(trait.name, allTraits);
+        const tObj = allTraits[trait.name] || allTraits[sanitizeId(trait.name)];
+        traitObj = { 
+            ...trait,
+            name: resolved.name,
+            desc: resolved.desc,
+            ...(tObj || {})
+        };
     }
 
     // Determine subtext/type

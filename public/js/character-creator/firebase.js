@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app-check.js";
-import { sanitizeId } from '../shared/string-utils.js';
+import { sanitizeId, resolveTraitId } from '../shared/string-utils.js';
 import { AUTH_DOMAIN, RECAPTCHA_SITE_KEY } from '../core/environment.js';
 
 let db;
@@ -64,12 +64,11 @@ export async function loadSpecies() {
     let flaws = typeof s.flaws === 'string' ? s.flaws.split(',').map(name => name.trim()) : (Array.isArray(s.flaws) ? s.flaws : []);
     let characteristics = typeof s.characteristics === 'string' ? s.characteristics.split(',').map(name => name.trim()) : (Array.isArray(s.characteristics) ? s.characteristics : []);
     
-    // sanitizeId imported from shared/string-utils.js
-    
-    species_traits = species_traits.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
-    ancestry_traits = ancestry_traits.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
-    flaws = flaws.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
-    characteristics = characteristics.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
+    // Resolve trait IDs to full trait objects with proper names and descriptions
+    species_traits = species_traits.map(id => resolveTraitId(id, allTraits));
+    ancestry_traits = ancestry_traits.map(id => resolveTraitId(id, allTraits));
+    flaws = flaws.map(id => resolveTraitId(id, allTraits));
+    characteristics = characteristics.map(id => resolveTraitId(id, allTraits));
     
     return {
       ...s,

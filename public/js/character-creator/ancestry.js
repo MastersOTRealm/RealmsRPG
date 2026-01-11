@@ -175,17 +175,18 @@ function fillTraitSection(type, traitArray, showDefinition, selectable, hasLimit
 
 function selectTrait(type, trait, li, hasLimit) {
   const char = window.character || {};
-  let selected;
+  let isCurrentlySelected;
 
   if (type === 'ancestry') {
-    selected = char.ancestryTraits ? char.ancestryTraits.includes(trait.name) : false;
+    isCurrentlySelected = char.ancestryTraits ? char.ancestryTraits.includes(trait.name) : false;
   } else if (type === 'characteristic') {
-    selected = char.characteristicTrait;
+    isCurrentlySelected = char.characteristicTrait === trait.name;
   } else if (type === 'flaw') {
-    selected = char.flawTrait;
+    isCurrentlySelected = char.flawTrait === trait.name;
   }
 
-  if (selected && (type === 'ancestry' ? selected : selected === trait.name)) {
+  // If clicking on already-selected trait, deselect it
+  if (isCurrentlySelected) {
     li.classList.remove('selected');
     if (type === 'ancestry') {
       char.ancestryTraits = char.ancestryTraits.filter(name => name !== trait.name);
@@ -193,24 +194,38 @@ function selectTrait(type, trait, li, hasLimit) {
       delete char.characteristicTrait;
     } else if (type === 'flaw') {
       delete char.flawTrait;
+      // If a flaw is deselected and there are 2 ancestry traits, remove the extra one
       if (char.ancestryTraits && char.ancestryTraits.length > 1) {
-        char.ancestryTraits.pop();
+        const removed = char.ancestryTraits.pop();
+        // Also update the UI to deselect the removed ancestry trait
+        const ancestryItems = document.querySelectorAll('#ancestry-section-body .trait-list li');
+        ancestryItems.forEach(item => {
+          if (item.querySelector('.trait-name')?.textContent === removed) {
+            item.classList.remove('selected');
+          }
+        });
       }
     }
   } else {
+    // Selecting a new trait
     if (hasLimit) {
       if (type === 'ancestry') {
-        const flawSelected = char.flawTrait;
+        const flawSelected = !!char.flawTrait;
         const limit = flawSelected ? 2 : 1;
         if (char.ancestryTraits && char.ancestryTraits.length >= limit) return;
-      } else if (type === 'characteristic' && char.characteristicTrait) return;
-      else if (type === 'flaw' && char.flawTrait) return;
+      } else if (type === 'characteristic' && char.characteristicTrait) {
+        // Can only have one characteristic - don't allow selecting another
+        return;
+      }
+      // For flaws: allow swapping (deselect old, select new) - no return here
     }
 
-    if (type === 'flaw') {
+    // For flaw type, deselect any previously selected flaw first
+    if (type === 'flaw' && char.flawTrait) {
       document.querySelectorAll('#flaw-section-body .trait-list li').forEach(item => {
         item.classList.remove('selected');
       });
+      delete char.flawTrait;
     }
 
     li.classList.add('selected');

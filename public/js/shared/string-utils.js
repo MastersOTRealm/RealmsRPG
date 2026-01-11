@@ -211,3 +211,44 @@ export function pluralize(count, singular, plural) {
 export function formatCount(count, singular, plural) {
     return `${count} ${pluralize(count, singular, plural)}`;
 }
+
+/**
+ * Resolve a trait ID or name to a full trait object with name and description.
+ * Species data stores trait IDs (e.g., "night-vision"), but we need to display
+ * the actual trait name (e.g., "Night Vision") and description.
+ * 
+ * @param {string} traitIdOrName - The trait ID (e.g., "night-vision") or name
+ * @param {object} allTraits - Object of all traits keyed by their sanitized ID
+ * @returns {object} Object with { name, desc } properties
+ * 
+ * @example
+ * resolveTraitId('night-vision', allTraits) // returns { name: 'Night Vision', desc: '...' }
+ * resolveTraitId('Night Vision', allTraits) // also works, falls back to sanitizeId lookup
+ */
+export function resolveTraitId(traitIdOrName, allTraits) {
+    if (!traitIdOrName || !allTraits) {
+        return { name: traitIdOrName || 'Unknown', desc: 'No description' };
+    }
+    
+    // First, try direct lookup (if the value is already a sanitized ID)
+    let trait = allTraits[traitIdOrName];
+    
+    // If not found, try sanitizing (in case it's a human-readable name)
+    if (!trait) {
+        trait = allTraits[sanitizeId(traitIdOrName)];
+    }
+    
+    if (trait) {
+        // Return the trait's actual name and description
+        return {
+            name: trait.name || capitalizeWords(traitIdOrName.replace(/-/g, ' ')),
+            desc: trait.description || 'No description'
+        };
+    }
+    
+    // Fallback: convert the ID to a readable name
+    return {
+        name: capitalizeWords(String(traitIdOrName).replace(/-/g, ' ')),
+        desc: 'No description'
+    };
+}

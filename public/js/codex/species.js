@@ -1,5 +1,5 @@
 import { getWithRetry, createChip, applySort, cmToFtIn, kgToLb } from './core.js';
-import { sanitizeId } from '../shared/string-utils.js';
+import { sanitizeId, resolveTraitId } from '../shared/string-utils.js';
 
 let allSpecies = [];
 let filteredSpecies = [];
@@ -61,10 +61,11 @@ function loadSpecies() {
         let ancestry_traits = typeof s.ancestry_traits === 'string' ? s.ancestry_traits.split(',').map(name => name.trim()) : (Array.isArray(s.ancestry_traits) ? s.ancestry_traits : []);
         let flaws = typeof s.flaws === 'string' ? s.flaws.split(',').map(name => name.trim()) : (Array.isArray(s.flaws) ? s.flaws : []);
         let characteristics = typeof s.characteristics === 'string' ? s.characteristics.split(',').map(name => name.trim()) : (Array.isArray(s.characteristics) ? s.characteristics : []);
-        species_traits = species_traits.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
-        ancestry_traits = ancestry_traits.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
-        flaws = flaws.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
-        characteristics = characteristics.map(name => ({ name, desc: allTraits[sanitizeId(name)]?.description || 'No description' }));
+        // Resolve trait IDs to full trait objects with proper names and descriptions
+        species_traits = species_traits.map(id => resolveTraitId(id, allTraits));
+        ancestry_traits = ancestry_traits.map(id => resolveTraitId(id, allTraits));
+        flaws = flaws.map(id => resolveTraitId(id, allTraits));
+        characteristics = characteristics.map(id => resolveTraitId(id, allTraits));
         return {
           ...s,
           ave_height: s.ave_hgt_cm,

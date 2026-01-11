@@ -217,8 +217,6 @@ async function extractEquipmentProficiencies(weapons, armor) {
   return profs;
 }
 
-// waitForAuth imported from shared/firebase-init.js
-
 // Add function to fetch full powers from user's library
 async function fetchFullPowers(powerNames) {
   const user = await waitForAuth();

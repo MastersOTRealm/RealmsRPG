@@ -39,10 +39,14 @@ document.getElementById('clear-progress-btn')?.addEventListener('click', () => {
   window.db = await initializeFirebase();
   console.log('Firebase initialized');
   
-  // Load all database content in parallel
+  // Load all database content
   console.log('Loading database content...');
+  
+  // Load traits first since species depend on them for name resolution
+  await loadTraits();
+  
+  // Now load species and other content in parallel
   await Promise.all([
-    loadTraits(),
     loadSpecies(),
     loadFeats(),
     loadSkills(),
